@@ -6,53 +6,312 @@
   "metric": "res_gsfsc_0143",
   "note": "Lower is better. Every value is the best of three reconstruction seeds; `seeds` lists seed 0, seed 1 and seed 2 in that order and `raw` is the minimum of the three. The `baseline` row is the same set of numbers as the CryoTransformer row of tab:main_results (Table 2) - the same reconstruction jobs, not a repeat run - and the `fb` row is the same as that table's Ours row. EMPIAR-10345: the pixel size follows CryoPPP's declared 0.673 A, which is the super-resolution movie value, so every 10345 resolution here is about half the physical figure and only comparable within that entry. `particles` is the count the notes attach to each cell, and it does not mean the same stage on every row: for baseline, mask, select and both it is the extraction count (`particles_imported` is the import count where the notes give both), while for fb it is the CryoSift final-selection output. The count actually reaching reconstruction on the two rows that run 2D selection is in `particles_after_2d_selection`. One statement in the notes, that the four non-fb rows feed their extraction count straight into ab-initio while only fb feeds the selection output, cannot be reconciled with the resolution moving when 2D selection is switched on; it is recorded in not_in_paper rather than resolved here.",
   "provenance": {
-    "source": "sec/5_results.tex, tab:ablation_res; docs/notes/5_results.md, raw-value block under heading '直後の本文: \\Cref{tab:particles} follows the $+$both path from the raw ...'",
+    "source": "sec/5_results.tex, tab:ablation_res, for the published values; docs/notes/5_results.md in the manuscript repository, the raw-value block that follows the tab:particles paragraph, for the per-seed values and job uids",
     "collected": "2026-08-20",
     "detail": "The baseline / mask / select / both rows were read on 2026-08-17. The fb row was replaced on 2026-08-20 with the full fine-tuning arm (fbf_r1, loop arm general_full); an earlier LoRA arm is kept in the notes but is not the paper's method."
   },
   "conditions": {
-    "baseline": {"mask": false, "select": false, "fb": false},
-    "mask": {"mask": true, "select": false, "fb": false},
-    "select": {"mask": false, "select": true, "fb": false},
-    "both": {"mask": true, "select": true, "fb": false},
-    "fb": {"mask": true, "select": true, "fb": true}
+    "baseline": {
+      "mask": false,
+      "select": false,
+      "fb": false
+    },
+    "mask": {
+      "mask": true,
+      "select": false,
+      "fb": false
+    },
+    "select": {
+      "mask": false,
+      "select": true,
+      "fb": false
+    },
+    "both": {
+      "mask": true,
+      "select": true,
+      "fb": false
+    },
+    "fb": {
+      "mask": true,
+      "select": true,
+      "fb": true
+    }
   },
   "values": {
     "baseline": {
-      "10081": {"published": 5.02, "raw": 5.0248, "seeds": [5.0958, 5.3163, 5.0248], "seed_spread": 0.291, "refine_job": "J27", "particles": 256713},
-      "10093": {"published": 6.78, "raw": 6.7828, "seeds": [6.9376, 6.7828, 6.8441], "seed_spread": 0.155, "refine_job": "J171", "particles_imported": 754434, "particles": 753998},
-      "10345": {"published": 7.11, "raw": 7.1149, "seeds": [7.5301, 7.1624, 7.1149], "seed_spread": 0.415, "refine_job": "J114", "particles_imported": 494061, "particles": 480836},
-      "10532": {"published": 4.03, "raw": 4.0320, "seeds": [4.0320, 4.0472, 4.0483], "seed_spread": 0.016, "refine_job": "J26", "particles": 602782}
+      "10081": {
+        "published": 5.02,
+        "raw": 5.0248,
+        "seeds": [
+          5.0958,
+          5.3163,
+          5.0248
+        ],
+        "seed_spread": 0.291,
+        "refine_job": "J27",
+        "particles": 256713
+      },
+      "10093": {
+        "published": 6.78,
+        "raw": 6.7828,
+        "seeds": [
+          6.9376,
+          6.7828,
+          6.8441
+        ],
+        "seed_spread": 0.155,
+        "refine_job": "J171",
+        "particles_imported": 754434,
+        "particles": 753998
+      },
+      "10345": {
+        "published": 7.11,
+        "raw": 7.1149,
+        "seeds": [
+          7.5301,
+          7.1624,
+          7.1149
+        ],
+        "seed_spread": 0.415,
+        "refine_job": "J114",
+        "particles_imported": 494061,
+        "particles": 480836
+      },
+      "10532": {
+        "published": 4.03,
+        "raw": 4.032,
+        "seeds": [
+          4.032,
+          4.0472,
+          4.0483
+        ],
+        "seed_spread": 0.016,
+        "refine_job": "J26",
+        "particles": 602782
+      }
     },
     "mask": {
-      "10081": {"published": 4.74, "raw": 4.7430, "seeds": [4.7597, 5.4362, 4.7430], "seed_spread": 0.693, "refine_job": "J47", "particles_imported": 244924, "particles": 242368},
-      "10093": {"published": 7.19, "raw": 7.1897, "seeds": [7.2663, 7.1897, 7.4109], "seed_spread": 0.221, "refine_job": "J269", "particles_imported": 753440, "particles": 753004},
-      "10345": {"published": 6.96, "raw": 6.9638, "seeds": [6.9638, 7.0562, 7.0896], "seed_spread": 0.126, "refine_job": "J165", "particles_imported": 484649, "particles": 471803},
-      "10532": {"published": 3.98, "raw": 3.9845, "seeds": [3.9962, 4.0132, 3.9845], "seed_spread": 0.029, "refine_job": "J62", "particles_imported": 576473, "particles": 574886}
+      "10081": {
+        "published": 4.74,
+        "raw": 4.743,
+        "seeds": [
+          4.7597,
+          5.4362,
+          4.743
+        ],
+        "seed_spread": 0.693,
+        "refine_job": "J47",
+        "particles_imported": 244924,
+        "particles": 242368
+      },
+      "10093": {
+        "published": 7.19,
+        "raw": 7.1897,
+        "seeds": [
+          7.2663,
+          7.1897,
+          7.4109
+        ],
+        "seed_spread": 0.221,
+        "refine_job": "J269",
+        "particles_imported": 753440,
+        "particles": 753004
+      },
+      "10345": {
+        "published": 6.96,
+        "raw": 6.9638,
+        "seeds": [
+          6.9638,
+          7.0562,
+          7.0896
+        ],
+        "seed_spread": 0.126,
+        "refine_job": "J165",
+        "particles_imported": 484649,
+        "particles": 471803
+      },
+      "10532": {
+        "published": 3.98,
+        "raw": 3.9845,
+        "seeds": [
+          3.9962,
+          4.0132,
+          3.9845
+        ],
+        "seed_spread": 0.029,
+        "refine_job": "J62",
+        "particles_imported": 576473,
+        "particles": 574886
+      }
     },
     "select": {
-      "10081": {"published": 4.15, "raw": 4.1487, "seeds": [4.1487, 4.2146, 4.2316], "seed_spread": 0.083, "refine_job": "J102", "particles": 256713, "particles_after_2d_selection": 131926},
-      "10093": {"published": 4.61, "raw": 4.6075, "seeds": [4.6075, 4.6543, 4.7719], "seed_spread": 0.164, "refine_job": "J311", "particles": 753998, "particles_after_2d_selection": 271886},
-      "10345": {"published": 3.55, "raw": 3.5526, "seeds": [3.7276, 3.6408, 3.5526], "seed_spread": 0.175, "refine_job": "J221", "particles": 480836, "particles_after_2d_selection": 26005},
-      "10532": {"published": 3.47, "raw": 3.4690, "seeds": [3.4837, 3.4690, 3.5118], "seed_spread": 0.043, "refine_job": "J180", "particles": 602782, "particles_after_2d_selection": 184103}
+      "10081": {
+        "published": 4.15,
+        "raw": 4.1487,
+        "seeds": [
+          4.1487,
+          4.2146,
+          4.2316
+        ],
+        "seed_spread": 0.083,
+        "refine_job": "J102",
+        "particles": 256713,
+        "particles_after_2d_selection": 131926
+      },
+      "10093": {
+        "published": 4.61,
+        "raw": 4.6075,
+        "seeds": [
+          4.6075,
+          4.6543,
+          4.7719
+        ],
+        "seed_spread": 0.164,
+        "refine_job": "J311",
+        "particles": 753998,
+        "particles_after_2d_selection": 271886
+      },
+      "10345": {
+        "published": 3.55,
+        "raw": 3.5526,
+        "seeds": [
+          3.7276,
+          3.6408,
+          3.5526
+        ],
+        "seed_spread": 0.175,
+        "refine_job": "J221",
+        "particles": 480836,
+        "particles_after_2d_selection": 26005
+      },
+      "10532": {
+        "published": 3.47,
+        "raw": 3.469,
+        "seeds": [
+          3.4837,
+          3.469,
+          3.5118
+        ],
+        "seed_spread": 0.043,
+        "refine_job": "J180",
+        "particles": 602782,
+        "particles_after_2d_selection": 184103
+      }
     },
     "both": {
-      "10081": {"published": 4.08, "raw": 4.0777, "seeds": [4.0777, 4.1957, 4.1809], "seed_spread": 0.118, "refine_job": "J134", "particles": 242368, "particles_after_2d_selection": 126181},
-      "10093": {"published": 4.52, "raw": 4.5196, "seeds": [5.1358, 4.9364, 4.5196], "seed_spread": 0.616, "refine_job": "J352", "particles": 753004, "particles_after_2d_selection": 301589},
-      "10345": {"published": 3.59, "raw": 3.5885, "seeds": [3.5885, 3.6038, 3.6245], "seed_spread": 0.036, "refine_job": "J274", "particles": 471803, "particles_after_2d_selection": 29214},
-      "10532": {"published": 3.43, "raw": 3.4303, "seeds": [3.4303, 3.4922, 3.4795], "seed_spread": 0.062, "refine_job": "J162", "particles": 574886, "particles_after_2d_selection": 178722}
+      "10081": {
+        "published": 4.08,
+        "raw": 4.0777,
+        "seeds": [
+          4.0777,
+          4.1957,
+          4.1809
+        ],
+        "seed_spread": 0.118,
+        "refine_job": "J134",
+        "particles": 242368,
+        "particles_after_2d_selection": 126181
+      },
+      "10093": {
+        "published": 4.52,
+        "raw": 4.5196,
+        "seeds": [
+          5.1358,
+          4.9364,
+          4.5196
+        ],
+        "seed_spread": 0.616,
+        "refine_job": "J352",
+        "particles": 753004,
+        "particles_after_2d_selection": 301589
+      },
+      "10345": {
+        "published": 3.59,
+        "raw": 3.5885,
+        "seeds": [
+          3.5885,
+          3.6038,
+          3.6245
+        ],
+        "seed_spread": 0.036,
+        "refine_job": "J274",
+        "particles": 471803,
+        "particles_after_2d_selection": 29214
+      },
+      "10532": {
+        "published": 3.43,
+        "raw": 3.4303,
+        "seeds": [
+          3.4303,
+          3.4922,
+          3.4795
+        ],
+        "seed_spread": 0.062,
+        "refine_job": "J162",
+        "particles": 574886,
+        "particles_after_2d_selection": 178722
+      }
     },
     "fb": {
-      "10081": {"published": 4.12, "raw": 4.118, "seeds": [4.151, 4.118, 4.125], "seed_spread": 0.033, "refine_job": "J507", "particles": 127859},
-      "10093": {"published": 4.37, "raw": 4.365, "seeds": [4.431, 4.365, 4.410], "seed_spread": 0.066, "refine_job": "J577", "particles": 295644},
-      "10345": {"published": 3.54, "raw": 3.540, "seeds": [3.713, 3.668, 3.540], "seed_spread": 0.172, "refine_job": "J511", "particles": 27838},
-      "10532": {"published": 3.40, "raw": 3.402, "seeds": [3.402, 3.524, 3.484], "seed_spread": 0.122, "refine_job": "J557", "particles": 208931}
+      "10081": {
+        "published": 4.12,
+        "raw": 4.118,
+        "seeds": [
+          4.151,
+          4.118,
+          4.125
+        ],
+        "seed_spread": 0.033,
+        "refine_job": "J507",
+        "particles": 127859
+      },
+      "10093": {
+        "published": 4.37,
+        "raw": 4.365,
+        "seeds": [
+          4.431,
+          4.365,
+          4.41
+        ],
+        "seed_spread": 0.066,
+        "refine_job": "J577",
+        "particles": 295644
+      },
+      "10345": {
+        "published": 3.54,
+        "raw": 3.54,
+        "seeds": [
+          3.713,
+          3.668,
+          3.54
+        ],
+        "seed_spread": 0.172,
+        "refine_job": "J511",
+        "particles": 27838
+      },
+      "10532": {
+        "published": 3.4,
+        "raw": 3.402,
+        "seeds": [
+          3.402,
+          3.524,
+          3.484
+        ],
+        "seed_spread": 0.122,
+        "refine_job": "J557",
+        "particles": 208931
+      }
     }
   },
   "not_in_paper": {
     "note": "`seed_spread` above is max minus min of the three seeds as the notes record it. For the fb row on 10345 the notes give 0.172 while the three listed seeds differ by 0.173; the notes compute the spread before rounding the per-seed values, which is the likely cause. The mask stage removes candidates at the STAR level outside CryoSPARC, so the baseline and mask import counts are directly comparable.",
     "unresolved_statement_about_reconstruction_input": "docs/notes/5_results.md states, in the block that introduced the fb row, that the other four conditions feed their extraction count straight into ab-initio while the fb row feeds only the CryoSift final selection output. That cannot hold for the select and both rows, whose resolution changes by up to 3.56 A when 2D selection is switched on and whose selected stacks are printed in tab:particles. The statement is reproduced here unchanged and not acted on.",
-    "baseline_import_counts": {"10081": 259335, "10093": 754434, "10345": 494061, "10532": 604430},
+    "baseline_import_counts": {
+      "10081": 259335,
+      "10093": 754434,
+      "10345": 494061,
+      "10532": 604430
+    },
     "fb_particles_entering_abinitio": {
       "10081": 127859,
       "10093": 207000,
@@ -68,11 +327,96 @@
     },
     "orientation_diagnostics_cfar_scfstar": {
       "note": "cFAR and SCF* from CryoSPARC's Orientation Diagnostics on the best-of-three winner of each condition. Measured and recorded, but dropped from the paper on 2026-08-18 because the pipeline has no mechanism that targets orientation bias. Values are [cFAR, SCF*]. The refine job uids in this block are those of the LoRA fb arm, which the paper no longer reports; the other four rows match the refine_job values above.",
-      "baseline": {"10081": [0.05192, 0.94664], "10093": [0.12896, 0.95772], "10345": [0.50116, 0.97634], "10532": [0.01898, 0.93458]},
-      "mask": {"10081": [0.04640, 0.92374], "10093": [0.16369, 0.95223], "10345": [0.52512, 0.97848], "10532": [0.01479, 0.93068]},
-      "select": {"10081": [0.25445, 0.95722], "10093": [0.05583, 0.71375], "10345": [0.12874, 0.68138], "10532": [0.01523, 0.68807]},
-      "both": {"10081": [0.56864, 0.98458], "10093": [0.04219, 0.77469], "10345": [0.13513, 0.65989], "10532": [0.02735, 0.67284]},
-      "fb_lora_arm": {"10081": [0.64904, 0.98837], "10093": [0.04556, 0.79478], "10345": [0.07621, 0.53448], "10532": [0.01959, 0.67116]}
+      "baseline": {
+        "10081": [
+          0.05192,
+          0.94664
+        ],
+        "10093": [
+          0.12896,
+          0.95772
+        ],
+        "10345": [
+          0.50116,
+          0.97634
+        ],
+        "10532": [
+          0.01898,
+          0.93458
+        ]
+      },
+      "mask": {
+        "10081": [
+          0.0464,
+          0.92374
+        ],
+        "10093": [
+          0.16369,
+          0.95223
+        ],
+        "10345": [
+          0.52512,
+          0.97848
+        ],
+        "10532": [
+          0.01479,
+          0.93068
+        ]
+      },
+      "select": {
+        "10081": [
+          0.25445,
+          0.95722
+        ],
+        "10093": [
+          0.05583,
+          0.71375
+        ],
+        "10345": [
+          0.12874,
+          0.68138
+        ],
+        "10532": [
+          0.01523,
+          0.68807
+        ]
+      },
+      "both": {
+        "10081": [
+          0.56864,
+          0.98458
+        ],
+        "10093": [
+          0.04219,
+          0.77469
+        ],
+        "10345": [
+          0.13513,
+          0.65989
+        ],
+        "10532": [
+          0.02735,
+          0.67284
+        ]
+      },
+      "fb_lora_arm": {
+        "10081": [
+          0.64904,
+          0.98837
+        ],
+        "10093": [
+          0.04556,
+          0.79478
+        ],
+        "10345": [
+          0.07621,
+          0.53448
+        ],
+        "10532": [
+          0.01959,
+          0.67116
+        ]
+      }
     }
   }
 }

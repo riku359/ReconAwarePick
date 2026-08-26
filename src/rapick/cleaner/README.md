@@ -110,6 +110,13 @@ $RAPICK_WORK/mask_compare/                        comparison.csv + arrays/ (Fig.
 $RAPICK_WORK/figures/                             the rendered figures
 ```
 
+`<prefix>` defaults to `cryotransformer`, which is also the name the published
+Hugging Face artifacts carry, so a downloaded mask arm and a locally derived one
+land under the same filename. That is the **artifact** name; the **condition** is
+called `mask` (`docs/PAPER_TO_CODE.md`). `scripts/04_mask.sh` copies the filtered
+STAR to `$RAPICK_WORK/picks/<id>/mask.star`, which is what the reconstruction
+configs read, so the two names meet there and nowhere else.
+
 The stored mask is exactly what the filter would compute at run time
 (`extract_blended(extractor, preprocessMic(image, box), 2, 1)`); the only
 difference is the rounding from float16 storage, whose step near 0.5 is about

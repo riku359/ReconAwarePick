@@ -66,8 +66,13 @@ echo "== the private repository's vocabulary must not leak =="
 # old names: docs/PAPER_TO_CODE.md, which is the translation table, and
 # results/tables/, where they appear inside provenance fields recording which
 # run each number came from. Everywhere else they are a leak.
+#
+# `cryotransformer_clean_tri` is deliberately NOT in this pattern. It is the file
+# the contamination filter writes, not a condition name, and it is also the name
+# the published Hugging Face artifacts carry. src/rapick/cleaner/README.md explains
+# the difference between that artifact name and the condition name `mask`.
 hits=$(files | grep -v -e '^docs/PAPER_TO_CODE.md$' -e '^results/tables/' | tr '\n' '\0' \
-       | xargs -0 grep -InE 'fbf_r[0-9]|fbc_r[0-9]|fbgt_r|clean_tri|cryosift_iter|general_full|lora_general|lora_chained' 2>/dev/null \
+       | xargs -0 grep -InE 'fbf_r[0-9]|fbc_r[0-9]|fbgt_r|general_full|lora_general|lora_chained' 2>/dev/null \
        | grep -v '^scripts/check_release.sh:')
 report "no legacy condition names" "$hits"
 

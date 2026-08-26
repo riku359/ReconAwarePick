@@ -6,65 +6,339 @@
   "metric": "loop_round_diagnostics",
   "note": "Round 0 picks with the base checkpoint; round n picks with the checkpoint trained on the teacher labels of round n-1. `picks` is the number of candidates on the annotated micrographs. `precision`, `recall` and `f1` are macro scores of that round's picks against the CryoPPP annotations, averaged per micrograph, kept at three decimals as the paper prints them. `after_purify_count` is the number of particles left after contamination masking and 2D selection, and `after_purify_share` is that count as a percent of `picks` in the same round. The loop runs no reconstruction, so this table carries no resolution and the EMPIAR-10345 pixel-size caveat does not apply to it. All values come from the full fine-tuning arm (loop arm general_full, prefix fbf_r), which is the paper's method; an earlier LoRA arm gave different counts and is not reported here.",
   "provenance": {
-    "source": "sec/5_results.tex, tab:loop_rounds; docs/notes/5_results.md, heading tab:loop_rounds and the following block '節全体のメモ（ループの生値）'",
+    "source": "sec/5_results.tex, tab:loop_rounds, for the published values; docs/notes/5_results.md in the manuscript repository, the tab:loop_rounds heading and the section-wide raw-value block that follows it",
     "collected": "2026-08-20",
-    "detail": "Aggregated from each round's state.json with recon-pipe/drivers/fb_round_metrics.py --arm general_full; the notes give 2026-08-20 as the read-out date."
+    "detail": "Aggregated from each round's state.json with what is now src/rapick/loop/round_metrics.py, on the full fine-tuning arm the paper reports; the notes give 2026-08-20 as the read-out date."
   },
   "values": {
     "10081": {
-      "0": {"picks": 65385, "precision": 0.530, "recall": 0.919, "f1": 0.655, "after_purify_count": 33844, "after_purify_share": 51.8},
-      "1": {"picks": 81787, "precision": 0.470, "recall": 0.970, "f1": 0.610, "after_purify_count": 37234, "after_purify_share": 45.5},
-      "2": {"picks": 80114, "precision": 0.481, "recall": 0.971, "f1": 0.619, "after_purify_count": 37935, "after_purify_share": 47.4, "recall_raw": 0.97118},
-      "3": {"picks": 83272, "precision": 0.465, "recall": 0.971, "f1": 0.606, "after_purify_count": 37261, "after_purify_share": 44.7, "recall_raw": 0.97140}
+      "0": {
+        "picks": 65385,
+        "precision": 0.53,
+        "recall": 0.919,
+        "f1": 0.655,
+        "after_purify_count": 33844,
+        "after_purify_share": 51.8
+      },
+      "1": {
+        "picks": 81787,
+        "precision": 0.47,
+        "recall": 0.97,
+        "f1": 0.61,
+        "after_purify_count": 37234,
+        "after_purify_share": 45.5
+      },
+      "2": {
+        "picks": 80114,
+        "precision": 0.481,
+        "recall": 0.971,
+        "f1": 0.619,
+        "after_purify_count": 37935,
+        "after_purify_share": 47.4,
+        "recall_raw": 0.97118
+      },
+      "3": {
+        "picks": 83272,
+        "precision": 0.465,
+        "recall": 0.971,
+        "f1": 0.606,
+        "after_purify_count": 37261,
+        "after_purify_share": 44.7,
+        "recall_raw": 0.9714
+      }
     },
     "10093": {
-      "0": {"picks": 114176, "precision": 0.370, "recall": 0.737, "f1": 0.491, "after_purify_count": 39021, "after_purify_share": 34.2},
-      "1": {"picks": 93962, "precision": 0.429, "recall": 0.703, "f1": 0.532, "after_purify_count": 47007, "after_purify_share": 50.0},
-      "2": {"picks": 90145, "precision": 0.434, "recall": 0.683, "f1": 0.530, "after_purify_count": 42490, "after_purify_share": 47.1},
-      "3": {"picks": 89453, "precision": 0.433, "recall": 0.675, "f1": 0.526, "after_purify_count": 40761, "after_purify_share": 45.6}
+      "0": {
+        "picks": 114176,
+        "precision": 0.37,
+        "recall": 0.737,
+        "f1": 0.491,
+        "after_purify_count": 39021,
+        "after_purify_share": 34.2
+      },
+      "1": {
+        "picks": 93962,
+        "precision": 0.429,
+        "recall": 0.703,
+        "f1": 0.532,
+        "after_purify_count": 47007,
+        "after_purify_share": 50.0
+      },
+      "2": {
+        "picks": 90145,
+        "precision": 0.434,
+        "recall": 0.683,
+        "f1": 0.53,
+        "after_purify_count": 42490,
+        "after_purify_share": 47.1
+      },
+      "3": {
+        "picks": 89453,
+        "precision": 0.433,
+        "recall": 0.675,
+        "f1": 0.526,
+        "after_purify_count": 40761,
+        "after_purify_share": 45.6
+      }
     },
     "10345": {
-      "0": {"picks": 71074, "precision": 0.232, "recall": 0.947, "f1": 0.354, "after_purify_count": 4458, "after_purify_share": 6.3},
-      "1": {"picks": 67992, "precision": 0.194, "recall": 0.821, "f1": 0.298, "after_purify_count": 3611, "after_purify_share": 5.3},
-      "2": {"picks": 76690, "precision": 0.159, "recall": 0.726, "f1": 0.248, "after_purify_count": 3965, "after_purify_share": 5.2},
-      "3": {"picks": 74838, "precision": 0.164, "recall": 0.745, "f1": 0.257, "after_purify_count": 3349, "after_purify_share": 4.5}
+      "0": {
+        "picks": 71074,
+        "precision": 0.232,
+        "recall": 0.947,
+        "f1": 0.354,
+        "after_purify_count": 4458,
+        "after_purify_share": 6.3
+      },
+      "1": {
+        "picks": 67992,
+        "precision": 0.194,
+        "recall": 0.821,
+        "f1": 0.298,
+        "after_purify_count": 3611,
+        "after_purify_share": 5.3
+      },
+      "2": {
+        "picks": 76690,
+        "precision": 0.159,
+        "recall": 0.726,
+        "f1": 0.248,
+        "after_purify_count": 3965,
+        "after_purify_share": 5.2
+      },
+      "3": {
+        "picks": 74838,
+        "precision": 0.164,
+        "recall": 0.745,
+        "f1": 0.257,
+        "after_purify_count": 3349,
+        "after_purify_share": 4.5
+      }
     },
     "10532": {
-      "0": {"picks": 108453, "precision": 0.459, "recall": 0.580, "f1": 0.498, "after_purify_count": 32213, "after_purify_share": 29.7},
-      "1": {"picks": 81983, "precision": 0.517, "recall": 0.487, "f1": 0.490, "after_purify_count": 38421, "after_purify_share": 46.9},
-      "2": {"picks": 80747, "precision": 0.509, "recall": 0.469, "f1": 0.477, "after_purify_count": 40148, "after_purify_share": 49.7},
-      "3": {"picks": 81548, "precision": 0.506, "recall": 0.474, "f1": 0.479, "after_purify_count": 36281, "after_purify_share": 44.5}
+      "0": {
+        "picks": 108453,
+        "precision": 0.459,
+        "recall": 0.58,
+        "f1": 0.498,
+        "after_purify_count": 32213,
+        "after_purify_share": 29.7
+      },
+      "1": {
+        "picks": 81983,
+        "precision": 0.517,
+        "recall": 0.487,
+        "f1": 0.49,
+        "after_purify_count": 38421,
+        "after_purify_share": 46.9
+      },
+      "2": {
+        "picks": 80747,
+        "precision": 0.509,
+        "recall": 0.469,
+        "f1": 0.477,
+        "after_purify_count": 40148,
+        "after_purify_share": 49.7
+      },
+      "3": {
+        "picks": 81548,
+        "precision": 0.506,
+        "recall": 0.474,
+        "f1": 0.479,
+        "after_purify_count": 36281,
+        "after_purify_share": 44.5
+      }
     }
   },
   "not_in_paper": {
     "note": "The intermediate stages of the funnel, an extra round on 10081, and the per-round rates the table no longer prints.",
     "funnel_counts": {
       "note": "Order: picks / passing the contamination mask / accepted by 2D classification / surviving CryoSift. The first and last are the two columns the paper prints.",
-      "10081": {"0": [65385, 61360, 55218, 33844], "1": [81787, 79801, 74538, 37234], "2": [80114, 78456, 73668, 37935], "3": [83272, 81450, 76527, 37261]},
-      "10093": {"0": [114176, 114161, 112150, 39021], "1": [93962, 93870, 90323, 47007], "2": [90145, 90072, 86374, 42490], "3": [89453, 89355, 85458, 40761]},
-      "10345": {"0": [71074, 69167, 53950, 4458], "1": [67992, 66494, 48765, 3611], "2": [76690, 75559, 48626, 3965], "3": [74838, 72710, 50668, 3349]},
-      "10532": {"0": [108453, 104365, 99089, 32213], "1": [81983, 79683, 74830, 38421], "2": [80747, 77624, 73067, 40148], "3": [81548, 78608, 73687, 36281]}
+      "10081": {
+        "0": [
+          65385,
+          61360,
+          55218,
+          33844
+        ],
+        "1": [
+          81787,
+          79801,
+          74538,
+          37234
+        ],
+        "2": [
+          80114,
+          78456,
+          73668,
+          37935
+        ],
+        "3": [
+          83272,
+          81450,
+          76527,
+          37261
+        ]
+      },
+      "10093": {
+        "0": [
+          114176,
+          114161,
+          112150,
+          39021
+        ],
+        "1": [
+          93962,
+          93870,
+          90323,
+          47007
+        ],
+        "2": [
+          90145,
+          90072,
+          86374,
+          42490
+        ],
+        "3": [
+          89453,
+          89355,
+          85458,
+          40761
+        ]
+      },
+      "10345": {
+        "0": [
+          71074,
+          69167,
+          53950,
+          4458
+        ],
+        "1": [
+          67992,
+          66494,
+          48765,
+          3611
+        ],
+        "2": [
+          76690,
+          75559,
+          48626,
+          3965
+        ],
+        "3": [
+          74838,
+          72710,
+          50668,
+          3349
+        ]
+      },
+      "10532": {
+        "0": [
+          108453,
+          104365,
+          99089,
+          32213
+        ],
+        "1": [
+          81983,
+          79683,
+          74830,
+          38421
+        ],
+        "2": [
+          80747,
+          77624,
+          73067,
+          40148
+        ],
+        "3": [
+          81548,
+          78608,
+          73687,
+          36281
+        ]
+      }
     },
     "mask_removal_pct_unrounded": {
       "note": "(picks - mask-passing) / picks, per round 0..3.",
-      "10081": [6.16, 2.43, 2.07, 2.19],
-      "10093": [0.01, 0.10, 0.08, 0.11],
-      "10345": [2.68, 2.20, 1.47, 2.84],
-      "10532": [3.77, 2.81, 3.87, 3.61]
+      "10081": [
+        6.16,
+        2.43,
+        2.07,
+        2.19
+      ],
+      "10093": [
+        0.01,
+        0.1,
+        0.08,
+        0.11
+      ],
+      "10345": [
+        2.68,
+        2.2,
+        1.47,
+        2.84
+      ],
+      "10532": [
+        3.77,
+        2.81,
+        3.87,
+        3.61
+      ]
     },
     "permanent_discard_pct_unrounded": {
       "note": "(n_class2d - attractor_kept - round0_kept) / n_class2d, the share of the particles reaching 2D classification that the first CryoSift iteration rejects permanently. Dropped with fig:loop on 2026-08-20.",
-      "10081": [11.46, 32.56, 33.47, 35.09],
-      "10093": [46.65, 29.24, 24.78, 29.20],
-      "10345": [75.74, 71.11, 73.36, 73.24],
-      "10532": [47.98, 19.69, 14.83, 16.76]
+      "10081": [
+        11.46,
+        32.56,
+        33.47,
+        35.09
+      ],
+      "10093": [
+        46.65,
+        29.24,
+        24.78,
+        29.2
+      ],
+      "10345": [
+        75.74,
+        71.11,
+        73.36,
+        73.24
+      ],
+      "10532": [
+        47.98,
+        19.69,
+        14.83,
+        16.76
+      ]
     },
     "final_survival_pct_unrounded": {
       "note": "kept_particles / n_class2d. Different denominator from `after_purify_share`, which divides by picks.",
-      "10081": [61.29, 49.95, 51.49, 48.69],
-      "10093": [34.79, 52.04, 49.19, 47.70],
-      "10345": [8.26, 7.40, 8.15, 6.61],
-      "10532": [32.51, 51.34, 54.95, 49.24]
+      "10081": [
+        61.29,
+        49.95,
+        51.49,
+        48.69
+      ],
+      "10093": [
+        34.79,
+        52.04,
+        49.19,
+        47.7
+      ],
+      "10345": [
+        8.26,
+        7.4,
+        8.15,
+        6.61
+      ],
+      "10532": [
+        32.51,
+        51.34,
+        54.95,
+        49.24
+      ]
     },
     "round_4_10081": {
       "note": "Only the 2D scores exist for this round; 2D classification and CryoSift were not run past round 3, and the other three entries stop at round 3, so the paper reports rounds 0 to 3 on all four.",
@@ -75,23 +349,59 @@
     "macro_f1_spread_rounds_1_to_3": {
       "10081": 0.013,
       "10093": 0.006,
-      "10345": 0.050,
+      "10345": 0.05,
       "10532": 0.013,
       "note": "The paper's claim that rounds 2 and 3 stay within 0.013 macro F1 of round 1 is this spread, with EMPIAR-10345 the exception it names separately."
     },
     "round0_teacher_label_quality": {
       "note": "The round-0 teacher labels scored against the CryoPPP annotations of the 50 micrographs the teacher is drawn from, pooled: precision, recall, and labels per micrograph. Source: recon-aware-pick docs/picker_fb/round_operating_point.md, quoted in docs/notes/5_results.md.",
-      "10081": {"precision": 0.921, "recall": 0.796, "labels_per_micrograph": 115.8},
-      "10093": {"precision": 0.636, "recall": 0.433, "labels_per_micrograph": 126.1},
-      "10345": {"precision": 0.584, "recall": 0.163, "labels_per_micrograph": 15.5},
-      "10532": {"precision": 0.698, "recall": 0.250, "labels_per_micrograph": 105.5}
+      "10081": {
+        "precision": 0.921,
+        "recall": 0.796,
+        "labels_per_micrograph": 115.8
+      },
+      "10093": {
+        "precision": 0.636,
+        "recall": 0.433,
+        "labels_per_micrograph": 126.1
+      },
+      "10345": {
+        "precision": 0.584,
+        "recall": 0.163,
+        "labels_per_micrograph": 15.5
+      },
+      "10532": {
+        "precision": 0.698,
+        "recall": 0.25,
+        "labels_per_micrograph": 105.5
+      }
     },
     "round0_base_checkpoint_ungated_scores": {
       "note": "An unresolved discrepancy worth knowing about. The notes record a second set of round-0 base-checkpoint scores that do NOT match the round 0 row above, on the same annotated micrographs: 10081 0.469 / 0.954 / 0.610 with 77,327 picks, 10093 0.352 / 0.737 / 0.475 with 118,310, 10345 0.187 / 0.966 / 0.299 with 87,445, 10532 0.459 / 0.620 / 0.514 with 116,753. These are the values the paper prints as the CryoTransformer row of tab:f1_vs_res (Table S2). The notes label the loop-table numbers as the gated values, measured after the contamination mask, and give 10081 as 0.530 / 0.919 / 0.655 with 65,386 picks and 10532 as 0.459 / 0.580 / 0.498 with 108,456, against 65,385 and 108,453 in the table. Nothing in the notes reconciles the small count differences, and no gated pair is recorded for 10093 or 10345.",
-      "10081": {"precision": 0.469, "recall": 0.954, "f1": 0.610, "picks": 77327},
-      "10093": {"precision": 0.352, "recall": 0.737, "f1": 0.475, "picks": 118310},
-      "10345": {"precision": 0.187, "recall": 0.966, "f1": 0.299, "picks": 87445},
-      "10532": {"precision": 0.459, "recall": 0.620, "f1": 0.514, "picks": 116753}
+      "10081": {
+        "precision": 0.469,
+        "recall": 0.954,
+        "f1": 0.61,
+        "picks": 77327
+      },
+      "10093": {
+        "precision": 0.352,
+        "recall": 0.737,
+        "f1": 0.475,
+        "picks": 118310
+      },
+      "10345": {
+        "precision": 0.187,
+        "recall": 0.966,
+        "f1": 0.299,
+        "picks": 87445
+      },
+      "10532": {
+        "precision": 0.459,
+        "recall": 0.62,
+        "f1": 0.514,
+        "picks": 116753
+      }
     }
   }
 }
