@@ -1,0 +1,25 @@
+[project]
+# The environment the figure scripts under results/figures/ run in. It needs no
+# GPU and no CryoSPARC connection: every script here reads files that an earlier
+# stage already wrote.
+#
+# This is the one environment without a committed uv.lock, because it was
+# assembled for the release rather than during the experiments. Run `uv lock`
+# once in this directory and commit the result before the repository is
+# published, so the figures pin as tightly as the pipeline does.
+name = "rapick-figures"
+version = "0.1.0"
+description = "Figure generation for Reconstruction-Aware Cryo-EM Particle Picking"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "mrcfile>=1.5",          # reading .mrc volumes and micrographs
+    "pillow>=10.0",          # panel tiling
+    "opencv-python>=4.9",    # overlay rendering, shared with the eval utilities
+    "pypdf>=4.0",            # cropping the hand-drawn figures after LibreOffice
+    "python-pptx>=0.6.23",   # the two hand-drawn figures are built from pptx
+]
+
+# ChimeraX is a separate application, not a Python dependency. Fig. 3 needs it;
+# results/figures/locres_maps/README.md says which version and how it is invoked.

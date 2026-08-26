@@ -1,0 +1,113 @@
+# Upstream repositories this project depends on.
+#
+# None of them is redistributed here. `scripts/00_setup.sh` clones each one at the
+# commit pinned below into $RAPICK_THIRD_PARTY (default `third_party/`). The single
+# exception is CryoTransformer, three of whose files carry our modifications and ship
+# in `src/rapick/picker/overlay/`; the modifications themselves are readable as diffs
+# in `src/rapick/picker/patches/`, and setup copies the overlay over the clean clone.
+#
+# Each entry also names a fork under github.com/riku359 that is pinned at the same
+# commit, so the build still resolves if an upstream repository moves or disappears.
+#
+# Re-create any checkout by hand with:
+#   git clone <url> <path>
+#   git -C <path> checkout <commit>
+
+pipeline:
+
+  cryotransformer:
+    name: CryoTransformer
+    role: the picker (Sec. 3.2)
+    url: https://github.com/jianlin-cheng/CryoTransformer.git
+    mirror: https://github.com/riku359/recon-aware-pick-cryotransformer.git
+    commit: a56f133f3f499562c32a6bc512eec5f115095b3b
+    commit_date: "2025-01-12"
+    path: cryotransformer
+    license: MIT
+    modified: true          # see src/rapick/picker/patches/
+    weights: >-
+      The released checkpoint is downloaded by scripts/01_download_data.sh. The
+      repaired head of Sec. S2 is a separate checkpoint, on Hugging Face at
+      rikrikrik/recon-aware-pick-weights.
+
+  micrograph_cleaner:
+    name: MicrographCleaner
+    role: contamination masking (Sec. 3.3, Sec. S3)
+    url: https://github.com/rsanchezgarc/micrograph_cleaner_em.git
+    branch: tf2            # the tf2 branch, not master
+    path: micrograph_cleaner_em
+    license: Apache-2.0
+    modified: false
+    note: >-
+      We call the released network unchanged and replace only the post-processing
+      that assembles its per-window predictions into one mask per micrograph. The
+      replacement is ours and lives in src/rapick/cleaner/. Model weights are
+      fetched by the upstream downloader, see src/rapick/cleaner/README.md.
+
+  cryosift:
+    name: CryoSift
+    role: 2D class selection (Sec. 3.4, Sec. S4)
+    url: https://github.com/sstagg/Magellon.git
+    commit: 0d5c40a5c89efe9d7d977e832dcc94658a291ee1
+    subdir: Sandbox/particle_processor
+    path: magellon
+    license: Apache-2.0
+    modified: false
+    note: >-
+      The scoring CNN and its weights are bundled inside the checkout, so no
+      separate download is needed. We call the model unchanged and supply the
+      iterative workflow around it. One upstream bug is worked around rather than
+      patched: see src/rapick/select2d/README.md.
+
+# The three alternative pickers of Table 2 and Table S2. They are needed only to
+# reproduce those two tables. Their picks are published as STAR files, so the
+# tables can be reproduced without installing any of them; see docs/BASELINES.md.
+baselines:
+
+  cryolo:
+    name: crYOLO
+    url: https://github.com/MPI-Dortmund/cryolo.git
+    mirror: https://github.com/riku359/recon-aware-pick-cryolo.git
+    commit: 30039bde34d65c179541568b0c27f09916ac5652
+    license: >-
+      Proprietary. The SPHIRE-crYOLO Complimentary Science Software License
+      (non-commercial). Not redistributable.
+    install: >-
+      The GitHub repository is documentation only. The software installs from PyPI
+      (`pip install 'cryolo[c11]'`, needs python < 3.9) together with a custom
+      NVIDIA TensorFlow 1.15 build and conda-only GUI packages.
+    leakage: >-
+      EMPIAR-10081 is in the training data of the released general model. The paper
+      greys that cell in Table S2 and excludes it from the ranking.
+
+  topaz:
+    name: Topaz
+    url: https://github.com/tbepler/topaz.git
+    mirror: https://github.com/riku359/recon-aware-pick-topaz.git
+    commit: 58fe52370f4accb8215525df2ea8f2c7ee6d340a
+    commit_date: "2026-05-11"
+    license: GPL-3.0
+    note: >-
+      GPL-3.0, so it is cloned and never vendored into this MIT repository.
+    leakage: >-
+      The training data of the released general model is undocumented, so an
+      overlap with these four entries cannot be ruled out. The paper greys every
+      Topaz cell in Table S2 and excludes them from the ranking.
+
+  cryosegnet:
+    name: CryoSegNet
+    url: https://github.com/jianlin-cheng/CryoSegNet.git
+    mirror: https://github.com/riku359/recon-aware-pick-cryosegnet.git
+    commit: 3ab08d583ebc0047f3e0c73bfccf1d0f50bb58ee
+    commit_date: "2026-01-06"
+    license: MIT
+    note: >-
+      Trained on the same CryoPPP data as CryoTransformer and, like it, does not
+      overlap the four test entries. This is why the paper pairs it with
+      CryoTransformer for the purification comparison of Table 8.
+
+# Not used by this paper, recorded so the omission is deliberate rather than an
+# oversight: CASSPER (github.com/airis4d/CASSPER) has no licence file and ships
+# precompiled CPython 3.6 extensions that do not run on current hardware, and
+# Cinderella (github.com/MPI-Dortmund/sphire_classes_autoselect) was evaluated as
+# an alternative 2D class selector but is not part of the reported pipeline.

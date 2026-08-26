@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "Reconstruction-Aware Cryo-EM Particle Picking"
+type: software
+license: MIT
+repository-code: "https://github.com/riku359/ReconAwarePick"
+authors:
+  - family-names: Itsuji
+    given-names: Riku
+    affiliation: "Keio University"
+  - family-names: Wang
+    given-names: Yuanhao
+    affiliation: "Carnegie Mellon University"
+  - family-names: Li
+    given-names: Xingjian
+    affiliation: "Carnegie Mellon University"
+  - family-names: Min
+    given-names: Seonghui
+    affiliation: "Carnegie Mellon University"
+  - family-names: Saito
+    given-names: Hideo
+    affiliation: "Keio University"
+  - family-names: Xu
+    given-names: Min
+    affiliation: "Carnegie Mellon University"
+preferred-citation:
+  type: conference-paper
+  title: "Reconstruction-Aware Cryo-EM Particle Picking"
+  # TODO: fill in year, collection-title, pages and DOI once the proceedings
+  # citation is assigned.
+  authors:
+    - family-names: Itsuji
+      given-names: Riku
+    - family-names: Wang
+      given-names: Yuanhao
+    - family-names: Li
+      given-names: Xingjian
+    - family-names: Min
+      given-names: Seonghui
+    - family-names: Saito
+      given-names: Hideo
+    - family-names: Xu
+      given-names: Min

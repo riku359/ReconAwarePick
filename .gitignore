@@ -1,0 +1,37 @@
+# Upstream code is fetched by scripts/00_setup.sh, never committed.
+/third_party/
+
+# Per-tool virtual environments, built from envs/<name>/ lockfiles.
+# No trailing slash: on a machine whose code disk is small, .venv is a symlink
+# onto the data disk, which a directory-only pattern would not match.
+.venv
+.venvs/
+.uv-cache/
+__pycache__/
+*.pyc
+
+# Secrets. .env holds the CryoSPARC license id, e-mail and password;
+# .env.example is the tracked template.
+.env
+.env.*
+!.env.example
+
+# Model weights and micrographs live under $RAPICK_DATA, run outputs under
+# $RAPICK_WORK, both outside the repository (docs/CONFIGURATION.md). These
+# patterns only guard against a root being pointed inside the clone.
+*.pth
+*.mrc
+*.mrcs
+*.star
+!results/**/*.star
+/data/
+/work/
+
+# Everything under results/ is committed on purpose: it is the paper's numbers
+# and the scripts that turn them into figures. Rendered figures are not.
+/results/figures/**/*.png
+/results/figures/**/*.pdf
+!/assets/**
+
+.DS_Store
+*.log
