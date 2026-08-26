@@ -1,0 +1,49 @@
+{
+  "table": "tab:mask_removals",
+  "paper_number": "Table 3",
+  "caption": "Mistaken rate of the contamination mask. Candidates the mask removes on the annotated micrographs, split by whether they overlap a CryoPPP-annotated particle.",
+  "units": "count and percent",
+  "metric": "mask_removals_by_gt_overlap",
+  "note": "Counts are on the annotated micrographs only (300 / 295 / 295 / 300 evaluated micrographs, not the full deposition). They are derived as the difference between the baseline and the +mask candidate sets: total removed = difference in candidate counts, `particle` = difference in true positives (matches to a CryoPPP annotation), `non_particle` = total removed minus `particle`. `mistaken_rate_pct` = particle / total removed. Overlap means a one-to-one match within the particle radius d/2 under the same matching rule as the 2D detection metrics, so `particle` is a difference of match counts rather than a particle-by-particle classification of what the mask removed; a removal can free an annotation to re-match against another candidate. This table carries no resolution, so the EMPIAR-10345 pixel-size caveat does not apply to it. That 10081 and 10532 both give 4,564 non-particle removals is a coincidence of two independent subtractions; recompute both if either changes.",
+  "provenance": {
+    "source": "sec/5_results.tex, tab:mask_removals; docs/notes/5_results.md, heading tab:mask_removals; underlying counts in data/revision/ablation_2d_metrics.json (copied to revision/ablation_2d_metrics.json)",
+    "collected": "2026-08-25",
+    "detail": "Computed by scripts/analysis/ablation_2d_metrics.py; the table itself was added to the paper on 2026-08-25."
+  },
+  "values": {
+    "particle": {
+      "10081": {"published": 166},
+      "10093": {"published": 4},
+      "10345": {"published": 13},
+      "10532": {"published": 910}
+    },
+    "non_particle": {
+      "10081": {"published": 4564},
+      "10093": {"published": 36},
+      "10345": {"published": 1923},
+      "10532": {"published": 4564}
+    },
+    "mistaken_rate_pct": {
+      "10081": {"published": 3.5, "raw": 3.510},
+      "10093": {"published": 10.0, "raw": 10.000},
+      "10345": {"published": 0.7, "raw": 0.671},
+      "10532": {"published": 16.6, "raw": 16.624}
+    }
+  },
+  "derivation": {
+    "note": "The four columns the two printed rows are subtracted from. picks = candidates on the annotated micrographs; tp = matches to a CryoPPP annotation.",
+    "10081": {"picks_baseline": 77328, "picks_mask": 72598, "removed_total": 4730, "tp_baseline": 37041, "tp_mask": 36875},
+    "10093": {"picks_baseline": 118314, "picks_mask": 118274, "removed_total": 40, "tp_baseline": 41631, "tp_mask": 41627},
+    "10345": {"picks_baseline": 87447, "picks_mask": 85511, "removed_total": 1936, "tp_baseline": 15368, "tp_mask": 15355},
+    "10532": {"picks_baseline": 116753, "picks_mask": 111279, "removed_total": 5474, "tp_baseline": 53374, "tp_mask": 52464}
+  },
+  "not_in_paper": {
+    "note": "An earlier version of this table printed the complementary share (non-particle / total removed) instead of the mistaken rate. Kept here so the older row can be reconstructed.",
+    "non_particle_share_pct": {
+      "10081": {"raw": 96.490, "rounded": 96.5},
+      "10093": {"raw": 90.000, "rounded": 90.0},
+      "10345": {"raw": 99.329, "rounded": 99.3},
+      "10532": {"raw": 83.376, "rounded": 83.4}
+    }
+  }
+}

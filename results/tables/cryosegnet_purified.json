@@ -1,0 +1,60 @@
+{
+  "table": "tab:cryosegnet_purified",
+  "paper_number": "Table 8",
+  "caption": "The same selection applied to CryoSegNet and CryoTransformer (GSFSC 0.143, A, best of three seeds, lower is better) on the full sets.",
+  "units": "angstrom",
+  "metric": "res_gsfsc_0143",
+  "note": "Lower is better. The `+ mask + select` rows apply the paper's contamination masking and 2D class selection to each picker's candidate set. Three of the four rows repeat numbers printed elsewhere: `cryosegnet` is the CryoSegNet row of tab:main_results, `both` is the mask+select row of tab:ablation_res, and `fb` is the Ours row of both of those tables. Only `cryosegnet_both` is unique to this table. EMPIAR-10345: the pixel size follows CryoPPP's declared 0.673 A, which is the super-resolution movie value, so every 10345 resolution here is about half the physical figure and only comparable within that entry. For `cryosegnet_both`, `particles` is the CryoSift final-selection output and `particles_imported` the count entering the chain.",
+  "provenance": {
+    "source": "sec/6_discussion.tex, tab:cryosegnet_purified; docs/notes/6_discussion.md, heading tab:cryosegnet_purified; per-seed values from data/revision/e1_purified_pickers.json (copied to revision/e1_purified_pickers.json)",
+    "collected": "2026-08-24",
+    "detail": "Source condition cryosegnet_clean_tri_cryosift_iter. This table was moved from the supplementary material into the main paper on 2026-08-24, and the CryoTransformer + mask + select row was added on 2026-08-25."
+  },
+  "values": {
+    "cryosegnet": {
+      "10081": {"published": 4.47, "raw": 4.4748, "seeds": [4.5052, 4.4748, 4.5477], "refine_job": "J195", "particles": 157004},
+      "10093": {"published": 6.96, "raw": 6.9624, "seeds": [7.2173, 7.2076, 6.9624], "refine_job": "J387", "particles": 287555},
+      "10345": {"published": 3.76, "raw": 3.7623, "seeds": [5.4907, 4.6410, 3.7623], "refine_job": "J283", "particles": 102971},
+      "10532": {"published": 3.86, "raw": 3.8561, "seeds": [3.8561, 3.9092, 3.9347], "refine_job": "J335", "particles": 159086}
+    },
+    "cryosegnet_both": {
+      "10081": {"published": 4.14, "raw": 4.1392, "seeds": [4.256, 4.139, 4.246], "seed_refine_jobs": ["J794", "J800", "J802"], "refine_job": "J800", "particles": 113162, "particles_imported": 148552},
+      "10093": {"published": 5.71, "raw": 5.7054, "seeds": [5.705, 5.970, 6.105], "seed_refine_jobs": ["J904", "J906", "J908"], "refine_job": "J904", "particles": 114809, "particles_imported": 287412},
+      "10345": {"published": 3.78, "raw": 3.7839, "seeds": [3.784, 11.314, 3.804], "seed_refine_jobs": ["J756", "J759", "J761"], "refine_job": "J756", "particles": 15067, "particles_imported": 101861},
+      "10532": {"published": 3.74, "raw": 3.7358, "seeds": [3.818, 3.736, 3.896], "seed_refine_jobs": ["J867", "J869", "J871"], "refine_job": "J869", "particles": 63263, "particles_imported": 150858}
+    },
+    "both": {
+      "10081": {"published": 4.08, "raw": 4.0777, "seeds": [4.0777, 4.1957, 4.1809], "refine_job": "J134", "particles": 126181},
+      "10093": {"published": 4.52, "raw": 4.5196, "seeds": [5.1358, 4.9364, 4.5196], "refine_job": "J352", "particles": 301589},
+      "10345": {"published": 3.59, "raw": 3.5885, "seeds": [3.5885, 3.6038, 3.6245], "refine_job": "J274", "particles": 29214},
+      "10532": {"published": 3.43, "raw": 3.4303, "seeds": [3.4303, 3.4922, 3.4795], "refine_job": "J162", "particles": 178722}
+    },
+    "fb": {
+      "10081": {"published": 4.12, "raw": 4.118, "seeds": [4.151, 4.118, 4.125], "refine_job": "J507", "particles": 127859},
+      "10093": {"published": 4.37, "raw": 4.365, "seeds": [4.431, 4.365, 4.410], "refine_job": "J577", "particles": 295644},
+      "10345": {"published": 3.54, "raw": 3.540, "seeds": [3.713, 3.668, 3.540], "refine_job": "J511", "particles": 27838},
+      "10532": {"published": 3.40, "raw": 3.402, "seeds": [3.402, 3.524, 3.484], "refine_job": "J557", "particles": 208931}
+    }
+  },
+  "paper_row_names": {
+    "cryosegnet": "CryoSegNet",
+    "cryosegnet_both": "CryoSegNet + mask + select",
+    "both": "CryoTransformer + mask + select",
+    "fb": "Ours"
+  },
+  "not_in_paper": {
+    "note": "The same purification was also run on crYOLO and Topaz. The paper deliberately does not print these, because on EMPIAR-10093 and 10532 only the Ours condition hits the ab-initio particle cap, so the comparison is not like for like, and Topaz's training data is undisclosed. Values are from data/revision/e1_purified_pickers.json; two seeds diverged badly and are reproduced as measured (Topaz 10345 seed 2 at 134.6 A, CryoSegNet 10345 seed 1 at 11.314 A).",
+    "cryolo_both": {
+      "10081": {"raw": 4.118, "seeds": [4.145, 4.132, 4.118], "refine_job": "J757", "particles_imported": 161124},
+      "10093": {"raw": 4.323, "seeds": [4.432, 4.607, 4.323], "refine_job": "J881", "particles_imported": 284279},
+      "10345": {"raw": 3.806, "seeds": [3.893, 3.806, 3.857], "refine_job": "J728", "particles_imported": 54884},
+      "10532": {"raw": 3.355, "seeds": [3.460, 3.355, 3.529], "refine_job": "J838", "particles_imported": 238527}
+    },
+    "topaz_both": {
+      "10081": {"raw": 4.077, "seeds": [4.077, 4.107, 4.127], "refine_job": "J836", "particles_imported": 252803},
+      "10093": {"raw": 4.311, "seeds": [4.455, 4.378, 4.311], "refine_job": "J942", "particles_imported": 1034860},
+      "10345": {"raw": 3.630, "seeds": [3.636, 3.630, 134.6], "refine_job": "J795", "particles_imported": 216623},
+      "10532": {"raw": 3.469, "seeds": [3.473, 3.469, 3.544], "refine_job": "J920", "particles_imported": 880710}
+    }
+  }
+}

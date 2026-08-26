@@ -1,0 +1,78 @@
+{
+  "table": "tab:supp_hparams",
+  "paper_number": "Table S1",
+  "caption": "Settings of the two training stages. Head repair fits the classification head alone on the features of the frozen detector, and fine-tuning trains every weight on the teacher set of one round.",
+  "units": "mixed",
+  "metric": "hyperparameters",
+  "note": "Two columns, one per training stage, mirroring the paper's table. A dash in the paper means the setting does not apply to that stage and is written as null here. Every fine-tuning value except the epoch count and the decay epoch is a CryoTransformer default; the 50 epochs and the decay at epoch 24 follow the fine-tuning stage of UPicker. Each of the three loss weights scales one term of the Hungarian set loss, and the no-object weight scales the classification term on the queries labelled no-object; the matching costs use the same coefficients as the loss. This table carries no experimental measurement, so neither the EMPIAR-10345 pixel-size caveat nor the best-of-three-seeds convention applies to it.",
+  "provenance": {
+    "source": "supp.tex, tab:supp_hparams; docs/notes/supp.md, heading sec:supp:training; originating defaults in recon-aware-pick cryotransformer/finetune.py and models/detr.py, and the head-repair report cryotransformer_head_repair_stage1.md sections 6 and 8",
+    "collected": null
+  },
+  "values": {
+    "head_repair": {
+      "trained_weights": "head only",
+      "training_set": "22 CryoPPP entries",
+      "loss": "two-class softmax CE",
+      "class_weight": 1,
+      "l1_box_weight": null,
+      "giou_weight": null,
+      "no_object_weight": 0.1,
+      "auxiliary_decoder_losses": null,
+      "optimizer": "Adam",
+      "learning_rate": 0.002,
+      "backbone_learning_rate": null,
+      "lr_decay": null,
+      "weight_decay": 0.0001,
+      "gradient_clip": null,
+      "batch_size": "32,768 queries",
+      "epochs": 15
+    },
+    "finetune": {
+      "trained_weights": "all",
+      "training_set": "40 micrographs",
+      "loss": "Hungarian set loss",
+      "class_weight": 1,
+      "l1_box_weight": 5,
+      "giou_weight": 2,
+      "no_object_weight": 0.1,
+      "auxiliary_decoder_losses": "5 layers",
+      "optimizer": "AdamW",
+      "learning_rate": 0.0001,
+      "backbone_learning_rate": 0.00001,
+      "lr_decay": "x 0.1 at epoch 24",
+      "weight_decay": 0.0001,
+      "gradient_clip": 0.1,
+      "batch_size": "8 micrographs",
+      "epochs": 50
+    }
+  },
+  "not_in_paper": {
+    "note": "Settings stated in the prose of Sec. S2 rather than in the table, and diagnostics the notes record but the paper does not print.",
+    "operating_point": {
+      "queries_per_micrograph": 600,
+      "score_quantile_kept": 0.75,
+      "nms_overlap_threshold": 0.7,
+      "comment": "The operating point of the original CryoTransformer implementation, kept unchanged."
+    },
+    "head_repair_detail": {
+      "head": "nn.Linear(256, 1) over the 256-dimensional output of the last decoder layer",
+      "seed": 0,
+      "standardization": "features standardized per dimension for training, then folded back into the weights as W' = W / sigma, b' = b - W'.mu, so inference runs the detector unchanged",
+      "two_class_embedding": "index 0 is the particle logit, index 1 (no-object) has weight and bias set to zero",
+      "deployed_split": "no held-out split; the deployed head is fit on all micrographs of the 22 entries",
+      "diagnostic_split": "micrograph-level 80/20 with seed 0, 4,138 train and 1,034 validation micrographs, validation positive rate 0.6005",
+      "validation_diagnostics": {
+        "released_head": {"auc": 0.531, "precision_at_recall_98": 0.602},
+        "repaired_head": {"auc": 0.730, "precision_at_recall_98": 0.650}
+      }
+    },
+    "finetune_detail": {
+      "restart_from": "the repaired base checkpoint, every round",
+      "validation_micrographs": 10,
+      "validation_use": "monitors the loss only; each round delivers the weights of its last epoch",
+      "teacher_set_split": "50 micrographs per round, split 40/10 into training and validation",
+      "finetune_mode": "head_decoder_encoder_resnet, that is every weight except the first residual stage of the backbone"
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "table": "tab:main_results",
+  "paper_number": "Table 2",
+  "caption": "Main results. GSFSC 0.143 resolution (A, best of three seeds, lower is better) on the full micrograph sets.",
+  "units": "angstrom",
+  "metric": "res_gsfsc_0143",
+  "note": "Lower is better. Every value is the best of three reconstruction seeds; `seeds` lists seed 0, seed 1 and seed 2 in that order and `raw` is the minimum of the three. The `baseline` row here is the CryoTransformer row of the paper, and it is the same set of numbers as the `baseline` row of tab:ablation_res (Table 4) - the same reconstruction jobs, not a repeat run. `fb` is the paper's Ours row. EMPIAR-10345: the pixel size follows CryoPPP's declared 0.673 A, which is the super-resolution movie value, so every 10345 resolution here is about half the physical figure and only comparable within that entry. `particles` is the number of particles the condition delivers to reconstruction (extraction count for the four base pickers, CryoSift final selection output for fb). On EMPIAR-10093 the three non-CryoTransformer pickers were processed with a second CTF estimation of the same 1,873 micrographs (J356), separate from the one shared by the baseline and fb rows (J40); the other three entries use one CTF estimation throughout (10081 J6, 10345 J41, 10532 J10).",
+  "provenance": {
+    "source": "sec/5_results.tex, tab:main_results; docs/notes/5_results.md, heading tab:main_results (picker rows) and the ablation raw-value block under heading '直後の本文: \\Cref{tab:particles} follows the $+$both path from the raw ...' (fb row)",
+    "collected": "2026-08-17",
+    "detail": "The four picker rows were filled on 2026-08-16 and the Ours row on 2026-08-17; the Ours row was then replaced on 2026-08-20 with the full fine-tuning arm (fbf_r1) that the paper reports, superseding an earlier LoRA arm."
+  },
+  "values": {
+    "cryolo": {
+      "10081": {"published": 4.25, "raw": 4.2531, "seeds": [4.2531, 4.2709, 4.2798], "refine_job": "J83", "particles": 152960},
+      "10093": {"published": 4.55, "raw": 4.5488, "seeds": [5.9261, 4.6339, 4.5488], "refine_job": "J365", "particles": 278123},
+      "10345": {"published": 3.56, "raw": 3.5636, "seeds": [3.5801, 3.6153, 3.5636], "refine_job": "J92", "particles": 50488},
+      "10532": {"published": 3.54, "raw": 3.5402, "seeds": [3.5402, 3.5417, 3.6427], "refine_job": "J279", "particles": 234378}
+    },
+    "topaz": {
+      "10081": {"published": 4.56, "raw": 4.5647, "seeds": [4.6063, 4.5647, 4.5691], "refine_job": "J164", "particles": 226362},
+      "10093": {"published": 6.55, "raw": 6.5537, "seeds": [7.1965, 6.5537, 6.7009], "refine_job": "J374", "particles": 924944},
+      "10345": {"published": 3.88, "raw": 3.8768, "seeds": [3.8768, 5.3921, 5.5174], "refine_job": "J224", "particles": 191064},
+      "10532": {"published": 3.96, "raw": 3.9620, "seeds": [4.0896, 4.0137, 3.9620], "refine_job": "J323", "particles": 823573}
+    },
+    "cryosegnet": {
+      "10081": {"published": 4.47, "raw": 4.4748, "seeds": [4.5052, 4.4748, 4.5477], "refine_job": "J195", "particles": 157004},
+      "10093": {"published": 6.96, "raw": 6.9624, "seeds": [7.2173, 7.2076, 6.9624], "refine_job": "J387", "particles": 287555},
+      "10345": {"published": 3.76, "raw": 3.7623, "seeds": [5.4907, 4.6410, 3.7623], "refine_job": "J283", "particles": 102971},
+      "10532": {"published": 3.86, "raw": 3.8561, "seeds": [3.8561, 3.9092, 3.9347], "refine_job": "J335", "particles": 159086}
+    },
+    "baseline": {
+      "10081": {"published": 5.02, "raw": 5.0248, "seeds": [5.0958, 5.3163, 5.0248], "refine_job": "J27", "particles": 256713},
+      "10093": {"published": 6.78, "raw": 6.7828, "seeds": [6.9376, 6.7828, 6.8441], "refine_job": "J171", "particles": 753998},
+      "10345": {"published": 7.11, "raw": 7.1149, "seeds": [7.5301, 7.1624, 7.1149], "refine_job": "J114", "particles": 480836},
+      "10532": {"published": 4.03, "raw": 4.0320, "seeds": [4.0320, 4.0472, 4.0483], "refine_job": "J26", "particles": 602782}
+    },
+    "fb": {
+      "10081": {"published": 4.12, "raw": 4.118, "seeds": [4.151, 4.118, 4.125], "refine_job": "J507", "particles": 127859},
+      "10093": {"published": 4.37, "raw": 4.365, "seeds": [4.431, 4.365, 4.410], "refine_job": "J577", "particles": 295644},
+      "10345": {"published": 3.54, "raw": 3.540, "seeds": [3.713, 3.668, 3.540], "refine_job": "J511", "particles": 27838},
+      "10532": {"published": 3.40, "raw": 3.402, "seeds": [3.402, 3.524, 3.484], "refine_job": "J557", "particles": 208931}
+    }
+  },
+  "paper_row_names": {
+    "cryolo": "crYOLO",
+    "topaz": "Topaz",
+    "cryosegnet": "CryoSegNet",
+    "baseline": "CryoTransformer",
+    "fb": "Ours"
+  },
+  "not_in_paper": {
+    "note": "Two facts recorded in the notes that the table does not print. First, on EMPIAR-10093 and 10532 the fb condition hits the CryoSPARC ab-initio particle cap, so fewer particles enter ab-initio than `particles` states. Second, the seed-to-seed spread of the picker rows is not uniform: three of the sixteen picker cells span more than 1 A while the rest span 0.063 to 0.128 A.",
+    "fb_particles_entering_abinitio": {
+      "10081": 127859,
+      "10093": 207000,
+      "10345": 27838,
+      "10532": 176700
+    },
+    "abinitio_particle_cap": {
+      "10081": 219900,
+      "10093": 207000,
+      "10345": null,
+      "10532": 176700,
+      "cap_note": "The caps for 10081 and 10532 are measured; the notes record 10093 and 10345 as unmeasured, but the fb and GT-teacher runs of 10093 both clamp at 207,000, which is the number quoted for that entry."
+    },
+    "seed_spread_over_1A": {
+      "topaz_10345": 1.641,
+      "cryosegnet_10345": 1.728,
+      "cryolo_10093": 1.377
+    },
+    "seed_spread_range_of_remaining_picker_cells": [0.063, 0.128],
+    "seed_spread_range_of_all_cryotransformer_conditions": [0.016, 0.693]
+  }
+}

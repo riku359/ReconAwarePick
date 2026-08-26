@@ -1,0 +1,66 @@
+{
+  "table": "tab:datasets",
+  "paper_number": "Table 1",
+  "caption": "Datasets. The four EMPIAR entries of CryoTransformer's test set.",
+  "units": "mixed",
+  "metric": "dataset_properties",
+  "note": "d is the nominal particle diameter in pixels and is the matching radius times two for the 2D detection metrics. psize is the pixel size in angstrom. On EMPIAR-10345 the pixel size follows CryoPPP's declared 0.673 A, which is the super-resolution movie value, so every resolution reported for 10345 anywhere in this release is about half the physical figure; the paper marks this with a dagger and says to multiply by about two when comparing against EMDB. 'annot' is the number of CryoPPP-annotated micrographs, 'full' the whole deposition used for every reconstruction-level result. The sample names follow CryoTransformer section 3.1 (an older note recorded 10532 as TRPV1, which was wrong). CryoPPP deposits 300 annotated micrographs per entry, and the paper prints 300, but the 2D scorer evaluates only the micrographs that actually carry annotations: 300 on 10081 and 10532, 295 on 10093 and 10345. `micrographs_scored_2d` records what each 2D number was computed over.",
+  "provenance": {
+    "source": "sec/4_experiments.tex, tab:datasets; docs/notes/4_experiments.md, heading tab:datasets",
+    "collected": null,
+    "detail": "The full-set micrograph counts are independently confirmed by data/revision/cost.json, fullset_chain.<id>.n_micrographs (997 / 1873 / 1644 / 1556)."
+  },
+  "values": {
+    "10081": {
+      "sample": "HCN1",
+      "diameter_px": 154,
+      "pixel_size_a": 1.3,
+      "micrographs_annot": 300,
+      "micrographs_full": 997,
+      "pixel_size_is_superresolution": false,
+      "micrographs_scored_2d": 300
+    },
+    "10093": {
+      "sample": "NOMPC",
+      "diameter_px": 172,
+      "pixel_size_a": 1.22,
+      "micrographs_annot": 300,
+      "micrographs_full": 1873,
+      "pixel_size_is_superresolution": false,
+      "micrographs_scored_2d": 295
+    },
+    "10345": {
+      "sample": "integrin alpha_V beta_8",
+      "diameter_px": 149,
+      "pixel_size_a": 0.673,
+      "micrographs_annot": 300,
+      "micrographs_full": 1644,
+      "pixel_size_is_superresolution": true,
+      "micrographs_scored_2d": 295
+    },
+    "10532": {
+      "sample": "hemagglutinin",
+      "diameter_px": 174,
+      "pixel_size_a": 1.03,
+      "micrographs_annot": 300,
+      "micrographs_full": 1556,
+      "pixel_size_is_superresolution": false,
+      "micrographs_scored_2d": 300
+    }
+  },
+  "not_in_paper": {
+    "note": "The 2D scoring code evaluates only the micrographs that actually carry CryoPPP annotations. data/revision/ablation_2d_metrics.json records 300 / 295 / 295 / 300 evaluated micrographs for 10081 / 10093 / 10345 / 10532, so two entries have five annotated micrographs fewer than the 300 the paper states.",
+    "micrographs_scored_2d": {
+      "10081": 300,
+      "10093": 295,
+      "10345": 295,
+      "10532": 300
+    },
+    "annotated_particles": {
+      "10081": 39352,
+      "10093": 56394,
+      "10345": 15894,
+      "10532": 87933
+    }
+  }
+}

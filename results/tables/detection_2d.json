@@ -1,0 +1,62 @@
+{
+  "table": "tab:f1_vs_res",
+  "paper_number": "Table S2",
+  "caption": "2D detection scores. Macro precision, recall, and F1 on the 300 annotated micrographs for the four base pickers.",
+  "units": "dimensionless",
+  "metric": "macro_precision_recall_f1",
+  "note": "Scores are against the CryoPPP annotations, matched one to one in order of increasing distance with a match radius of d/2, averaged per micrograph (macro), and computed with the same code for every picker at each picker's own default operating point. Three decimals, as the paper prints them; the resolution values elsewhere use two. The row named CryoTransformer in the paper is the release condition `baseline`. `possible_training_overlap` is true for crYOLO on EMPIAR-10081, which is part of the training data of crYOLO's general model, and for Topaz on all four entries, whose released general model has undocumented training data; the paper greys those values and excludes them from the ranking. This table carries no resolution, so the EMPIAR-10345 pixel-size caveat does not apply to it. The paper says 300 annotated micrographs; the scorer evaluates the micrographs that actually carry annotations, which is 300 / 295 / 295 / 300 for 10081 / 10093 / 10345 / 10532. Only the `baseline` row has unrounded values recorded anywhere, in data/revision/ablation_2d_metrics.json; for the other three pickers the notes give no value beyond the three decimals the paper prints, so `raw` is absent there.",
+  "provenance": {
+    "source": "supp.tex, tab:f1_vs_res; docs/notes/6_discussion.md, heading tab:cryosegnet_purified (which holds the provenance for this table) and heading tab:f1_vs_res; unrounded baseline values from data/revision/ablation_2d_metrics.json",
+    "collected": null,
+    "detail": "The notes give the origin as recon-aware-pick docs/2d_pick/baselines_common_metrics.md section 3.1, particle-wise macro values under a common greedy matcher at the same operating point as the stacks fed to reconstruction, but record no collection date. The ablation_2d_metrics.json recomputation that reproduces the baseline row to three decimals is dated 2026-08-25."
+  },
+  "values": {
+    "cryolo": {
+      "10081": {"precision": 0.727, "recall": 0.904, "f1": 0.801, "possible_training_overlap": true},
+      "10093": {"precision": 0.513, "recall": 0.422, "f1": 0.453, "possible_training_overlap": false},
+      "10345": {"precision": 0.525, "recall": 0.565, "f1": 0.513, "possible_training_overlap": false},
+      "10532": {"precision": 0.582, "recall": 0.305, "f1": 0.375, "possible_training_overlap": false}
+    },
+    "topaz": {
+      "10081": {"precision": 0.476, "recall": 0.972, "f1": 0.627, "possible_training_overlap": true},
+      "10093": {"precision": 0.312, "recall": 0.908, "f1": 0.463, "possible_training_overlap": true},
+      "10345": {"precision": 0.330, "recall": 0.967, "f1": 0.482, "possible_training_overlap": true},
+      "10532": {"precision": 0.417, "recall": 0.839, "f1": 0.549, "possible_training_overlap": true}
+    },
+    "cryosegnet": {
+      "10081": {"precision": 0.664, "recall": 0.821, "f1": 0.723, "possible_training_overlap": false},
+      "10093": {"precision": 0.408, "recall": 0.340, "f1": 0.364, "possible_training_overlap": false},
+      "10345": {"precision": 0.415, "recall": 0.543, "f1": 0.451, "possible_training_overlap": false},
+      "10532": {"precision": 0.535, "recall": 0.194, "f1": 0.270, "possible_training_overlap": false}
+    },
+    "baseline": {
+      "10081": {"precision": 0.469, "recall": 0.954, "f1": 0.610, "possible_training_overlap": false, "precision_raw": 0.4690240958978478, "recall_raw": 0.9536367534878741, "f1_raw": 0.6099103970165972},
+      "10093": {"precision": 0.352, "recall": 0.737, "f1": 0.475, "possible_training_overlap": false, "precision_raw": 0.3518429073252278, "recall_raw": 0.7374490064138678, "f1_raw": 0.47484770384580327},
+      "10345": {"precision": 0.187, "recall": 0.966, "f1": 0.299, "possible_training_overlap": false, "precision_raw": 0.18695249193445698, "recall_raw": 0.9660403266804216, "f1_raw": 0.29874281620709947},
+      "10532": {"precision": 0.459, "recall": 0.620, "f1": 0.514, "possible_training_overlap": false, "precision_raw": 0.45915707029556446, "recall_raw": 0.6198794283735629, "f1_raw": 0.5135886508727796}
+    }
+  },
+  "paper_row_names": {
+    "cryolo": "crYOLO",
+    "topaz": "Topaz",
+    "cryosegnet": "CryoSegNet",
+    "baseline": "CryoTransformer"
+  },
+  "not_in_paper": {
+    "note": "A fourth block of pick counts was written into the table and then commented out on 2026-08-25, because no surviving passage read it. It counts the particles from the annotated micrographs that entered refinement, which on this 300-micrograph subset is effectively the extraction count. The values are recovered from the commented block in supp.tex.",
+    "picks_on_annotated_micrographs": {
+      "cryolo": {"10081": 44438, "10093": 45378, "10345": 15734, "10532": 46144},
+      "topaz": {"10081": 66701, "10093": 148024, "10345": 37257, "10532": 158480},
+      "cryosegnet": {"10081": 45800, "10093": 46927, "10345": 21629, "10532": 30367},
+      "baseline": {"10081": 69662, "10093": 116647, "10345": 72905, "10532": 112587}
+    },
+    "baseline_pick_count_discrepancy": "The commented-out block gives 69,662 / 116,647 / 72,905 / 112,587 picks for CryoTransformer, while data/revision/ablation_2d_metrics.json, whose scores reproduce this row to three decimals, gives 77,328 / 118,314 / 87,447 / 116,753 candidates evaluated on the same micrographs. Nothing in the notes reconciles the two counts.",
+    "2d_scores_of_the_ablation_conditions": {
+      "note": "The same protocol applied to the particle stack each ablation condition delivers, in a table that was drafted and then cut from the paper. Full precision values are in revision/ablation_2d_metrics.json. Given here to three decimals in the order precision, recall, F1.",
+      "mask": {"10081": [0.492, 0.949, 0.631], "10093": [0.352, 0.737, 0.475], "10345": [0.191, 0.964, 0.305], "10532": [0.472, 0.608, 0.517]},
+      "select": {"10081": [0.871, 0.867, 0.867], "10093": [0.636, 0.443, 0.518], "10345": [0.577, 0.166, 0.253], "10532": [0.643, 0.249, 0.350]},
+      "both": {"10081": [0.885, 0.834, 0.857], "10093": [0.611, 0.468, 0.525], "10345": [0.585, 0.185, 0.275], "10532": [0.654, 0.246, 0.349]},
+      "fb": {"10081": [0.896, 0.849, 0.871], "10093": [0.625, 0.481, 0.540], "10345": [0.584, 0.177, 0.266], "10532": [0.652, 0.287, 0.389]}
+    }
+  }
+}

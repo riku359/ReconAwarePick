@@ -1,0 +1,56 @@
+{
+  "table": "tab:teacher_quality",
+  "paper_number": "Table 7",
+  "caption": "Pseudo-labels against a perfect teacher. GSFSC 0.143 resolution (A, best of three seeds) of the full micrograph set after one round of the loop, with the teacher taken from the surviving picks or from the CryoPPP annotations of the same 50 micrographs.",
+  "units": "angstrom",
+  "metric": "res_gsfsc_0143",
+  "note": "Lower is better. Both rows are one round of the loop with everything held fixed except the teacher labels: same 50 micrographs, same full fine-tuning, same operating point, same downstream reconstruction. `fb` is the paper's 'surviving picks (Ours)' row and repeats the fb row of tab:ablation_res and the Ours row of tab:main_results. `fb_gt` is the 'CryoPPP annotations' row, run as arm fbgt_r1. EMPIAR-10345: the pixel size follows CryoPPP's declared 0.673 A, which is the super-resolution movie value, so every 10345 resolution here is about half the physical figure and only comparable within that entry. The notes record no per-seed values and no refinement job uids for the fb_gt row, only the best-of-three and the seed spread, so `seeds` and `refine_job` are null there.",
+  "provenance": {
+    "source": "sec/5_results.tex, tab:teacher_quality; docs/notes/loop_revision.md section N4, which quotes recon-aware-pick docs/picker_fb/gt_upper_bound.md (arm fbgt_r1); fb row from docs/notes/5_results.md as in ablation.json",
+    "collected": "2026-08-24",
+    "detail": "The fb_gt particle counts come from the same gt_upper_bound.md tables. On EMPIAR-10093 the GT teacher covers 49 micrographs rather than 50, because one micrograph has no annotated particle and cannot be written to a star file."
+  },
+  "values": {
+    "fb": {
+      "10081": {"published": 4.12, "raw": 4.118, "seeds": [4.151, 4.118, 4.125], "seed_spread": 0.033, "refine_job": "J507", "particles": 127859},
+      "10093": {"published": 4.37, "raw": 4.365, "seeds": [4.431, 4.365, 4.410], "seed_spread": 0.066, "refine_job": "J577", "particles": 295644},
+      "10345": {"published": 3.54, "raw": 3.540, "seeds": [3.713, 3.668, 3.540], "seed_spread": 0.172, "refine_job": "J511", "particles": 27838},
+      "10532": {"published": 3.40, "raw": 3.402, "seeds": [3.402, 3.524, 3.484], "seed_spread": 0.122, "refine_job": "J557", "particles": 208931}
+    },
+    "fb_gt": {
+      "10081": {"published": 4.07, "raw": 4.067, "seeds": null, "seed_spread": 0.030, "refine_job": null, "particles": 132597},
+      "10093": {"published": 4.49, "raw": 4.488, "seeds": null, "seed_spread": 0.163, "refine_job": null, "particles": 365437},
+      "10345": {"published": 3.54, "raw": 3.541, "seeds": null, "seed_spread": 0.058, "refine_job": null, "particles": 26257},
+      "10532": {"published": 3.43, "raw": 3.434, "seeds": null, "seed_spread": 0.099, "refine_job": null, "particles": 196747}
+    }
+  },
+  "paper_row_names": {
+    "fb": "surviving picks (Ours)",
+    "fb_gt": "CryoPPP annotations"
+  },
+  "not_in_paper": {
+    "note": "The comparison the paper draws is against the no-feedback `both` condition, and the teacher label counts and 2D scores that support it.",
+    "gt_teacher_minus_both": {
+      "10081": -0.011,
+      "10093": -0.032,
+      "10345": -0.047,
+      "10532": 0.004,
+      "comment": "The paper's 'at most 0.05 A in either direction' is the largest absolute value here, 0.047, rounded to two decimals. Only EMPIAR-10532 has the opposite sign."
+    },
+    "both_condition_for_reference": {"10081": 4.078, "10093": 4.520, "10345": 3.588, "10532": 3.430},
+    "gt_teacher_particle_counts": {
+      "note": "GT-teacher labels used for fine-tuning, and the particles delivered to reconstruction. On 10093 and 10532 the delivered count is clamped by the ab-initio particle cap.",
+      "teacher_particles": {"10081": 6696, "10093": 9255, "10345": 2777, "10532": 14747},
+      "teacher_micrographs": {"10081": 50, "10093": 49, "10345": 50, "10532": 50},
+      "delivered_to_reconstruction": {"10081": 132597, "10093": 365437, "10345": 26257, "10532": 196747},
+      "entering_abinitio": {"10081": 132597, "10093": 207000, "10345": 26257, "10532": 176700}
+    },
+    "2d_scores_10081_only": {
+      "note": "The only entry for which the notes give the four-arm 2D comparison. P@100 is precision at the top 100 candidates per micrograph, a re-cut operating point that is not the paper's.",
+      "base": {"precision": 0.530, "recall": 0.919, "f1": 0.655, "p_at_100": 0.616},
+      "fb_lora": {"precision": 0.545, "recall": 0.923, "f1": 0.669, "p_at_100": 0.626},
+      "fb": {"precision": 0.470, "recall": 0.970, "f1": 0.610, "p_at_100": 0.765},
+      "fb_gt": {"precision": 0.483, "recall": 0.972, "f1": 0.623, "p_at_100": 0.771}
+    }
+  }
+}

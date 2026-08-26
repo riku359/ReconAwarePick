@@ -1,0 +1,254 @@
+{
+ "loop_rounds": {
+  "10081": {
+   "round0": {
+    "pick_s": 1304.0,
+    "filter_s": 11.0,
+    "class2d_s": 2277.0,
+    "cryosift_s": 4161.0,
+    "finetune_s": 6788.0,
+    "n_picks": 65385
+   },
+   "round1": {
+    "pick_s": 1121.0,
+    "filter_s": 10.0,
+    "class2d_s": 2634.0,
+    "cryosift_s": 4444.0,
+    "finetune_s": 6811.0,
+    "n_picks": 81787
+   },
+   "round2": {
+    "pick_s": 1106.0,
+    "filter_s": 12.0,
+    "class2d_s": 2518.0,
+    "cryosift_s": 5302.0,
+    "finetune_s": 6871.0,
+    "n_picks": 80114
+   },
+   "round3": {
+    "pick_s": 1254.0,
+    "filter_s": 10.0,
+    "class2d_s": 2588.0,
+    "cryosift_s": 4260.0,
+    "finetune_s": 6982.0,
+    "n_picks": 83272
+   }
+  },
+  "10093": {
+   "round0": {
+    "pick_s": 1173.0,
+    "filter_s": 9.0,
+    "class2d_s": 4097.0,
+    "cryosift_s": 6182.0,
+    "finetune_s": 85465.0,
+    "n_picks": 114176
+   },
+   "round1": {
+    "pick_s": 1114.0,
+    "filter_s": 9.0,
+    "class2d_s": 3084.0,
+    "cryosift_s": 5169.0,
+    "finetune_s": 27690.0,
+    "n_picks": 93962
+   },
+   "round2": {
+    "pick_s": 1152.0,
+    "filter_s": 11.0,
+    "class2d_s": 3004.0,
+    "cryosift_s": 5361.0,
+    "finetune_s": 27811.0,
+    "n_picks": 90145
+   },
+   "round3": {
+    "pick_s": 1098.0,
+    "filter_s": 12.0,
+    "class2d_s": 2913.0,
+    "cryosift_s": 5162.0,
+    "finetune_s": 20702.0,
+    "n_picks": 89453
+   }
+  },
+  "10345": {
+   "round0": {
+    "pick_s": 1124.0,
+    "filter_s": 10.0,
+    "class2d_s": 2343.0,
+    "cryosift_s": 2640.0,
+    "finetune_s": 21480.0,
+    "n_picks": 71074
+   },
+   "round1": {
+    "pick_s": 1248.0,
+    "filter_s": 13.0,
+    "class2d_s": 2876.0,
+    "cryosift_s": 2776.0,
+    "finetune_s": 13706.0,
+    "n_picks": 67992
+   },
+   "round2": {
+    "pick_s": 1219.0,
+    "filter_s": 12.0,
+    "class2d_s": 2789.0,
+    "cryosift_s": 3082.0,
+    "finetune_s": 8291.0,
+    "n_picks": 76690
+   },
+   "round3": {
+    "pick_s": 1108.0,
+    "filter_s": 10.0,
+    "class2d_s": 2948.0,
+    "cryosift_s": 2786.0,
+    "finetune_s": 0.0,
+    "n_picks": 74838
+   }
+  },
+  "10532": {
+   "round0": {
+    "pick_s": 2359.0,
+    "filter_s": 21.0,
+    "class2d_s": 3816.0,
+    "cryosift_s": 4531.0,
+    "finetune_s": 93805.0,
+    "n_picks": 108453
+   },
+   "round1": {
+    "pick_s": 2340.0,
+    "filter_s": 13.0,
+    "class2d_s": 2974.0,
+    "cryosift_s": 5079.0,
+    "finetune_s": 32194.0,
+    "n_picks": 81983
+   },
+   "round2": {
+    "pick_s": 2342.0,
+    "filter_s": 11.0,
+    "class2d_s": 3108.0,
+    "cryosift_s": 5390.0,
+    "finetune_s": 34894.0,
+    "n_picks": 80747
+   },
+   "round3": {
+    "pick_s": 2368.0,
+    "filter_s": 15.0,
+    "class2d_s": 2327.0,
+    "cryosift_s": 4237.0,
+    "finetune_s": 28669.0,
+    "n_picks": 81548
+   }
+  }
+ },
+ "fullset_chain": {
+  "10081": {
+   "n_micrographs": 997,
+   "pick_s": 503,
+   "filter_s": 40,
+   "class2d_s": 9294,
+   "cryosift_s": 9533,
+   "recon_s": 5031
+  },
+  "10093": {
+   "n_micrographs": 1873,
+   "pick_s": 952,
+   "filter_s": 57,
+   "class2d_s": 17931,
+   "cryosift_s": 30475,
+   "recon_s": 7240
+  },
+  "10345": {
+   "n_micrographs": 1644,
+   "pick_s": 806,
+   "filter_s": 57,
+   "class2d_s": 11802,
+   "cryosift_s": 4725,
+   "recon_s": 3953
+  },
+  "10532": {
+   "n_micrographs": 1556,
+   "pick_s": 857,
+   "filter_s": 75,
+   "class2d_s": 9962,
+   "cryosift_s": 11580,
+   "recon_s": 4248
+  }
+ },
+ "cryosparc_jobs": {
+  "10081": [
+   {
+    "uid": "J499",
+    "type": "homo_refine",
+    "seconds": 937.216
+   },
+   {
+    "uid": "J507",
+    "type": "homo_refine",
+    "seconds": 840.931
+   },
+   {
+    "uid": "J512",
+    "type": "homo_refine",
+    "seconds": 951.352
+   }
+  ],
+  "10093": [
+   {
+    "uid": "J572",
+    "type": "homo_refine",
+    "seconds": 1423.101
+   },
+   {
+    "uid": "J577",
+    "type": "homo_refine",
+    "seconds": 1256.976
+   },
+   {
+    "uid": "J579",
+    "type": "homo_refine",
+    "seconds": 1374.395
+   }
+  ],
+  "10345": [
+   {
+    "uid": "J504",
+    "type": "homo_refine",
+    "seconds": 684.939
+   },
+   {
+    "uid": "J508",
+    "type": "homo_refine",
+    "seconds": 612.131
+   },
+   {
+    "uid": "J511",
+    "type": "homo_refine",
+    "seconds": 678.367
+   }
+  ],
+  "10532": [
+   {
+    "uid": "J557",
+    "type": "homo_refine",
+    "seconds": 760.584
+   },
+   {
+    "uid": "J559",
+    "type": "homo_refine",
+    "seconds": 733.505
+   },
+   {
+    "uid": "J561",
+    "type": "homo_refine",
+    "seconds": 909.053
+   }
+  ]
+ },
+ "hardware": {
+  "cpu_model": "AMD EPYC 7763 64-Core Processor",
+  "physical_cores": 128,
+  "total_memory": "2TB (nominal; MemTotal 2113592592 kB = 1.9684 TiB)",
+  "cuda": "11.8",
+  "driver": "12.2",
+  "n_gpus": 8,
+  "gpu_name": "NVIDIA RTX A5000",
+  "gpu_mem_bytes": 25425608704
+ }
+}
