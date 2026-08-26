@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+"""Upload and download the artifacts this project hosts on Hugging Face.
+
+Everything else the pipeline needs is either public upstream (CryoTransformer,
+MicrographCleaner, CryoSift, all fetched by scripts/00_setup.sh) or downloadable from
+EMPIAR and CryoPPP. These are the exceptions: artifacts this project produced, with no
+upstream source, expensive enough to regenerate that they are worth publishing.
+
+  checkpoint   theta_0, the head-repaired CryoTransformer checkpoint (~870 MB) that
+               every condition in the paper starts from, and that each round of the
+               loop restarts from. Sec. S2 describes the repair;
+               src/rapick/picker/README.md describes how to redo it.
+  cleaner-data The full-set picks that survive contamination masking, for all four
+               entries. A few MB of STAR text each, but reproducing one needs a
+               MicrographCleaner inference pass over the entire micrograph set.
+  masks        The precomputed triangular-blend contamination masks for all four
+               entries at full-set scale. The annotated 300 micrographs are a strict
+               subset of the full deposition and share their filenames, so this one
+               store serves both scales. Downloading them means never having to build
+               MicrographCleaner's TensorFlow environment: applying a cached mask to a
+               STAR file needs only numpy and opencv. About 6,070 small .npz files, so
+               whole per-entry folders move at once rather than file by file.
+
+Not published yet, and listed in the repository's TODO: the four round-1 fine-tuned
+checkpoints (the `fb` condition's weights) and the four pickers' raw full-set picks.
+
+The remote repo layout (the HF-side paths below) is independent of local layout and
+does not change when a site moves things around locally: --data-root / --experiments-root
+only say where these commands read from / write to on THIS machine.
+
+Needs `pip install huggingface_hub` and `hf auth login` (older huggingface_hub versions:
+`huggingface-cli login`; or an HUGGING_FACE_HUB_TOKEN env var) first; neither is a
+project dependency of any of this repo's per-tool venvs, so run this with whatever
+interpreter has huggingface_hub.
+
+Usage:
+    # from the machine that has the local files (upload)
+    python src/rapick/data/hf_assets.py upload-checkpoint --repo <user>/recon-aware-pick-weights \
+        --data-root "$RAPICK_DATA"
+    python src/rapick/data/hf_assets.py upload-cleaner-data --repo <user>/recon-aware-pick-data \
+        --experiments-root "$RAPICK_WORK"
+    python src/rapick/data/hf_assets.py upload-masks --repo <user>/recon-aware-pick-data \
+        --experiments-root "$RAPICK_WORK"
+
+    # on the new site (download)
+    python src/rapick/data/hf_assets.py download \
+        --repo-weights <user>/recon-aware-pick-weights \
+        --repo-data <user>/recon-aware-pick-data \
+        --data-root "$RAPICK_DATA" \
+        --experiments-root "$RAPICK_WORK" --with-masks
+"""
+from __future__ import annotations
+
+import argparse
+import shutil
+import sys
+from pathlib import Path
+
+# Remote (HF Hub) layout only -- fixed once published, independent of local paths.
+CHECKPOINT_REL = Path("cryotransformer/eos_coef=0.1(default)")
+CHECKPOINT_FILES = ["CryoTransformer_head_repaired.pth", "CryoTransformer_head_repaired.json"]
+
+# The 4 IDs experiments 1-4 run on, and the 3 files filter_star_triangular.py writes
+# per ID (decisions_tri.jsonl is a resume checkpoint, not needed downstream -- skipped).
+CLEANER_IDS = ["10081", "10093", "10345", "10532"]
+CLEANER_FILES = ["cryotransformer_clean_tri.star", "summary_tri.json", "filter_stats_tri.csv"]
+
+# All 4 IDs and which half of MicrographCleaner's own in/out-of-distribution split
+# their masks sit under. MicrographCleaner's training set includes 10081 and 10093
+# but not 10345 or 10532, which is why the paper attributes the mask's failure on
+# 10532 to domain shift rather than to the pipeline.
+MASK_IDS = {"10081": "in_distribution", "10093": "in_distribution",
+            "10345": "out_of_distribution", "10532": "out_of_distribution"}
+MASK_SUBDIR = "triangle_mask_overlay/anomaly_mask_npy"   # remote-only; local is flat cleaner_masks/
+
+
+def _hub():
+    try:
+        from huggingface_hub import HfApi
+    except ImportError:
+        sys.exit("error: huggingface_hub not installed -- pip install huggingface_hub")
+    return HfApi()
+
+
+def cmd_upload_checkpoint(args):
+    api = _hub()
+    root = Path(args.data_root).expanduser() / "checkpoints"
+    missing = [f for f in CHECKPOINT_FILES if not (root / f).is_file()]
+    if missing:
+        sys.exit(f"error: missing under {root}: {missing}")
+    api.create_repo(args.repo, repo_type="model", private=args.private, exist_ok=True)
+    for f in CHECKPOINT_FILES:
+        src = root / f
+        dest = f"weights/{CHECKPOINT_REL}/{f}"
+        print(f"[upload] {src} -> {args.repo}:{dest} ({src.stat().st_size / 1e6:.0f} MB)")
+        api.upload_file(path_or_fileobj=str(src), path_in_repo=dest,
+                        repo_id=args.repo, repo_type="model")
+    print(f"[done] https://huggingface.co/{args.repo}")
+
+
+def cmd_upload_cleaner_data(args):
+    api = _hub()
+    root = Path(args.experiments_root).expanduser()
+    ids = args.ids.split(",") if args.ids else CLEANER_IDS
+    api.create_repo(args.repo, repo_type="dataset", private=args.private, exist_ok=True)
+    for eid in ids:
+        id_dir = root / f"empiar_{eid}" / "fullset" / "cleaner_star"
+        missing = [f for f in CLEANER_FILES if not (id_dir / f).is_file()]
+        if missing:
+            print(f"[skip] {eid}: missing {missing} under {id_dir}")
+            continue
+        for f in CLEANER_FILES:
+            src = id_dir / f
+            dest = f"fullset_filter/{eid}/cryotransformer/{f}"
+            print(f"[upload] {src} -> {args.repo}:{dest} ({src.stat().st_size / 1e3:.0f} KB)")
+            api.upload_file(path_or_fileobj=str(src), path_in_repo=dest,
+                            repo_id=args.repo, repo_type="dataset")
+    print(f"[done] https://huggingface.co/datasets/{args.repo}")
+
+
+def cmd_upload_masks(args):
+    api = _hub()
+    root = Path(args.experiments_root).expanduser() / "cleaner_masks"
+    api.create_repo(args.repo, repo_type="dataset", private=args.private, exist_ok=True)
+    for eid, dist in MASK_IDS.items():
+        mask_dir = root / dist / eid
+        n = len(list(mask_dir.glob("*.npz"))) if mask_dir.is_dir() else 0
+        if not n:
+            print(f"[skip] {eid}: no .npz under {mask_dir}")
+            continue
+        dest = f"{MASK_SUBDIR}/{dist}/{eid}"
+        print(f"[upload] {mask_dir} ({n} files) -> {args.repo}:{dest}/")
+        api.upload_folder(folder_path=str(mask_dir), path_in_repo=dest,
+                          repo_id=args.repo, repo_type="dataset",
+                          allow_patterns=["*.npz"])
+    print(f"[done] https://huggingface.co/datasets/{args.repo}")
+
+
+def cmd_download(args):
+    from huggingface_hub import hf_hub_download
+
+    if args.repo_weights:
+        dest_root = Path(args.data_root).expanduser() / "checkpoints"
+        dest_root.mkdir(parents=True, exist_ok=True)
+        for f in CHECKPOINT_FILES:
+            dest = dest_root / f
+            got = hf_hub_download(args.repo_weights, f"weights/{CHECKPOINT_REL}/{f}",
+                                  repo_type="model")
+            dest.write_bytes(Path(got).read_bytes())
+            print(f"[got] {dest}")
+
+    if args.repo_data:
+        experiments_root = Path(args.experiments_root).expanduser()
+        ids = args.ids.split(",") if args.ids else CLEANER_IDS
+        for eid in ids:
+            id_dir = experiments_root / f"empiar_{eid}" / "fullset" / "cleaner_star"
+            id_dir.mkdir(parents=True, exist_ok=True)
+            for f in CLEANER_FILES:
+                got = hf_hub_download(args.repo_data, f"fullset_filter/{eid}/cryotransformer/{f}",
+                                      repo_type="dataset")
+                (id_dir / f).write_bytes(Path(got).read_bytes())
+            print(f"[got] {id_dir}/{{{','.join(CLEANER_FILES)}}}")
+
+    if args.with_masks:
+        from huggingface_hub import snapshot_download
+        if not args.repo_data:
+            sys.exit("--with-masks needs --repo-data")
+        experiments_root = Path(args.experiments_root).expanduser()
+        experiments_root.mkdir(parents=True, exist_ok=True)
+        # Remote layout is MASK_SUBDIR/<dist>/<id>/*.npz; snapshot_download mirrors that
+        # under a staging dir, then each <dist>/<id> is moved into the flat local
+        # cleaner_masks/ that mask_dir_for() in run_fb_loop.py reads.
+        staging = experiments_root / "_hf_masks_staging"
+        snapshot_download(args.repo_data, repo_type="dataset",
+                          allow_patterns=[f"{MASK_SUBDIR}/*"], local_dir=str(staging))
+        cleaner_masks = experiments_root / "cleaner_masks"
+        for eid, dist in MASK_IDS.items():
+            src = staging / MASK_SUBDIR / dist / eid
+            if not src.is_dir():
+                continue
+            dst = cleaner_masks / dist / eid
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.move(str(src), str(dst))
+            print(f"[got] masks under {dst}")
+        shutil.rmtree(staging, ignore_errors=True)
+
+    print("[done] the files landed under --data-root and --experiments-root above; "
+          "point RAPICK_DATA and RAPICK_WORK at them (docs/CONFIGURATION.md).")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    up_ckpt = sub.add_parser("upload-checkpoint", help="upload the head-repaired checkpoint")
+    up_ckpt.add_argument("--repo", required=True, help="e.g. <user>/recon-aware-pick-weights")
+    up_ckpt.add_argument("--data-root", required=True,
+                         help="$RAPICK_DATA on this machine "
+                              "(checkpoint files live under <data-root>/checkpoints/)")
+    up_ckpt.add_argument("--private", action="store_true")
+    up_ckpt.set_defaults(func=cmd_upload_checkpoint)
+
+    up_data = sub.add_parser("upload-cleaner-data", help="upload the 4 IDs' cleaner stars")
+    up_data.add_argument("--repo", required=True, help="e.g. <user>/recon-aware-pick-data")
+    up_data.add_argument("--experiments-root", required=True,
+                         help="$RAPICK_WORK on this machine")
+    up_data.add_argument("--ids", help=f"comma-separated, default {','.join(CLEANER_IDS)}")
+    up_data.add_argument("--private", action="store_true")
+    up_data.set_defaults(func=cmd_upload_cleaner_data)
+
+    up_masks = sub.add_parser("upload-masks",
+                              help="upload all 4 entries' full-set triangular masks "
+                                   "(the loop's per-round filter, and the full-set masked picks)")
+    up_masks.add_argument("--repo", required=True, help="e.g. <user>/recon-aware-pick-data")
+    up_masks.add_argument("--experiments-root", required=True,
+                          help="$RAPICK_WORK on this machine")
+    up_masks.add_argument("--private", action="store_true")
+    up_masks.set_defaults(func=cmd_upload_masks)
+
+    dl = sub.add_parser("download", help="download onto the new site")
+    dl.add_argument("--repo-weights", help="checkpoint repo, e.g. <user>/recon-aware-pick-weights")
+    dl.add_argument("--repo-data", help="cleaner-data repo, e.g. <user>/recon-aware-pick-data")
+    dl.add_argument("--data-root", help="the directory to place inputs in; normally $RAPICK_DATA")
+    dl.add_argument("--experiments-root", help="the directory to place run artifacts in; normally $RAPICK_WORK")
+    dl.add_argument("--ids", help=f"comma-separated, default {','.join(CLEANER_IDS)}")
+    dl.add_argument("--with-masks", action="store_true",
+                    help="also fetch the contamination masks from --repo-data")
+    dl.set_defaults(func=cmd_download)
+
+    args = ap.parse_args()
+    if args.cmd == "download" and not (args.repo_weights or args.repo_data):
+        ap.error("download needs at least one of --repo-weights / --repo-data")
+    if args.cmd == "download" and args.repo_weights and not args.data_root:
+        ap.error("--repo-weights needs --data-root")
+    if args.cmd == "download" and args.repo_data and not args.experiments_root:
+        ap.error("--repo-data needs --experiments-root")
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
