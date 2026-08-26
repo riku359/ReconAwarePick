@@ -1,0 +1,22 @@
+[project]
+name = "rapick-micrograph-cleaner-env"
+version = "0.0.0"
+description = "MicrographCleaner (micrograph_cleaner_em, tf2 branch), installed editable from the checkout scripts/00_setup.sh places at third_party/micrograph_cleaner_em. The editable path is relative to this file, so setting RAPICK_THIRD_PARTY elsewhere means symlinking third_party/ back to it."
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    # Upstream MicrographCleaner (tf2 branch), editable from the local clone.
+    # Its own deps (tensorflow, keras, numpy, scipy, h5py, joblib, pandas,
+    # scikit-image, opencv-python-headless, pillow, imageio, mrcfile, matplotlib,
+    # tqdm, click, protobuf) come from its requirements.txt.
+    "micrograph-cleaner-em",
+    # TF 2.16 + Keras 3 (tf2 branch). Pin the CUDA build for the RTX 4090
+    # (Ada, sm_89); the [and-cuda] extra pulls the matching nvidia-* wheels.
+    "tensorflow[and-cuda]==2.16.2",
+    "keras==3.3.3",
+    # numpy is uncapped upstream (>=1.26); cap below 2.0 because TF 2.16 was built
+    # against numpy 1.x (numpy 2.x triggers ABI errors at import).
+    "numpy>=1.26,<2",
+]
+
+[tool.uv.sources]
+micrograph-cleaner-em = { path = "../../third_party/micrograph_cleaner_em", editable = true }

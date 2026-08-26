@@ -1,0 +1,36 @@
+# Verbatim upstream dependency sources for MicrographCleaner (micrograph_cleaner_em)
+# Repo: https://github.com/rsanchezgarc/micrograph_cleaner_em
+# Branch: tf2 (TF2/Keras3 rescue; the default master branch is TF1). Cloned at the branch tip.
+# License: MIT
+#
+# --- setup.py ---
+# name = "micrograph-cleaner-em"
+# python_requires = ">=3.9"
+# version = use_scm_version  (derived from git via setuptools_scm)
+# install_requires = read verbatim from requirements.txt (below)
+#
+# --- requirements.txt (verbatim, tf2 branch) ---
+setuptools_scm
+tensorflow>=2.16
+keras>=3.2,<3.4
+numpy>=1.26
+scipy>=1.10
+h5py>=3.10
+joblib>=1.4
+pandas>=2.3
+scikit-image>=0.22
+opencv-python-headless>=4.8
+pillow>=10.0
+imageio>=2.31
+mrcfile>=1.5
+matplotlib>=3.8
+tqdm>=4.66
+click>=8.1
+protobuf>=3.20,<6
+#
+# --- Notes on the pinned build (pyproject.toml) ---
+# pyproject.toml pins only the load-bearing ones for this benchmark; the rest
+# float within upstream's ranges (resolved versions live in uv.lock):
+#   tensorflow[and-cuda]==2.16.2   # [and-cuda] pulls the nvidia-* wheels; RTX 4090 (Ada, sm_89)
+#   keras==3.3.3                   # within upstream >=3.2,<3.4
+#   numpy>=1.26,<2                 # cap <2: TF 2.16 was built against numpy 1.x

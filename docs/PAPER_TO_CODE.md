@@ -55,7 +55,7 @@ first residual stage of the backbone (`--finetune_mode head_decoder_encoder_resn
 | --- | --- | --- |
 | Table 1 | The four EMPIAR entries, particle diameter, pixel size, micrograph counts | `configs/datasets/empiar_<id>.yaml`; the counts are checked by `scripts/01_download_data.sh` |
 | Table 2 | GSFSC 0.143 resolution of four pickers and Ours, full sets | `src/rapick/recon`, one run per condition; collected into `results/tables/main_results.json` |
-| Table 3 | Candidates the mask removes, split by whether they overlap an annotated particle | `src/rapick/cleaner/classify_gt_overlap.py` and `count_gt_in_contamination.py` |
+| Table 3 | Candidates the mask removes, split by whether they overlap an annotated particle | `results/analysis/ablation_2d_metrics.py`, as the difference between the `baseline` and `mask` conditions: removals are the drop in matched candidates, and the particle row is the drop in true positives |
 | Table 4 | The ablation, five conditions x four entries | the same reconstruction runs as Table 2, conditions `baseline` / `mask` / `select` / `both` / `fb` |
 | Table 5 | Particles retained through the pipeline | the `particle_counts` block of each condition's `metrics.json` |
 | Table 6 | Per-round loop diagnostics on the 300 annotated micrographs | `src/rapick/loop/fb_round_metrics.py`, scoring with `src/rapick/eval/calc_common_2d_metrics.py` |
