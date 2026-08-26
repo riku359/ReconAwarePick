@@ -1,0 +1,63 @@
+# Condition `both` — +both. Contamination mask and CryoSift's 2D class selection.
+#
+# Produces: row 4 of the Table 4 ablation (+both), and the `both` column of Table 8.
+#
+# THIS CONDITION IS NOT STARTED BY `rapick-recon run`. Its particles come from an
+# existing Select 2D Classes job, so import / extract / class_2D have nothing to do.
+# Build that selection first with src/rapick/select2d/ over the class_2D of
+# `mask`, then reconstruct from it (ab-initio x3 -> refine x3 -> best-of-3 ->
+# local resolution) and collect:
+#   rapick-recon collect --condition configs/conditions/both.yaml \
+#     --dataset configs/datasets/empiar_10081.yaml --setting full
+
+name: both
+
+# Where the particles come from.
+picks:
+  star: null                    # no picks of its own
+  contamination_mask: true
+  class_selection_2d: true
+  starts_at: select_2D
+  reuses: mask                  # reconstructs the CryoSift selection of `mask`'s class_2D,
+                                # so it creates no import / extract / class_2D of its own.
+                                # Both axes at once, on the base checkpoint's candidates;
+                                # the only difference from `fb` is which checkpoint picked
+                                # them
+
+pipeline:
+
+  class2d:
+    class2D_K: 50                 # 50 classes, the same K in every condition and in the
+    class2D_num_full_iter: 20     # CryoSift cycles, so the stacks stay comparable
+
+  select2d:
+    # The particles are pre-selected. The chain reconstructs the FINAL Select 2D Classes
+    # job of CryoSift's iterative workflow (src/rapick/select2d/iterate_class2d.py), which
+    # sits several select_2D/class_2D hops above the class_2D named in `picks.reuses` --
+    # not directly off it. `rapick-recon run` cannot create that job; run
+    # src/rapick/select2d/ first, then reconstruct from its select_2D.
+    enabled: true
+
+  reconstruction:
+    # Best-of-3. A SINGLE-SEED RESOLUTION IS NOT TRUSTWORTHY: the seed-to-seed spread can
+    # exceed the effect being measured, and how large it is depends on the entry (measured
+    # spreads in this project range from 0.011 A to 2.073 A). Three seeds is the floor,
+    # not a luxury. `--seeds 0,1,2` must be passed explicitly on every run and collect --
+    # this block is documentation, not enforced config, so a single-seed run is always a
+    # deliberate choice rather than a silent default.
+    seeds: [0, 1, 2]
+    choose_best_by: res_gsfsc_0143
+    # Note on particle counts: homo_abinit clamps its input at a per-entry particle cap
+    # (measured 219,900 on 10081, 176,700 on 10532), so the refine particle count can be
+    # lower than the extract count. Two conditions are comparable on particle count only
+    # when NEITHER is clamped; a comparison straddling the cap is confounded. `collect`
+    # records the used/unused split in metrics.json so the clamp stays visible.
+
+  local_resolution:
+    enabled: true          # on the best-of-3 winner only; pairs with the other ablation rows
+
+artifacts:
+  particle_counts: true
+  ctf_summary: true
+  gsfsc: true
+  mirror_final_maps: false        # the CryoSPARC job directory stays the source of truth

@@ -14,6 +14,7 @@ falling back to a default that happens to exist on the author's server.
 | `RAPICK_THIRD_PARTY` | Upstream checkouts fetched by `scripts/00_setup.sh`. | `<repo>/third_party` (default) |
 | `RAPICK_ENVS` | Where the per-tool virtual environments are built. Point it at a local SSD: `uv` file locks hang on NFS. | `<repo>` (default, one `.venv` per env dir) |
 | `RAPICK_GPU` | Default GPU index for the stages that take one. Every driver also accepts `--gpu`. | `0` |
+| `RAPICK_TEST_DATA` | Root of the per-entry micrograph directories the picker reads, laid out as `<id>/images/`. Upstream CryoTransformer resolves its input that way and we kept the contract; `scripts/03_pick.sh` creates the links. | `$RAPICK_WORK/test_data` |
 
 Set them once, for example in `~/.rapick.env`, and source it before running
 anything:

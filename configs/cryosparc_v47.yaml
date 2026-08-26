@@ -1,0 +1,122 @@
+# CryoSPARC v4.7 job-type / port contract — the SINGLE source of truth for the DAG
+# drawn in Fig. S1 of the paper. Every reconstruction-level result (Table 2, Table 4,
+# Table 5, Table 8, Fig. 3, Fig. S6, Fig. S7) is produced by the chain declared here.
+#
+# Do not duplicate these keys in Python. Values are the confirmed-working ones for
+# CryoSPARC v4.7.1. There is no host, port or path in this file — it is fully portable.
+# After a CryoSPARC upgrade or on a new site, re-verify it against the live server with
+#   python src/rapick/recon/scripts/smoke_probe.py --env .env --project <throwaway uid>
+#
+# WARNING — never set `compute_use_ssd: false` anywhere in this file or in a condition's
+# params. CryoSPARC's SSD particle cache stays ON. Turning it off to save disk makes
+# `class_2D` crash with SIGFPE ("Floating point exception"): the HDD-direct read path
+# drives one 2D class to zero members, and the per-class average then divides by zero.
+# The exact same particles classify without incident with the cache on. Manage SSD space
+# at the worker instead (a quota plus cache_reserve protect the physical disk; the old
+# cache is LRU-evicted).
+#
+# Per job:
+#   type          CryoSPARC job_type key passed to create_job
+#   inputs        logical name -> input slot name on THIS job
+#   outputs       logical name -> output port name on THIS job
+#   fixed_params  params always set for this job (dataset/condition params merge on top)
+#   seed_param(s) which param(s) receive the trial seed
+
+jobs:
+  import_micrographs:
+    type: import_micrographs
+    outputs: { micrographs: imported_micrographs }
+
+  patch_ctf:
+    type: patch_ctf_estimation_multi
+    inputs:  { exposures: exposures }
+    outputs: { micrographs: exposures }
+
+  import_particles:
+    type: import_particles                # "Import Particle Stack"; ignore_blob=coords only
+    inputs:  { micrographs: micrographs }
+    outputs: { particles: imported_particles }
+    # Import Micrographs prepends a 21-digit CryoSPARC "<uid>_" to each micrograph
+    # basename (verified: J1 -> 004955...._HCN1apo_0008_2xaligned.mrc), so the
+    # SOURCE side always needs remove_leading_uid=True to strip it. The STAR side
+    # is stripped per-source via query_cut_prefix (the CryoPPP annotation STAR also
+    # carries a uid; the picker STARs use raw names). Both sides must reduce to the
+    # same basename, and a name that does not match FAILS the job rather than being
+    # skipped — so the imported micrographs must cover every micrograph the STAR names.
+    fixed_params: { ignore_pose: true, ignore_blob: true, remove_leading_uid: true }
+
+  extract:
+    type: extract_micrographs_multi
+    inputs:  { particles: particles, micrographs: micrographs }
+    # 'micrographs' passes the CTF'd exposures straight through; junk_detector wires it when
+    # it filters an already-extracted stack (see that job's 'exposures' input).
+    outputs: { particles: particles, micrographs: micrographs }
+
+  junk_detector:
+    type: junk_detector_v1
+    # Not used by any condition of the paper: contamination removal is the
+    # MicrographCleaner mask of src/rapick/cleaner/, applied to the picks before import.
+    # This entry exists because src/rapick/recon/jobs/junk_detector.py wires CryoSPARC's
+    # own equivalent, which is useful as a cross-check of the same idea.
+    #
+    # 'exposures' takes the micrograph_blob (required) + annotation_blob (optional) slots;
+    # feed it patch_ctf's exposures to filter picks BEFORE extract, or extract's micrographs
+    # to filter an already-extracted stack. 'particles' needs only the location slot, so
+    # unextracted picks are a valid input.
+    inputs:  { exposures: exposures, particles: particles }
+    # 'particles' is deliberately the ACCEPTED stack: downstream steps read
+    # outputs["particles"], so a junk_detector result substitutes for an extract result.
+    outputs:
+      particles: particles_accepted
+      particles_rejected: particles_rejected
+      micrographs: exposures              # labelled micrographs (annotation_blob + junk_stats)
+    # min_dist is Å; enable_cat{1,2,3} / min_dist_cat{1,2,3} override per junk class
+    # (carbon_gold / intrinsic_ice / extrinsic_ice). v5.0's min_label_area does not exist
+    # on v4.7 — setting it will fail validation.
+    fixed_params: {}
+
+  class2d:
+    type: class_2D                        # class_2D_new also exists on v4.7; the base name is what this pipeline ran
+    inputs:  { particles: particles }
+    outputs: { particles: particles }
+    seed_param: random_seed
+
+  abinit:
+    type: homo_abinit
+    inputs:  { particles: particles }
+    outputs: { particles: particles_all_classes, volume: volume_class_0 }
+    seed_params: [random_seed, abinit_seed_init]
+    # Asked for a single class, homo_abinit reconstructs a randomly chosen subset large
+    # enough to converge and leaves the rest in `particles_unused`, so the refine
+    # particle count can be LOWER than the extract count. The cap is a per-entry constant
+    # (measured 219,900 on 10081 and 176,700 on 10532) and does not grow with the input,
+    # so two conditions are comparable on particle count only when NEITHER is clamped.
+    # A comparison where one arm exceeds the cap and the other does not is confounded;
+    # `collect` records used/unused so the clamp is visible in metrics.json.
+
+  refine:
+    type: homo_refine                     # homo_refine_new also exists on v4.7; the base name is what this pipeline ran
+    inputs:  { particles: particles, volume: volume }
+    # output group 'volume' carries map_half_A/map_half_B + mask_refine/mask_fsc/mask_fsc_auto
+    outputs: { particles: particles, volume: volume }
+    seed_param: random_seed
+
+  local_res:
+    type: local_resolution
+    # connect refine's 'volume' OUTPUT group -> this 'volume' INPUT group (half maps flow through
+    # as slots); 'mask' input is optional (locres_use_mask defaults to the refinement mask).
+    inputs:  { volume: volume, mask: mask }
+    outputs: { volume: volume }           # local-res map = result 'map_locres' in the 'volume' group
+
+  orient_diag:
+    type: orientation_diagnostics         # v4.4+
+    # Optional, run separately over a chosen refinement by
+    # src/rapick/recon/scripts/run_orientation_diagnostics.py — not part of the chain.
+    # Connect refine's 'volume' OUTPUT group -> this 'volume' INPUT group (half maps +
+    # mask_fsc_auto flow through as slots; the job auto-uses mask_fsc_auto as the
+    # conical-FSC mask). Optionally connect refine's 'particles' -> 'particles' so the
+    # Fourier-sampling metric SCF* is computed alongside cFAR.
+    # input_slot_groups on v4.7.1 (build-only probe): volume / volumes_all_classes / particles / mask.
+    # CPU job: resources_needed GPU:0, CPU:24 — route with a worker pin, do not reserve a GPU.
+    inputs:  { volume: volume, particles: particles }
+    outputs: { volume_3dfsc: volume_3DFSC }   # interpolated 3DFSC volume group (result map_3DFSC); terminal

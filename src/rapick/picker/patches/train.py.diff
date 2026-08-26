@@ -1,0 +1,45 @@
+--- a/train.py	(upstream a56f133f3f499562c32a6bc512eec5f115095b3b)
++++ b/train.py	(this repository, src/rapick/picker/overlay)
+@@ -1,3 +1,7 @@
++# Modified copy of CryoTransformer's train.py.
++# Upstream: https://github.com/jianlin-cheng/CryoTransformer
++# (MIT License, Copyright (c) 2023 Jianlin Cheng), pinned at commit
++# a56f133f3f499562c32a6bc512eec5f115095b3b. The modification is in patches/train.py.diff.
+ import argparse
+ from datetime import datetime
+ import datetime
+@@ -178,12 +182,30 @@
+         else:
+             checkpoint = torch.load(args.resume, map_location='cpu')
+ 
+-        del checkpoint["model"]["class_embed.weight"]
+-        del checkpoint["model"]["class_embed.bias"]
+-        del checkpoint["model"]["query_embed.weight"]
++        # Starting from a COCO DETR checkpoint, class_embed and query_embed have the
++        # wrong shape (91+1 classes, 100 queries) and must be reinitialized. Resuming
++        # our OWN run -- which a batch scheduler's wall-clock limit forces us to do --
++        # the shapes match, and dropping them would reset the trained classification head
++        # and the query embeddings on every relay. Shape tells the two cases apart.
++        own_state = model_without_ddp.state_dict()
++        reinitialized_keys = []
++        for key in ("class_embed.weight", "class_embed.bias", "query_embed.weight"):
++            source_tensor = checkpoint["model"].get(key)
++            if source_tensor is None:
++                continue
++            if key not in own_state or own_state[key].shape != source_tensor.shape:
++                del checkpoint["model"][key]
++                reinitialized_keys.append(key)
++        print("resume: reinitialized {}".format(reinitialized_keys or "nothing"))
+ 
+         model_without_ddp.load_state_dict(checkpoint['model'], strict = False)
+-        if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
++
++        # Restore the training state only when relaying our own run. COCO checkpoints
++        # can also carry optimizer/lr_scheduler/epoch, and restoring those would set
++        # start_epoch past args.epochs, so the training loop never runs and the job
++        # still exits 0.
++        is_relay = not reinitialized_keys
++        if is_relay and not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
+             optimizer.load_state_dict(checkpoint['optimizer'])
+             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+             args.start_epoch = checkpoint['epoch'] + 1

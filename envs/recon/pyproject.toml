@@ -1,0 +1,33 @@
+# Dependency closure for the reconstruction stage (src/rapick/recon/).
+#
+# This project supplies dependencies only; it installs no code. The package lives at
+# src/rapick/recon/ and is run from there with PYTHONPATH=src, the same way every other
+# stage of this repository is run. The project name below is kept as it was when
+# uv.lock was generated, so `uv sync --locked` still resolves against the committed
+# lock byte for byte.
+#
+#   cd envs/recon && UV_PROJECT_ENVIRONMENT="$PWD/.venv" uv sync --locked
+#   PYTHONPATH=src envs/recon/.venv/bin/python -m rapick.recon.cli run --help
+#
+# cryosparc-tools MUST match your CryoSPARC server's minor version. This pin is for a
+# v4.7.x server; a v4.6 or v5.0 server needs the matching cryosparc-tools and a
+# re-locked environment. See docs/CRYOSPARC.md.
+[project]
+name = "recon-pipe"
+version = "0.1.0"
+description = "Explicit CryoSPARC v4.7 reconstruction pipeline for reconstruction-aware particle picking"
+requires-python = ">=3.9"
+dependencies = [
+    "cryosparc-tools>=4.7,<4.8",  # match the server minor version (locked against v4.7.1)
+    "pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# Nothing to install: declaring py-modules explicitly turns setuptools' automatic
+# package discovery off, so building this project produces an empty distribution and
+# the environment is exactly the dependency closure above.
+[tool.setuptools]
+py-modules = []

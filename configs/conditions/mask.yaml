@@ -1,0 +1,53 @@
+# Condition `mask` — +mask. The same candidates, minus those that land on contamination.
+#
+# Produces: row 2 of the Table 4 ablation (+mask).
+#
+# Run it on one entry with:
+#   rapick-recon run --condition configs/conditions/mask.yaml \
+#     --dataset configs/datasets/empiar_10081.yaml --setting full --seeds 0,1,2
+# then `rapick-recon collect` with the same flags to write metrics.json.
+
+name: mask
+
+# Where the particles come from.
+picks:
+  star: mask          # key under settings.<setting>.sources in the dataset config
+  contamination_mask: true
+  class_selection_2d: false
+  starts_at: import_particles
+  # A candidate is dropped when its centre falls on the triangular-blend
+  # MicrographCleaner mask (src/rapick/cleaner/). Everything else is `baseline`.
+
+pipeline:
+
+  class2d:
+    class2D_K: 50                 # 50 classes, the same K in every condition and in the
+    class2D_num_full_iter: 20     # CryoSift cycles, so the stacks stay comparable
+
+  select2d:
+    enabled: false                # no 2D class selection; class_2D's accepted particles
+                                  # go straight to ab-initio
+
+  reconstruction:
+    # Best-of-3. A SINGLE-SEED RESOLUTION IS NOT TRUSTWORTHY: the seed-to-seed spread can
+    # exceed the effect being measured, and how large it is depends on the entry (measured
+    # spreads in this project range from 0.011 A to 2.073 A). Three seeds is the floor,
+    # not a luxury. `--seeds 0,1,2` must be passed explicitly on every run and collect --
+    # this block is documentation, not enforced config, so a single-seed run is always a
+    # deliberate choice rather than a silent default.
+    seeds: [0, 1, 2]
+    choose_best_by: res_gsfsc_0143
+    # Note on particle counts: homo_abinit clamps its input at a per-entry particle cap
+    # (measured 219,900 on 10081, 176,700 on 10532), so the refine particle count can be
+    # lower than the extract count. Two conditions are comparable on particle count only
+    # when NEITHER is clamped; a comparison straddling the cap is confounded. `collect`
+    # records the used/unused split in metrics.json so the clamp stays visible.
+
+  local_resolution:
+    enabled: true          # on the best-of-3 winner only; pairs with the other ablation rows
+
+artifacts:
+  particle_counts: true
+  ctf_summary: true
+  gsfsc: true
+  mirror_final_maps: false        # the CryoSPARC job directory stays the source of truth

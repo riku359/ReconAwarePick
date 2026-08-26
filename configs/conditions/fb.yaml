@@ -1,0 +1,67 @@
+# Condition `fb` — Ours. The round-1 fine-tuned checkpoint, masked and 2D-selected.
+#
+# Produces: Table 2 (Ours), row 5 of the Table 4 ablation, Table 7 and the `fb` column of Table 8.
+#
+# Two stages. First run this condition's own stack up to 2D classification:
+#   rapick-recon run --condition configs/conditions/fb.yaml \
+#     --dataset configs/datasets/empiar_10081.yaml --setting full --seeds 0,1,2
+# Then build the CryoSift selection over that class_2D with src/rapick/select2d/,
+# reconstruct from the selection, and collect:
+#   rapick-recon collect --condition configs/conditions/fb.yaml \
+#     --dataset configs/datasets/empiar_10081.yaml --setting full
+
+name: fb
+
+# Where the particles come from.
+picks:
+  star: fb                      # key under settings.<setting>.sources in the dataset config:
+                                # the round-1 fine-tuned checkpoint's candidates, after the
+                                # contamination mask
+  contamination_mask: true
+  class_selection_2d: true
+  starts_at: select_2D
+  reuses: fb                    # unlike `select` / `both`, this condition imports, extracts
+                                # and classifies its OWN stack (`picks.star`) under this same
+                                # name; the reconstruction then starts at the CryoSift
+                                # selection of that class_2D, so `reuses` points at itself
+  # The round-1 checkpoint is fine-tuned on the particles that survived round 0 of the loop
+  # (src/rapick/loop/). Every weight is trained except the first residual stage of the
+  # backbone; it is not a LoRA adapter.
+
+pipeline:
+
+  class2d:
+    class2D_K: 50                 # 50 classes, the same K in every condition and in the
+    class2D_num_full_iter: 20     # CryoSift cycles, so the stacks stay comparable
+
+  select2d:
+    # The particles are pre-selected. The chain reconstructs the FINAL Select 2D Classes
+    # job of CryoSift's iterative workflow (src/rapick/select2d/iterate_class2d.py), which
+    # sits several select_2D/class_2D hops above the class_2D named in `picks.reuses` --
+    # not directly off it. `rapick-recon run` cannot create that job; run
+    # src/rapick/select2d/ first, then reconstruct from its select_2D.
+    enabled: true
+
+  reconstruction:
+    # Best-of-3. A SINGLE-SEED RESOLUTION IS NOT TRUSTWORTHY: the seed-to-seed spread can
+    # exceed the effect being measured, and how large it is depends on the entry (measured
+    # spreads in this project range from 0.011 A to 2.073 A). Three seeds is the floor,
+    # not a luxury. `--seeds 0,1,2` must be passed explicitly on every run and collect --
+    # this block is documentation, not enforced config, so a single-seed run is always a
+    # deliberate choice rather than a silent default.
+    seeds: [0, 1, 2]
+    choose_best_by: res_gsfsc_0143
+    # Note on particle counts: homo_abinit clamps its input at a per-entry particle cap
+    # (measured 219,900 on 10081, 176,700 on 10532), so the refine particle count can be
+    # lower than the extract count. Two conditions are comparable on particle count only
+    # when NEITHER is clamped; a comparison straddling the cap is confounded. `collect`
+    # records the used/unused split in metrics.json so the clamp stays visible.
+
+  local_resolution:
+    enabled: true          # on the best-of-3 winner only; supplies the Ours panel of Fig. 3
+
+artifacts:
+  particle_counts: true
+  ctf_summary: true
+  gsfsc: true
+  mirror_final_maps: false        # the CryoSPARC job directory stays the source of truth

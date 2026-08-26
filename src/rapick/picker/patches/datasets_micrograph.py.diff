@@ -1,0 +1,18 @@
+--- a/datasets/micrograph.py	(upstream a56f133f3f499562c32a6bc512eec5f115095b3b)
++++ b/datasets/micrograph.py	(this repository, src/rapick/picker/overlay)
+@@ -74,7 +74,14 @@
+         boxes[:, 0::2].clamp_(min=0, max=w)
+         boxes[:, 1::2].clamp_(min=0, max=h)
+ 
+-        classes = [obj["category_id"] for obj in anno]
++        # The distributed COCO annotations label every particle category_id=1 (train and
++        # val are both single-class), which collides with num_classes=1's no-object index
++        # (also 1, see models/detr.py build()). Remapping to 0 here makes the matched-query
++        # target land on index 0 instead of on no-object, so classification loss carries a
++        # real signal on future full retrains. This has no effect on the head repair of
++        # Sec. S2, which is offline and class_embed-only: it reads ground truth from
++        # CryoPPP .star files only, never through this loader.
++        classes = [obj["category_id"] - 1 for obj in anno]
+         classes = torch.tensor(classes, dtype=torch.int64)
+ 
+         if self.return_masks:

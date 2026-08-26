@@ -1,0 +1,94 @@
+# EMPIAR-10093 — NOMPC mechanosensitive channel. One file per entry, covering both scales.
+#
+# Produces: the 10093 row of Table 1 (entry, diameter, pixel size, micrograph counts),
+# and supplies the micrographs and picks behind every 10093 number in Table 2, Table 4,
+# Table 5, Table 8, Fig. 3, Fig. S6 and Fig. S7.
+#
+# `annot` is the 300 CryoPPP-annotated micrographs; `full` is the whole deposition.
+# Every reconstruction-level result of the paper uses `full` — 300 micrographs are not
+# enough for a stable reconstruction. `annot` reconstructs the CryoPPP annotations
+# themselves (condition `gt`, Fig. S6 and Fig. S7), which exist only for those 300.
+#
+# Paths come from $RAPICK_DATA (downloaded inputs) and $RAPICK_WORK (what this pipeline
+# and the earlier stages produce); see docs/CONFIGURATION.md. Nothing here is absolute.
+name: empiar_10093
+empiar_id: "10093"
+
+# Optics, from the CryoPPP ground-truth STAR's data_optics block. Shared by both scales,
+# so a change of scale is never also a change of optics.
+# `total_dose_e_per_A2` is not in that block; the micrographs are already motion-corrected
+# and dose-weighted, so it only labels the import.
+optics:
+  psize_A: 1.22
+  accel_kv: 300
+  cs_mm: 2.7
+  total_dose_e_per_A2: 50.0
+
+extraction:
+  box_size_pix: 256          # particle diameter 172 px
+
+settings:
+
+  # --- the 300 CryoPPP-annotated micrographs -----------------------------------
+  annot:
+    micrographs: "${RAPICK_DATA}/cryoppp/10093/micrographs/*.mrc"
+    expected_micrograph_count: 300
+    sources:
+      # The CryoPPP expert annotations. `query_cut_prefix: 22` strips the 22-character
+      # CryoSPARC "<21-digit uid>_" prefix this STAR carries on its micrograph names, so
+      # they reduce to the same basename as the imported micrographs (which are stripped
+      # from the other side by the profile's `remove_leading_uid`).
+      # `y_flip: true`: Import Particles does NOT flip Y, and every GT-aligned STAR in
+      # this project uses a top-left Y origin, so Y is rewritten to ny - Y before import.
+      gt:
+        star: "${RAPICK_DATA}/cryoppp/10093/ground_truth/empiar-10093_particles_selected.star"
+        import_params: { query_cut_prefix: 22 }
+        y_flip: true
+
+  # --- the whole deposition ------------------------------------------------------
+  full:
+    micrographs: "${RAPICK_DATA}/cryoppp_fullset/10093/micrographs/*.mrc"
+    # 1,873 micrographs. Verify the count that Patch CTF actually completed on:
+    # a `completed` Patch CTF has been observed here while silently dropping micrographs,
+    # and nothing downstream signals the loss. `import_particles` also dies on the first
+    # micrograph its STAR names but cannot find, and a `*.mrc` glob happily imports a
+    # partial download.
+    expected_micrograph_count: 1873
+    # One entry per condition whose chain starts from a STAR. The picker STARs use raw
+    # micrograph basenames, so no query_cut_prefix; all carry the top-left Y origin.
+    #
+    # `select`, `both` and `cryosegnet_both` are NOT listed: their chain starts at an
+    # existing Select 2D Classes job, so they carry no picks of their own and reuse the
+    # class_2D of `baseline`, `mask` and `cryosegnet` respectively. See
+    # configs/conditions/ for which parent each one selects on.
+    sources:
+      # CryoTransformer's candidates from the base checkpoint (Sec. S2's theta_0).
+      baseline:
+        star: "${RAPICK_WORK}/picks/10093/baseline.star"
+        import_params: {}
+        y_flip: true
+      # The same candidates, minus those whose centre lands on contamination under the
+      # triangular-blend MicrographCleaner mask (src/rapick/cleaner/).
+      mask:
+        star: "${RAPICK_WORK}/picks/10093/mask.star"
+        import_params: {}
+        y_flip: true
+      # The round-1 fine-tuned checkpoint's candidates, through the same mask. This is
+      # the stack the paper's method (Ours) classifies and then selects on.
+      fb:
+        star: "${RAPICK_WORK}/picks/10093/fb.star"
+        import_params: {}
+        y_flip: true
+      # The three comparison pickers, raw picks, no purification (Table 2).
+      cryolo:
+        star: "${RAPICK_WORK}/picks/10093/cryolo.star"
+        import_params: {}
+        y_flip: true
+      topaz:
+        star: "${RAPICK_WORK}/picks/10093/topaz.star"
+        import_params: {}
+        y_flip: true
+      cryosegnet:
+        star: "${RAPICK_WORK}/picks/10093/cryosegnet.star"
+        import_params: {}
+        y_flip: true
