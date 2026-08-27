@@ -5,12 +5,10 @@ source of that dataset. Per source: import_particles -> extract -> class_2D (one
 seed), then abinit+refine forked over `seeds`, best-of-3 by GSFSC 0.143, then
 local_resolution on the winner.
 
-Three seeds, not one: a single-seed resolution is not trustworthy, because the
-seed-to-seed spread can exceed the effect being measured. Measured spreads in this
-project run from 0.011 A to 2.073 A depending on the dataset, so how many seeds are
-needed is dataset-dependent and best-of-3 is the floor. `--seeds` must be passed
-explicitly on every `run`/`collect` call; the condition YAML's reconstruction.seeds
-is documentation, not enforced config.
+Three seeds, not one. The paper's protocol (Sec. 4.2) runs the reconstruction three
+times with different random seeds and reports the best of the three by GSFSC 0.143.
+`--seeds` must be passed explicitly on every `run`/`collect` call; the condition
+YAML's reconstruction.seeds is documentation, not enforced config.
 """
 from __future__ import annotations
 

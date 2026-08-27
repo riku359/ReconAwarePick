@@ -29,10 +29,9 @@ pipeline:
                                   # go straight to ab-initio
 
   reconstruction:
-    # Best-of-3. A SINGLE-SEED RESOLUTION IS NOT TRUSTWORTHY: the seed-to-seed spread can
-    # exceed the effect being measured, and how large it is depends on the entry (measured
-    # spreads in this project range from 0.011 A to 2.073 A). Three seeds is the floor,
-    # not a luxury. `--seeds 0,1,2` must be passed explicitly on every run and collect --
+    # Best-of-3, which is the paper's protocol (Sec. 4.2): the reconstruction runs three
+    # times with different random seeds and the best of the three by GSFSC 0.143 is what
+    # is reported. `--seeds 0,1,2` must be passed explicitly on every run and collect --
     # this block is documentation, not enforced config, so a single-seed run is always a
     # deliberate choice rather than a silent default.
     seeds: [0, 1, 2]

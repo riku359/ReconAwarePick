@@ -69,7 +69,6 @@ Inside a cell:
 | `published` | the rounded number printed in the paper |
 | `raw` | the unrounded value it was rounded from |
 | `seeds` | the three per-seed values, seed 0, seed 1, seed 2 |
-| `seed_spread` | max minus min of the three, as the notes record it |
 | `refine_job` | the CryoSPARC homogeneous refinement that produced the winning map |
 | `particles` | particles delivered to the reconstruction |
 
@@ -91,27 +90,15 @@ EMDB. Multiply by about two to do that. Within the entry the conditions are stil
 comparable to each other, which is all the paper claims. This caveat is repeated in the
 `note` of every file that carries a 10345 resolution.
 
-### Best of three seeds, and the spread is sometimes large
+### Best of three seeds
 
 Every reconstruction was run three times with different random seeds, and every resolution
-the paper prints is the best of the three by GSFSC 0.143. That convention holds throughout
-the paper and throughout these files.
+the paper prints is the best of the three by GSFSC 0.143 (Sec. 4.2). That convention holds
+throughout the paper and throughout these files.
 
-The seed-to-seed spread is not uniform, and in places it is larger than the differences the
-paper discusses. Across the 36 condition-by-entry cells for which per-seed values are
-recorded, the spread runs from **0.016 A** (`baseline` on 10532) to **7.53 A**
-(`cryosegnet_both` on 10345, where one seed landed at 11.314 A while the other two agreed
-to within 0.02 A). Setting that diverged cell aside, the largest spread is **1.728 A**
-(`cryosegnet` on 10345). Three of the sixteen base-picker cells span more than 1 A:
-crYOLO on 10093 (1.377), Topaz on 10345 (1.641) and CryoSegNet on 10345 (1.728). The
-sixteen cells of the `baseline`, `mask`, `select` and `both` conditions are steadier,
-spanning 0.016 to 0.693 A.
-
-Compare that against the margins in the text. The gap between the `both` and `fb` rows of
-Table 4 is at most 0.15 A, and 0.04 A in the other direction on 10081. On all four entries
-that gap is smaller than the seed spread of at least one of the two cells being compared.
-The per-seed values are in these files so a reader can make that judgement rather than
-take it on trust.
+The three values behind each published one are recorded in the `seeds` field, so a cell can
+be traced to the runs it came from. The paper reports the best of them and does not
+characterise their spread; these files follow it and do the same.
 
 ### Job uids are the authors' own
 

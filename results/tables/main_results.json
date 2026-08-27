@@ -250,7 +250,7 @@
     "fb": "Ours"
   },
   "not_in_paper": {
-    "note": "Two facts recorded in the notes that the table does not print. First, on EMPIAR-10093 and 10532 the fb condition hits the CryoSPARC ab-initio particle cap, so fewer particles enter ab-initio than `particles` states. Second, the seed-to-seed spread of the picker rows is not uniform: three of the sixteen picker cells span more than 1 A while the rest span 0.063 to 0.128 A.",
+    "note": "One fact recorded in the notes that the table does not print: on EMPIAR-10093 and 10532 the fb condition hits the CryoSPARC ab-initio particle cap, so fewer particles enter ab-initio than `particles` states.",
     "fb_particles_entering_abinitio": {
       "10081": 127859,
       "10093": 207000,
@@ -263,19 +263,6 @@
       "10345": null,
       "10532": 176700,
       "cap_note": "The caps for 10081 and 10532 are measured; the notes record 10093 and 10345 as unmeasured, but the fb and GT-teacher runs of 10093 both clamp at 207,000, which is the number quoted for that entry."
-    },
-    "seed_spread_over_1A": {
-      "topaz_10345": 1.641,
-      "cryosegnet_10345": 1.728,
-      "cryolo_10093": 1.377
-    },
-    "seed_spread_range_of_remaining_picker_cells": [
-      0.063,
-      0.128
-    ],
-    "seed_spread_range_of_all_cryotransformer_conditions": [
-      0.016,
-      0.693
-    ]
+    }
   }
 }

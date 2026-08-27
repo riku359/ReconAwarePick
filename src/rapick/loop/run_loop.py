@@ -21,9 +21,9 @@ once at session start and never updated, while only the picking weights advance.
 does no fine-tuning of its own; round n's fine-tune produces the model round n+1 picks
 with, so three rounds give two trained checkpoints and the paper reports the first.
 
-The loop reconstructs nothing. At 300 micrographs the seed-to-seed spread of GSFSC 0.143
-is the size of the effect being looked for, so a per-round trio of ab-initio + refinement
-would cost an hour a round and answer nothing. What each round reports instead are the
+The loop reconstructs nothing. At its 300-micrograph scale a reconstruction does not
+resolve the difference between one round and the next (Sec. 4.3), so a per-round trio of
+ab-initio + refinement would cost an hour a round and answer nothing. What each round reports instead are the
 GT-free diagnostics of the selection -- pick count, permanent-reject fraction, final
 survival fraction -- which are deterministic given the picks. 3D happens once, at fullset
 scale, on the checkpoint the loop produced: repick_fullset.py.

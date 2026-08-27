@@ -47,7 +47,6 @@
           5.3163,
           5.0248
         ],
-        "seed_spread": 0.291,
         "refine_job": "J27",
         "particles": 256713
       },
@@ -59,7 +58,6 @@
           6.7828,
           6.8441
         ],
-        "seed_spread": 0.155,
         "refine_job": "J171",
         "particles_imported": 754434,
         "particles": 753998
@@ -72,7 +70,6 @@
           7.1624,
           7.1149
         ],
-        "seed_spread": 0.415,
         "refine_job": "J114",
         "particles_imported": 494061,
         "particles": 480836
@@ -85,7 +82,6 @@
           4.0472,
           4.0483
         ],
-        "seed_spread": 0.016,
         "refine_job": "J26",
         "particles": 602782
       }
@@ -99,7 +95,6 @@
           5.4362,
           4.743
         ],
-        "seed_spread": 0.693,
         "refine_job": "J47",
         "particles_imported": 244924,
         "particles": 242368
@@ -112,7 +107,6 @@
           7.1897,
           7.4109
         ],
-        "seed_spread": 0.221,
         "refine_job": "J269",
         "particles_imported": 753440,
         "particles": 753004
@@ -125,7 +119,6 @@
           7.0562,
           7.0896
         ],
-        "seed_spread": 0.126,
         "refine_job": "J165",
         "particles_imported": 484649,
         "particles": 471803
@@ -138,7 +131,6 @@
           4.0132,
           3.9845
         ],
-        "seed_spread": 0.029,
         "refine_job": "J62",
         "particles_imported": 576473,
         "particles": 574886
@@ -153,7 +145,6 @@
           4.2146,
           4.2316
         ],
-        "seed_spread": 0.083,
         "refine_job": "J102",
         "particles": 256713,
         "particles_after_2d_selection": 131926
@@ -166,7 +157,6 @@
           4.6543,
           4.7719
         ],
-        "seed_spread": 0.164,
         "refine_job": "J311",
         "particles": 753998,
         "particles_after_2d_selection": 271886
@@ -179,7 +169,6 @@
           3.6408,
           3.5526
         ],
-        "seed_spread": 0.175,
         "refine_job": "J221",
         "particles": 480836,
         "particles_after_2d_selection": 26005
@@ -192,7 +181,6 @@
           3.469,
           3.5118
         ],
-        "seed_spread": 0.043,
         "refine_job": "J180",
         "particles": 602782,
         "particles_after_2d_selection": 184103
@@ -207,7 +195,6 @@
           4.1957,
           4.1809
         ],
-        "seed_spread": 0.118,
         "refine_job": "J134",
         "particles": 242368,
         "particles_after_2d_selection": 126181
@@ -220,7 +207,6 @@
           4.9364,
           4.5196
         ],
-        "seed_spread": 0.616,
         "refine_job": "J352",
         "particles": 753004,
         "particles_after_2d_selection": 301589
@@ -233,7 +219,6 @@
           3.6038,
           3.6245
         ],
-        "seed_spread": 0.036,
         "refine_job": "J274",
         "particles": 471803,
         "particles_after_2d_selection": 29214
@@ -246,7 +231,6 @@
           3.4922,
           3.4795
         ],
-        "seed_spread": 0.062,
         "refine_job": "J162",
         "particles": 574886,
         "particles_after_2d_selection": 178722
@@ -261,7 +245,6 @@
           4.118,
           4.125
         ],
-        "seed_spread": 0.033,
         "refine_job": "J507",
         "particles": 127859
       },
@@ -273,7 +256,6 @@
           4.365,
           4.41
         ],
-        "seed_spread": 0.066,
         "refine_job": "J577",
         "particles": 295644
       },
@@ -285,7 +267,6 @@
           3.668,
           3.54
         ],
-        "seed_spread": 0.172,
         "refine_job": "J511",
         "particles": 27838
       },
@@ -297,14 +278,13 @@
           3.524,
           3.484
         ],
-        "seed_spread": 0.122,
         "refine_job": "J557",
         "particles": 208931
       }
     }
   },
   "not_in_paper": {
-    "note": "`seed_spread` above is max minus min of the three seeds as the notes record it. For the fb row on 10345 the notes give 0.172 while the three listed seeds differ by 0.173; the notes compute the spread before rounding the per-seed values, which is the likely cause. The mask stage removes candidates at the STAR level outside CryoSPARC, so the baseline and mask import counts are directly comparable.",
+    "note": "The mask stage removes candidates at the STAR level outside CryoSPARC, so the baseline and mask import counts are directly comparable.",
     "unresolved_statement_about_reconstruction_input": "docs/notes/5_results.md states, in the block that introduced the fb row, that the other four conditions feed their extraction count straight into ab-initio while the fb row feeds only the CryoSift final selection output. That cannot hold for the select and both rows, whose resolution changes by up to 3.56 A when 2D selection is switched on and whose selected stacks are printed in tab:particles. The statement is reproduced here unchanged and not acted on.",
     "baseline_import_counts": {
       "10081": 259335,

@@ -65,9 +65,9 @@ micrographs *after* its train/validation split, so 50 sampled there would not be
 
 ## The loop runs no reconstruction
 
-At 300 micrographs a reconstruction does not resolve one round from the next: the
-seed-to-seed spread of GSFSC 0.143 is the size of the effect being looked for, so a
-per-round trio of ab-initio + refinement would cost an hour a round and answer nothing.
+At 300 micrographs a reconstruction does not resolve one round from the next
+(Sec. 4.3), so a per-round trio of ab-initio + refinement would cost an hour a round and
+answer nothing.
 
 Rounds are followed instead by numbers that are deterministic given the picks and need no
 ground truth: pick count, what the contamination filter removed, what class_2D accepted,

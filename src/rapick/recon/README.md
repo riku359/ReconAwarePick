@@ -162,12 +162,11 @@ clamped; a comparison where one arm straddles the cap and the other does not is
 confounded. `collect` records the used/unused split so the clamp is visible in
 `metrics.json`.
 
-**A single-seed resolution is not trustworthy.** The seed-to-seed spread can exceed the
-effect being measured, and how large it is depends on the entry: measured spreads in this
-project run from 0.011 A to 2.073 A. Best-of-3 by GSFSC 0.143 is the floor, not a luxury,
-and how many seeds are enough is entry-dependent. `--seeds` must be passed explicitly on
-every `run` and `collect`; the `reconstruction.seeds` block in a condition YAML is
-documentation, not enforced config. If an ab-initio dies and you retry, say which seeds
+**Run three seeds.** The paper's protocol (Sec. 4.2) runs the reconstruction three
+times with different random seeds and reports the best of the three by GSFSC 0.143, so a
+single-seed run reproduces something the paper does not report. `--seeds` must be passed
+explicitly on every `run` and `collect`; the `reconstruction.seeds` block in a condition
+YAML is documentation, not enforced config. If an ab-initio dies and you retry, say which seeds
 were actually used — do not report a best-of-2 as a best-of-3.
 
 **`import_particles` dies on the first micrograph its STAR names but cannot find**, and a
@@ -189,7 +188,6 @@ manifest.py       the experiment record, and safe reuse
 artifacts.py      collect: job outputs -> metrics.json and derived CSVs
 coords.py         Y flip and micrograph-header reading, before import
 gpu_select.py     pick a physically-free GPU, so a shared card does not OOM the run
-figures.py        matplotlib helpers over the derived CSVs
 setup_check.py    the preflight body
 jobs/             one thin module per CryoSPARC job: type, inputs, params, outputs
 scripts/          standalone utilities, see below

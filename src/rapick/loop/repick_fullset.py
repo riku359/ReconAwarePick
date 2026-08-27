@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Re-pick a whole deposition with a loop checkpoint, and publish it as a condition's picks.
 
-The loop trains on 300 micrographs and reconstructs nothing: at that scale the
-seed-to-seed spread of GSFSC 0.143 is the size of the effect being looked for. Every
+The loop trains on 300 micrographs and reconstructs nothing: at that scale a
+reconstruction does not resolve one round from the next (Sec. 4.3). Every
 reconstruction-level number in the paper comes from the full deposition instead, and this
 is the step between the two -- the only part of that path that needs to know about a
 checkpoint the loop produced.
