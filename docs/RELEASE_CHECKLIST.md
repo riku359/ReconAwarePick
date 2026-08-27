@@ -38,6 +38,11 @@ repository's condition names appearing outside the translation table.
         **997 micrographs for EMPIAR-10081, matching Table 1**
       - all five stage environments build, including the two that are not uv
         projects and the Python 3.7 one the picker needs, and every CLI runs
+      - the 2D class selection scores real class averages with CryoSift's network
+        and splits them the way Sec. S4 describes: an extraction box of 256 px gives
+        three cycles, and the 50 classes of one job came out 11 set aside, 17 into
+        the loop and 22 discarded. `--dry-run` creates nothing, so this is the whole
+        of the stage that can be checked without spending GPU hours
       - **47 of Table S2's 48 published cells reproduce exactly** from the published
         picks. The one that does not is Topaz's F1 on EMPIAR-10345, 0.483 against
         0.482, whose precision and recall both reproduce: a macro F1 landing on a
