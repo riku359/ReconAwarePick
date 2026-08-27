@@ -108,6 +108,7 @@ bash scripts/01_download_data.sh
 | Repaired head, theta_0 | the base checkpoint of every condition (Sec. S2) | [🤗 rikrikrik/recon-aware-pick-weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) |
 | Contamination masks | triangular-blend masks for all four entries at full-set scale | [🤗 rikrikrik/recon-aware-pick-data](https://huggingface.co/datasets/rikrikrik/recon-aware-pick-data) |
 | Picks | the STAR files each condition starts from | same dataset |
+| Round-1 checkpoints | the weights the `fb` condition (Ours) picks with, one per entry | [🤗 rikrikrik/recon-aware-pick-weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) |
 
 The four entries are EMPIAR-10081, 10093, 10345 and 10532. Details, including the
 two ways a downloaded `.mrc` can be silently corrupt and how to check, are in
@@ -283,8 +284,8 @@ If you use this code, please also cite **CryoTransformer**, **MicrographCleaner*
 Pending for the public release:
 
 - [ ] Replace the citation block with the proceedings citation
-- [ ] Publish the four round-1 fine-tuned checkpoints (the `fb` condition's
-      weights); until then the loop has to be re-run
+- [x] Publish the four round-1 fine-tuned checkpoints (the `fb` condition's
+      weights), and the four of the perfect-teacher arm
 - [ ] Publish the four pickers' full-set picks, so Table 2 can be reproduced
       without installing crYOLO, Topaz and CryoSegNet
 - [ ] End-to-end check of one condition on a machine that has never run this code

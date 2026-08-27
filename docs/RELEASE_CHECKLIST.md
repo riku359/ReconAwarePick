@@ -41,16 +41,20 @@ repository's condition names appearing outside the translation table.
 - [ ] **Run one condition through to a reconstruction.** The above stops short of
       creating CryoSPARC jobs. The smallest useful test is EMPIAR-10081, condition
       `mask`, at `annot` scale, from the published intermediates.
-- [ ] Publish the four round-1 fine-tuned checkpoints to
-      `rikrikrik/recon-aware-pick-weights`. Without them the `fb` condition, which
-      is the paper's headline row, can only be reproduced by re-running the loop.
+- [x] Publish the four round-1 fine-tuned checkpoints to
+      `rikrikrik/recon-aware-pick-weights`. Done, along with the four of the
+      perfect-teacher arm. Each carries its own training arguments, and they read
+      back as the paper's method: `finetune_mode=head_decoder_encoder_resnet`,
+      50 epochs, lr 1e-4 with backbone lr 1e-5, 600 queries, resumed from theta_0.
 - [ ] Publish the four pickers' full-set picks to
       `rikrikrik/recon-aware-pick-data`, so Table 2 and Table S2 can be reproduced
       without installing crYOLO, Topaz and CryoSegNet. `--picks` in
       `scripts/01_download_data.sh` already expects them and currently says so.
-- [ ] Run the `fb_gt` path once, or mark Table 7's lower row as not reproducible
-      here. The scripts that produced it were never committed; `--teacher gt`
-      reimplements their documented procedure and has not been run in this form.
+- [ ] Run the `fb_gt` path once. Its checkpoints are now published, so the
+      reconstruction half of Table 7's lower row can be reproduced without it, but
+      the loop half is still a reimplementation: the scripts that produced the
+      published row were never committed, and `--teacher gt` follows their
+      documented procedure without having been run in this form.
 - [ ] Replace the citation block in `README.md` and `CITATION.cff` with the
       proceedings citation.
 - [ ] Decide whether to archive a release on Zenodo for a DOI, as is usual for a

@@ -76,9 +76,14 @@ entered without re-deriving its input.
 | θ₀, the repaired base checkpoint | [rikrikrik/recon-aware-pick-weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) | `$RAPICK_DATA/checkpoints/CryoTransformer_head_repaired.pth` |
 | Triangular-blend contamination masks, all four entries at full-set scale (6,070 `.npz`) | [rikrikrik/recon-aware-pick-data](https://huggingface.co/datasets/rikrikrik/recon-aware-pick-data) | `$RAPICK_WORK/masks/<id>/` |
 | Picks after contamination masking, all four entries | same | `$RAPICK_WORK/picks/<id>/mask.star` |
+| Round-1 fine-tuned checkpoints, one per entry | [rikrikrik/recon-aware-pick-weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) | `$RAPICK_DATA/checkpoints/loop_fb_round1_empiar_<id>.pth` |
 
-Not yet published, and therefore listed in the repository's TODO: the four
-round-1 fine-tuned checkpoints (the `fb` condition's weights) and the four
+The round-1 checkpoints are what the `fb` condition picks with, so with them the
+paper's headline row needs no loop run at all. Add `--with-loop-checkpoints` to
+fetch them, or `--with-loop-checkpoints fb_gt` for the perfect-teacher arm of
+Table 7's lower row. Each is about 870 MB.
+
+Still not published, and therefore listed in the repository's TODO: the four
 pickers' raw full-set picks.
 
 ## Verifying a download
