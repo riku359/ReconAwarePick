@@ -12,7 +12,7 @@ GT-aligned STAR files, so both tables can be reproduced from the picks alone:
 ```bash
 bash scripts/01_download_data.sh --intermediates --picks
 bash scripts/07_reconstruct.sh --entry 10081 --condition cryolo   # Table 2
-bash scripts/08_tables_figures.sh --table S2                      # Table S2
+bash scripts/08_tables_figures.sh --tables                        # Table S2
 ```
 
 Install them only if you want to re-derive the picks.

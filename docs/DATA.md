@@ -83,8 +83,12 @@ paper's headline row needs no loop run at all. Add `--with-loop-checkpoints` to
 fetch them, or `--with-loop-checkpoints fb_gt` for the perfect-teacher arm of
 Table 7's lower row. Each is about 870 MB.
 
-Still not published, and therefore listed in the repository's TODO: the four
-pickers' raw full-set picks.
+| The four pickers' full-set candidates | same | `$RAPICK_WORK/picks/<id>/{baseline,cryolo,topaz,cryosegnet}.star` |
+
+Add `--picks` to fetch the pickers' candidates. They are what Table 2 and Table S2
+need, and having them means not installing crYOLO, Topaz or CryoSegNet
+([BASELINES.md](BASELINES.md)). CryoTransformer's land as `baseline.star`, which is
+the condition's name here.
 
 ## Verifying a download
 

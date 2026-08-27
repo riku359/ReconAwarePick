@@ -12,6 +12,7 @@
 #   bash scripts/01_download_data.sh --annot-only         skip the full depositions
 #   bash scripts/01_download_data.sh --intermediates      add the published artifacts
 #   bash scripts/01_download_data.sh --intermediates --picks
+#   bash scripts/01_download_data.sh --fb-weights          the Ours checkpoints
 #
 # --intermediates fetches theta_0 and the contamination masks from Hugging Face,
 # so the head repair and the masking stage can be skipped. --picks additionally
@@ -21,14 +22,13 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DATA="${RAPICK_DATA:?set RAPICK_DATA to the directory the inputs live in (see docs/CONFIGURATION.md)}"
-WORK="${RAPICK_WORK:?set RAPICK_WORK to the directory the pipeline writes to (see docs/CONFIGURATION.md)}"
 
 ENTRIES=(10081 10093 10345 10532)
 DRY_RUN=""
 ANNOT_ONLY=0
 INTERMEDIATES=0
 PICKS=0
+FB_WEIGHTS=0
 WORKERS=4
 
 while [ $# -gt 0 ]; do
@@ -38,11 +38,17 @@ while [ $# -gt 0 ]; do
     --annot-only)     ANNOT_ONLY=1; shift ;;
     --intermediates)  INTERMEDIATES=1; shift ;;
     --picks)          PICKS=1; shift ;;
+    --fb-weights)     FB_WEIGHTS=1; shift ;;
     --workers)        WORKERS="$2"; shift 2 ;;
     -h|--help)        sed -n '2,20p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "unknown flag: $1" >&2; exit 2 ;;
   esac
 done
+
+# --help must work with nothing configured, so the roots are demanded only once the
+# arguments are known to be valid.
+DATA="${RAPICK_DATA:?set RAPICK_DATA to the directory the inputs live in (see docs/CONFIGURATION.md)}"
+WORK="${RAPICK_WORK:?set RAPICK_WORK to the directory the pipeline writes to (see docs/CONFIGURATION.md)}"
 
 PY="$REPO/envs/figures/.venv/bin/python3"
 [ -x "$PY" ] || PY=python3
@@ -147,12 +153,22 @@ if [ "$INTERMEDIATES" -eq 1 ]; then
 fi
 
 if [ "$PICKS" -eq 1 ]; then
-  echo "==> Picks of the four pickers"
-  echo "  NOT YET PUBLISHED. This is on the repository's TODO list: the four"
-  echo "  pickers' full-set picks have to be uploaded to"
-  echo "  rikrikrik/recon-aware-pick-data before --picks does anything."
-  echo "  Until then, reproduce Table 2 and Table S2 by installing the pickers"
-  echo "  (docs/BASELINES.md) or read the numbers from results/tables/."
+  echo "==> Candidates of the four pickers"
+  uv run --quiet --with huggingface_hub python3 "$DL/hf_assets.py" download \
+      --repo-data rikrikrik/recon-aware-pick-data \
+      --experiments-root "$WORK" --ids "${ENTRIES[@]}" --with-picks
+  echo "  -> $WORK/picks/<id>/{baseline,cryolo,topaz,cryosegnet}.star"
+  echo "  These are what Table 2 and Table S2 need, so neither needs crYOLO, Topaz"
+  echo "  or CryoSegNet installed (docs/BASELINES.md)."
+fi
+
+if [ "$FB_WEIGHTS" -eq 1 ]; then
+  echo "==> Round-1 fine-tuned checkpoints (the fb condition's weights)"
+  uv run --quiet --with huggingface_hub python3 "$DL/hf_assets.py" download \
+      --repo-weights rikrikrik/recon-aware-pick-weights \
+      --data-root "$DATA" --ids "${ENTRIES[@]}" --with-loop-checkpoints fb
+  echo "  -> $DATA/checkpoints/loop_fb_round1_empiar_<id>.pth  (about 870 MB each)"
+  echo "  Point scripts/03_pick.sh at one with --checkpoint to re-pick as Ours does."
 fi
 
 # --- what to check before starting a run -------------------------------------
@@ -162,13 +178,20 @@ fi
 if [ -z "$DRY_RUN" ]; then
   echo
   echo "==> Micrograph counts"
-  declare -A EXPECTED=([10081]=997 [10093]=1873 [10345]=1644 [10532]=1556)
+  # A case rather than an associative array: macOS still ships bash 3.2.
+  expected_full() {
+    case "$1" in
+      (10081) echo 997 ;; (10093) echo 1873 ;;
+      (10345) echo 1644 ;; (10532) echo 1556 ;;
+      (*) echo "?" ;;
+    esac
+  }
   for id in "${ENTRIES[@]}"; do
     a=$(find "$DATA/cryoppp/$id/micrographs" -name '*.mrc' 2>/dev/null | wc -l | tr -d ' ')
     printf "  %s  annotated %4s / 300" "$id" "$a"
     if [ "$ANNOT_ONLY" -eq 0 ]; then
       f=$(find "$DATA/cryoppp_fullset/$id/micrographs" -name '*.mrc' 2>/dev/null | wc -l | tr -d ' ')
-      printf "   full %5s / %s" "$f" "${EXPECTED[$id]}"
+      printf "   full %5s / %s" "$f" "$(expected_full "$id")"
     fi
     echo
   done
