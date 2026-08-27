@@ -92,37 +92,11 @@ project**, never one holding results.
 One chain per arm. Steps 1–2 run once per (entry, scale) and are shared by every
 arm of that entry, so all arms are compared over identical CTF estimates.
 
-The manuscript draws Fig. S1 as TikZ over panels CryoSPARC renders for these jobs, and
-those panels are not committed — see
-[`CONDITIONS.md`](CONDITIONS.md). The
-chain the figure lays out is this one:
+Fig. S1 of the manuscript is that chain, drawn as TikZ over the panels CryoSPARC renders
+for these jobs. It is reproduced here; the individual job panels behind it are not
+committed — see [`CONDITIONS.md`](CONDITIONS.md).
 
-```mermaid
-flowchart TD
-  subgraph shared["Shared per (entry, scale)"]
-    J1["1 · Import Micrographs<br/>import_micrographs · CPU"]
-    J2["2 · Patch CTF Estimation (Multi)<br/>patch_ctf_estimation_multi · GPU"]
-    J1 --> J2
-  end
-  subgraph cond["Per arm"]
-    J3["3 · Import Particle Stack<br/>import_particles · CPU<br/>coordinates only"]
-    J4["4 · Extract From Micrographs (Multi)<br/>extract_micrographs_multi · GPU"]
-    J5["5 · 2D Classification<br/>class_2D · GPU · 50 classes"]
-    IT["CryoSift's iterative workflow<br/>several Select 2D / 2D Classification hops<br/>src/rapick/select2d/"]
-    J6["6 · Select 2D Classes<br/>select_2D<br/>selecting arms only"]
-    J7["7 · Ab-Initio Reconstruction ×3<br/>homo_abinit · GPU · seeds 0, 1, 2"]
-    J8["8 · Homogeneous Refinement ×3<br/>homo_refine · GPU"]
-    J9["9 · Best of three<br/>lowest GSFSC 0.143<br/>read by the pipeline, not a job"]
-    J10["10 · Local Resolution Estimation<br/>local_resolution · GPU · non-fatal"]
-    J3 --> J4 --> J5 --> IT --> J6 --> J7 --> J8 --> J9 --> J10
-  end
-  OD["Orientation Diagnostics<br/>orientation_diagnostics · CPU<br/>outside the chain"]
-  FIG["Fig. S6 FSC, Fig. S7 viewing directions<br/>CryoSPARC's own panels, downloaded by collect"]
-  J1 --> J3
-  J2 --> J4
-  J8 -.-> OD
-  J8 -.-> FIG
-```
+![Fig. S1 — the pipeline as it runs: one round of the feedback loop on the 300 annotated micrographs (upper block) and the full micrograph set picked with the checkpoint the loop delivers (lower block), every panel as CryoSPARC renders it for that job.](../assets/fig_s1_pipeline.png)
 
 | # | Job | Key | Notes | Device |
 | --- | --- | --- | --- | --- |

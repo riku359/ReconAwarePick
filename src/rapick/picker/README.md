@@ -273,11 +273,6 @@ released checkpoint from a repaired one, and its own `--resume` default is upstr
 `pretrained_model/CryoTransformer_pretrained_model.pth`. Always pass `--resume`
 explicitly.
 
-`finetune.py` also implements a `lora` mode (`--finetune_mode lora`, plus `--lora_r`,
-`--lora_alpha`, `--lora_dropout`), which injects rank-r adapters into the encoder and
-decoder FFN. **The paper does not use it**, and the tooling for merging such adapters
-back into a checkpoint is not part of this release.
-
 ## Environment
 
 | Variable | Used for |

@@ -12,9 +12,8 @@ repository under the authors' account would break the submission's anonymity.
 
 `bash scripts/check_release.sh` is the gate and passes. It checks paths and account
 names from the experiment machines, credentials, files over 1 MB, leftover Japanese
-prose, dead links, documented paths that do not exist, and the private repository's
-arm names appearing outside `docs/CONDITIONS.md`. `--links` also fetches every
-external URL.
+prose, dead links, documented paths that do not exist, and any appearance of the
+private repository's arm names. `--links` also fetches every external URL.
 
 ## Before it goes public
 

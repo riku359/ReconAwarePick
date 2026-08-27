@@ -99,16 +99,23 @@ $RAPICK_DATA/
 
 $RAPICK_WORK/
 ├── masks/<id>/                             contamination masks, one .npz per micrograph
-└── picks/<id>/
-    ├── cryotransformer.star                theta_0's candidates
-    ├── cryotransformer_mask.star           the same, after contamination removal
-    └── {cryolo,topaz,cryosegnet}.star      the comparison pickers' candidates
+├── picks/<id>/                             picks, one STAR per stage they have been through
+│   ├── cryotransformer.star                theta_0's candidates
+│   ├── cryotransformer_mask.star           the same, after contamination removal
+│   ├── {cryolo,topaz,cryosegnet}.star      the comparison pickers' candidates
+│   └── fb.star, fb_mask.star               a run's own, once it has picked
+├── select2d/<project>_<job>_iter/          CryoSift cycle state and scores
+├── loop/<id>/round<n>/                     a round's stars, teacher labels, checkpoint
+└── empiar_<id>/<setting>/<name>/
+    ├── manifest.json                       which CryoSPARC jobs were run
+    └── metrics.json                        resolution, particle counts, job uids
 ```
 
-`<id>` is one of 10081, 10093, 10345 and 10532. A run fills in the rest of
-`$RAPICK_WORK` as it goes ([docs/CONFIGURATION.md](docs/CONFIGURATION.md)).
-[docs/DATA.md](docs/DATA.md) has where each file comes from, including the two ways a
-downloaded `.mrc` can be silently corrupt and how to check.
+`<id>` is one of 10081, 10093, 10345 and 10532; `<setting>` and `<name>` are defined in
+[docs/CONDITIONS.md](docs/CONDITIONS.md). `masks/` and `picks/` arrive with the download,
+and a run fills in the rest as it goes. [docs/DATA.md](docs/DATA.md) has where each file
+comes from, including the two ways a downloaded `.mrc` can be silently corrupt and how to
+check.
 
 ## Quick Start
 
@@ -250,7 +257,7 @@ Table 2 and Table S2 can be checked without installing any of them. See
 | Document | Covers |
 | --- | --- |
 | [docs/CRYOSPARC.md](docs/CRYOSPARC.md) | installing CryoSPARC v4.7 and the job chain this repository drives |
-| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | every environment variable, and the layout under `RAPICK_DATA` and `RAPICK_WORK` |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | every environment variable, and the `.env` the CryoSPARC stages read |
 | [docs/DATA.md](docs/DATA.md) | what is downloaded, and how a `.mrc` can be silently corrupt |
 | [docs/CONDITIONS.md](docs/CONDITIONS.md) | the arm names, what a resolution here means, and the renames if you ran this before |
 | [docs/BASELINES.md](docs/BASELINES.md) | the three comparison pickers |

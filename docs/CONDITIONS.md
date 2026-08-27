@@ -60,24 +60,6 @@ Three caveats bound what a resolution produced by this repository means:
 - The 2D scores against the CryoPPP annotations are not held out: 50 of the 300
   annotated micrographs also train the picker in each round.
 
-## If you are reading the private research repository
-
-It names the same arms differently. Most of the correspondence is now readable, since
-the names here were made to say the same thing:
-
-| Here | In the research repo |
-| --- | --- |
-| `cryotransformer` | `cryotransformer` |
-| `cryotransformer_mask` | `cryotransformer_clean_tri` |
-| `cryotransformer_select` | `cryotransformer_cryosift_iter` |
-| `cryotransformer_mask_select` | `cryotransformer_clean_tri_cryosift_iter` |
-| `fb` | `fbf_r1_clean_tri_cryosift_iter`, loop arm `general_full`, prefix `fbf_r` |
-| `fb_gt` | loop arm driven by the GT teacher, prefix `fbgt_r` |
-
-Its loop arms `general` and `chained` fine-tune with LoRA and are **not** the paper's
-method. The paper fine-tunes every weight except the first residual stage of the
-backbone (`--finetune_mode head_decoder_encoder_resnet`).
-
 ## If you ran this repository before the rename
 
 The names changed, and one of them changed meaning: `picks/<id>/fb.star` used to hold

@@ -1,8 +1,8 @@
 # Data
 
 Inputs download into `$RAPICK_DATA` and the published artifacts of earlier stages into
-`$RAPICK_WORK`, neither of which is ever inside this repository; both layouts are in
-[CONFIGURATION.md](CONFIGURATION.md).
+`$RAPICK_WORK`, neither of which is ever inside this repository; both layouts are in the
+README, and the variables themselves in [CONFIGURATION.md](CONFIGURATION.md).
 
 ```bash
 bash scripts/download.sh                              # everything, all four entries

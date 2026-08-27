@@ -108,7 +108,7 @@ Other useful flags on `run`:
 
 ## Where the output lands
 
-Under `$RAPICK_WORK` (see [docs/CONFIGURATION.md](../../../docs/CONFIGURATION.md)):
+Under `$RAPICK_WORK`:
 
 ```
 $RAPICK_WORK/empiar_<id>/<setting>/

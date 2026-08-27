@@ -13,8 +13,7 @@ COCO category_id), the collision between category_id=1 and no-object index 1 tha
 datasets/micrograph.py has to work around cannot recur through this path.
 
 The paper's setting is --finetune_mode head_decoder_encoder_resnet: every weight
-trainable, with resnet layer1 always frozen by build_backbone(). The 'lora' mode below
-is implemented but is NOT used by the paper.
+trainable, with resnet layer1 always frozen by build_backbone().
 
 *** --resume MUST BE A HEAD-REPAIRED CHECKPOINT -- see the banner in main(). ***
 Every weight in the checkpoint is now loaded as-is; nothing is re-initialized. That is
@@ -31,20 +30,15 @@ lr/lr_drop, so these were confirmed from the upstream repo
 temporary clone -- that config is reused unmodified for both UPicker's pretrain and fine-tune
 stages (only --lr_backbone is overridden to 0 during pretrain).
 
-Five finetune variants, chosen by --finetune_mode (see configure_finetune_mode):
+Four finetune variants, chosen by --finetune_mode (see configure_finetune_mode):
   head                          -- only class_embed + bbox_embed
   head_decoder                  -- + transformer.decoder + query_embed
   head_decoder_encoder          -- + transformer.encoder + input_proj
   head_decoder_encoder_resnet   -- + backbone (full fine-tune)
-  lora                          -- base backbone/transformer frozen; rank-r adapters
-                                    injected into the encoder/decoder per-layer FFN
-                                    (linear1/linear2 -- see LoRALinear/inject_lora for
-                                    why attention projections can't be targeted here)
 """
 import argparse
 import datetime
 import json
-import math
 import random
 import sys
 import time
@@ -241,58 +235,6 @@ class StarMicrographDataset(torch.utils.data.Dataset):
 
 
 # ---------------------------------------------------------------------------
-# LoRA
-# ---------------------------------------------------------------------------
-
-class LoRALinear(nn.Module):
-    """Wraps a pretrained nn.Linear with a frozen base + trainable rank-r delta.
-
-    out = base(x) + scaling * (x @ A^T) @ B^T   (Hu et al. 2021)
-    B is zero-initialized so the wrapped module is an exact no-op on the first
-    forward pass -- injecting LoRA never perturbs the just-loaded pretrained weights.
-    """
-
-    def __init__(self, base: nn.Linear, r: int, alpha: float, dropout: float = 0.0):
-        super().__init__()
-        self.base = base
-        for p in self.base.parameters():
-            p.requires_grad_(False)
-        self.r = r
-        self.scaling = alpha / r
-        self.lora_A = nn.Parameter(torch.empty(r, base.in_features))
-        self.lora_B = nn.Parameter(torch.zeros(base.out_features, r))
-        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
-        self.dropout = nn.Dropout(dropout) if dropout > 0 else nn.Identity()
-
-    def forward(self, x):
-        return self.base(x) + (self.dropout(x) @ self.lora_A.t() @ self.lora_B.t()) * self.scaling
-
-
-def inject_lora(module, r, alpha, dropout, target_names=("linear1", "linear2")):
-    """Replaces matching nn.Linear children with LoRALinear, recursively, in place.
-
-    Targets only the per-layer FFN (linear1/linear2), not attention projections:
-    nn.MultiheadAttention's *input* QKV projection (in_proj_weight/in_proj_bias) is a bare
-    Parameter, not an nn.Linear submodule, so it is unreachable here; and its *output*
-    projection (out_proj) IS an nn.Linear submodule but is unusable as a LoRA target anyway
-    -- MultiheadAttention.forward() reads `self.out_proj.weight`/`.bias` directly into a
-    functional call instead of invoking `self.out_proj(x)`, so a wrapper's overridden
-    forward() (where the LoRA delta lives) is never called (confirmed: wrapping out_proj
-    raises AttributeError: 'LoRALinear' object has no attribute 'weight' at the first
-    forward pass). Both attention projections therefore stay frozen with the rest of the
-    base model; adaptation goes entirely through the FFN. Returns the number injected.
-    """
-    count = 0
-    for name, child in module.named_children():
-        if isinstance(child, nn.Linear) and name in target_names:
-            setattr(module, name, LoRALinear(child, r=r, alpha=alpha, dropout=dropout))
-            count += 1
-        else:
-            count += inject_lora(child, r, alpha, dropout, target_names)
-    return count
-
-
-# ---------------------------------------------------------------------------
 # finetune_mode -> trainable parameters
 # ---------------------------------------------------------------------------
 
@@ -301,12 +243,11 @@ FINETUNE_MODES = (
     "head_decoder",
     "head_decoder_encoder",
     "head_decoder_encoder_resnet",
-    "lora",
 )
 
 
 def configure_finetune_mode(model, args):
-    """Sets requires_grad per --finetune_mode and, for 'lora', injects adapters.
+    """Sets requires_grad per --finetune_mode.
 
     backbone.* is intentionally left untouched here: build_backbone() (models/backbone.py)
     already decides its trainability once, at build_model() time, from args.lr_backbone > 0
@@ -324,9 +265,6 @@ def configure_finetune_mode(model, args):
                                   "transformer.encoder", "input_proj"),
         "head_decoder_encoder_resnet": ("transformer.decoder", "query_embed",
                                          "transformer.encoder", "input_proj"),
-        # query_embed is a small (num_queries x hidden_dim) embedding table, not one of
-        # the weight matrices LoRA targets below, and cheap to adapt fully.
-        "lora": ("query_embed",),
     }
     trainable_prefixes = always_trainable + extra_by_mode[args.finetune_mode]
 
@@ -334,14 +272,6 @@ def configure_finetune_mode(model, args):
         if name.startswith("backbone"):
             continue
         p.requires_grad_(any(name.startswith(prefix) for prefix in trainable_prefixes))
-
-    if args.finetune_mode == "lora":
-        n_injected = inject_lora(model.transformer.encoder, args.lora_r, args.lora_alpha,
-                                  args.lora_dropout)
-        n_injected += inject_lora(model.transformer.decoder, args.lora_r, args.lora_alpha,
-                                   args.lora_dropout)
-        print(f"LoRA: injected {n_injected} adapters (r={args.lora_r}, alpha={args.lora_alpha}) "
-              f"into encoder/decoder FFN (linear1 + linear2)")
 
 
 # ---------------------------------------------------------------------------
@@ -421,10 +351,6 @@ def get_args_parser():
     parser.add_argument('--finetune_mode', default='head', choices=FINETUNE_MODES,
                         help='Which parameters are trainable, see module docstring / '
                              'configure_finetune_mode()')
-    parser.add_argument('--lora_r', default=8, type=int, help='LoRA rank (--finetune_mode lora)')
-    parser.add_argument('--lora_alpha', default=16, type=float,
-                        help='LoRA scaling numerator, scaling = alpha / r')
-    parser.add_argument('--lora_dropout', default=0.0, type=float, help='Dropout before LoRA A')
 
     # Output and resume paths
     parser.add_argument('--resume', default='pretrained_model/CryoTransformer_pretrained_model.pth',
@@ -574,9 +500,8 @@ def main(args):
                   f'{len(unexpected)} unexpected. First few: {missing[:3]} / {unexpected[:3]}',
                   file=sys.stderr)
 
-    # Must run after the resume-load above (so LoRA wraps already-pretrained Linear
-    # weights, not freshly re-initialized ones) and before model.to(device)/optimizer
-    # construction (so param_dicts below sees the final requires_grad/module tree).
+    # Must run before model.to(device)/optimizer construction, so param_dicts below
+    # sees the final requires_grad flags.
     configure_finetune_mode(model, args)
     model.to(device)
 
