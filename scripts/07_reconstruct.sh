@@ -78,16 +78,30 @@ esac
 banner "Preflight"
 "${RECON[@]}" check-setup "${COMMON[@]}"
 
+# `rapick-recon run` has no dry run: it either creates the chain or it does not.
+# For a condition that goes through it, --dry-run therefore means the preflight
+# above and a description of what would follow. The from-selection driver does
+# have one, and it is passed through below.
+if [ -n "$DRY_RUN" ] && [ "$FROM_SELECTION" -eq 0 ]; then
+  echo
+  echo "Dry run. The preflight passed; nothing was created. A real run would:"
+  echo "  import the micrographs, estimate CTF, import $CONDITION's picks, extract,"
+  echo "  2D classify at K=50, then ab-initio and refine on seeds $SEEDS, keep the"
+  echo "  best by GSFSC 0.143, and estimate local resolution on it."
+  echo "  Output: $WORK/empiar_$ENTRY/$SETTING/$CONDITION/"
+  exit 0
+fi
+
 if [ "$FROM_SELECTION" -eq 0 ]; then
   banner "Reconstructing $CONDITION on $ENTRY ($SETTING), seeds $SEEDS"
-  "${RECON[@]}" run "${COMMON[@]}" --seeds "$SEEDS" --gpus "$GPUS" $DRY_RUN
+  "${RECON[@]}" run "${COMMON[@]}" --seeds "$SEEDS" --gpus "$GPUS"
 else
   # fb and fb_gt classify a stack of their own before anything can be selected on
   # it; the other three select on a class_2D their parent condition already made.
   MANIFEST="$WORK/empiar_$ENTRY/$SETTING/$PARENT/manifest.json"
   if [ "$OWN_STACK" -eq 1 ] && [ ! -f "$MANIFEST" ]; then
     banner "Building $CONDITION's own stack up to 2D classification"
-    "${RECON[@]}" run "${COMMON[@]}" --seeds "$SEEDS" --gpus "$GPUS" $DRY_RUN
+    "${RECON[@]}" run "${COMMON[@]}" --seeds "$SEEDS" --gpus "$GPUS"
   fi
   [ -f "$MANIFEST" ] || { echo "error: no manifest for the parent condition '$PARENT' at" >&2
                           echo "         $MANIFEST" >&2

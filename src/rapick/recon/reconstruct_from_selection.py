@@ -278,9 +278,11 @@ def run(args) -> int:
                  '(`cryosparcm cli "get_scheduler_targets()"` prints it) or pass --worker')
     gpu_index = args.gpu if args.gpu not in (None, "") else os.environ.get("RAPICK_GPU", "")
     gpu_index = str(gpu_index).strip()
-    if not gpu_index:
+    # A dry run queues nothing, so it has no use for a card. Demanding one would
+    # make the cheapest way to check a chain the one that needs a GPU host.
+    if not gpu_index and not args.dry_run:
         sys.exit("no GPU index: set RAPICK_GPU (see docs/CONFIGURATION.md) or pass --gpu")
-    if not gpu_index.isdigit():
+    if gpu_index and not gpu_index.isdigit():
         sys.exit(f"--gpu/RAPICK_GPU must be a card index, got {gpu_index!r}")
 
     parent = args.parent or DEFAULT_PARENT.get(args.condition)
