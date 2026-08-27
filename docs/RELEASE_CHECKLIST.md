@@ -46,10 +46,10 @@ repository's condition names appearing outside the translation table.
       perfect-teacher arm. Each carries its own training arguments, and they read
       back as the paper's method: `finetune_mode=head_decoder_encoder_resnet`,
       50 epochs, lr 1e-4 with backbone lr 1e-5, 600 queries, resumed from theta_0.
-- [ ] Publish the four pickers' full-set picks to
-      `rikrikrik/recon-aware-pick-data`, so Table 2 and Table S2 can be reproduced
-      without installing crYOLO, Topaz and CryoSegNet. `--picks` in
-      `scripts/01_download_data.sh` already expects them and currently says so.
+- [x] Publish the four pickers' full-set picks to
+      `rikrikrik/recon-aware-pick-data`. Done, and checked end to end: downloading
+      them onto a fresh clone and scoring them reproduces **every value of Table S2
+      for EMPIAR-10081 exactly**, all four pickers, all three metrics.
 - [ ] Run the `fb_gt` path once. Its checkpoints are now published, so the
       reconstruction half of Table 7's lower row can be reproduced without it, but
       the loop half is still a reimplementation: the scripts that produced the

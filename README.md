@@ -286,7 +286,7 @@ Pending for the public release:
 - [ ] Replace the citation block with the proceedings citation
 - [x] Publish the four round-1 fine-tuned checkpoints (the `fb` condition's
       weights), and the four of the perfect-teacher arm
-- [ ] Publish the four pickers' full-set picks, so Table 2 can be reproduced
+- [x] Publish the four pickers' full-set picks, so Table 2 and Table S2 reproduce
       without installing crYOLO, Topaz and CryoSegNet
 - [ ] End-to-end check of one condition on a machine that has never run this code
 - [ ] Run the `fb_gt` path once. Table 7's lower row was produced by scripts that
