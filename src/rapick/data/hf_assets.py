@@ -27,8 +27,11 @@ upstream source, expensive enough to regenerate that they are worth publishing.
                two hours per round per entry. `fb_gt` is the perfect-teacher upper
                bound of Table 7's lower row.
 
-Not published yet, and listed in the repository's TODO: the four pickers' raw full-set
-picks.
+  picks        The four pickers' candidates over the whole deposition, in the
+               GT-aligned format every stage downstream reads. Table 2 and Table S2
+               are the only places they are needed, and having them means not
+               installing crYOLO, Topaz or CryoSegNet, none of which is easy to
+               build and one of which is not redistributable.
 
 The remote repo layout (the HF-side paths below) is independent of local layout and
 does not change when a site moves things around locally: --data-root / --experiments-root
@@ -72,6 +75,13 @@ CHECKPOINT_FILES = ["CryoTransformer_head_repaired.pth", "CryoTransformer_head_r
 # reports, so that is what is published.
 LOOP_ARMS = ("fb", "fb_gt")
 LOOP_REL = "weights/loop/{arm}/round1/empiar_{eid}.pth"
+
+# The four pickers' candidates over the whole deposition, in the GT-aligned format
+# every downstream stage reads. With these, Table 2 and Table S2 can be reproduced
+# without installing crYOLO, Topaz or CryoSegNet, none of which is easy to build and
+# one of which is not redistributable.
+PICKERS = ("cryotransformer", "cryolo", "topaz", "cryosegnet")
+PICKS_REL = "picks/full/{eid}/{picker}.star"
 
 # The 4 IDs experiments 1-4 run on, and the 3 files filter_star_triangular.py writes
 # per ID (decisions_tri.jsonl is a resume checkpoint, not needed downstream -- skipped).
@@ -136,6 +146,33 @@ def cmd_upload_loop_checkpoints(args):
         api.upload_file(path_or_fileobj=str(src), path_in_repo=dest,
                         repo_id=args.repo, repo_type="model")
     print(f"[done] https://huggingface.co/{args.repo}")
+
+
+def cmd_upload_picks(args):
+    """Publish the pickers' full-set candidates, one STAR per entry and picker."""
+    api = _hub()
+    root = Path(args.picks_root).expanduser()
+    ids = args.ids.split(",") if args.ids else list(CLEANER_IDS)
+    pickers = args.pickers.split(",") if args.pickers else list(PICKERS)
+
+    found = []
+    for eid in ids:
+        for picker in pickers:
+            src = root / eid / f"{picker}.star"
+            if not src.is_file():
+                print(f"[skip] {eid}/{picker}: not at {src}")
+                continue
+            found.append((eid, picker, src))
+    if not found:
+        sys.exit(f"error: no STAR files under {root}")
+
+    api.create_repo(args.repo, repo_type="dataset", private=args.private, exist_ok=True)
+    for eid, picker, src in found:
+        dest = PICKS_REL.format(eid=eid, picker=picker)
+        print(f"[upload] {src} -> {args.repo}:{dest} ({src.stat().st_size / 1e6:.0f} MB)")
+        api.upload_file(path_or_fileobj=str(src), path_in_repo=dest,
+                        repo_id=args.repo, repo_type="dataset")
+    print(f"[done] https://huggingface.co/datasets/{args.repo}")
 
 
 def cmd_upload_cleaner_data(args):
@@ -204,6 +241,20 @@ def cmd_download(args):
     if args.repo_data:
         experiments_root = Path(args.experiments_root).expanduser()
         ids = args.ids.split(",") if args.ids else CLEANER_IDS
+
+        if getattr(args, "with_picks", False):
+            for eid in ids:
+                picks_dir = experiments_root / "picks" / eid
+                picks_dir.mkdir(parents=True, exist_ok=True)
+                for picker in PICKERS:
+                    got = hf_hub_download(args.repo_data,
+                                          PICKS_REL.format(eid=eid, picker=picker),
+                                          repo_type="dataset")
+                    # `cryotransformer` is the release condition `baseline`: the same
+                    # candidates the ablation's first row reconstructs.
+                    name = "baseline" if picker == "cryotransformer" else picker
+                    (picks_dir / f"{name}.star").write_bytes(Path(got).read_bytes())
+                print(f"[got] {picks_dir}/{{baseline,cryolo,topaz,cryosegnet}}.star")
         for eid in ids:
             id_dir = experiments_root / f"empiar_{eid}" / "fullset" / "cleaner_star"
             id_dir.mkdir(parents=True, exist_ok=True)
@@ -267,6 +318,16 @@ def main():
     up_loop.add_argument("--private", action="store_true")
     up_loop.set_defaults(func=cmd_upload_loop_checkpoints)
 
+    up_picks = sub.add_parser("upload-picks",
+                              help="upload the pickers' full-set candidates, one STAR each")
+    up_picks.add_argument("--repo", required=True, help="e.g. <user>/recon-aware-pick-data")
+    up_picks.add_argument("--picks-root", required=True,
+                          help="directory holding <entry>/<picker>.star")
+    up_picks.add_argument("--ids", help=f"comma-separated, default {','.join(CLEANER_IDS)}")
+    up_picks.add_argument("--pickers", help=f"comma-separated, default {','.join(PICKERS)}")
+    up_picks.add_argument("--private", action="store_true")
+    up_picks.set_defaults(func=cmd_upload_picks)
+
     up_data = sub.add_parser("upload-cleaner-data", help="upload the 4 IDs' cleaner stars")
     up_data.add_argument("--repo", required=True, help="e.g. <user>/recon-aware-pick-data")
     up_data.add_argument("--experiments-root", required=True,
@@ -292,6 +353,9 @@ def main():
     dl.add_argument("--ids", help=f"comma-separated, default {','.join(CLEANER_IDS)}")
     dl.add_argument("--with-masks", action="store_true",
                     help="also fetch the contamination masks from --repo-data")
+    dl.add_argument("--with-picks", action="store_true",
+                    help="also fetch the four pickers' full-set candidates, which is what "
+                         "Table 2 and Table S2 need and what avoids installing them")
     dl.add_argument("--with-loop-checkpoints", metavar="ARM", nargs="?", const="fb",
                     choices=list(LOOP_ARMS),
                     help="also fetch that arm's round-1 checkpoints (default arm: fb, "
