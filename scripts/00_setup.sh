@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
 # Fetch the pinned upstream code and build the per-stage environments.
-#
-# Upstream is cloned, never vendored: Topaz is GPL-3.0 and crYOLO is distributed
-# under a non-commercial licence, so neither can live inside this MIT repository.
-# The one exception is CryoTransformer, three of whose files carry our changes;
-# those ship in src/rapick/picker/overlay/ and are copied over the clean clone at
-# the end of this script.
-#
-# Usage:
-#   bash scripts/00_setup.sh                 pipeline only
-#   bash scripts/00_setup.sh --baselines     also crYOLO, Topaz and CryoSegNet
-#   bash scripts/00_setup.sh --skip-envs     clone and overlay, build nothing
-#
-# Every pin comes from repos.lock.yaml, which is the single source of truth.
+# `--help` prints the whole story; usage() below is the one copy of it.
 
+usage() {
+  cat <<'HELP'
+Fetch the pinned upstream code and build the per-stage environments.
+
+Usage:
+  bash scripts/00_setup.sh                 pipeline only
+  bash scripts/00_setup.sh --baselines     also crYOLO, Topaz and CryoSegNet
+  bash scripts/00_setup.sh --skip-envs     clone and overlay, build nothing
+
+Every pin comes from repos.lock.yaml, which is the single source of truth.
+HELP
+}
+
+# -e  stop at the first command that fails
+# -u  treat reading an unset variable as an error
+# -o pipefail  a pipeline fails when any command in it fails, not just the last
 set -euo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# This script lives in scripts/, so the repository root is the directory above it.
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 THIRD_PARTY="${RAPICK_THIRD_PARTY:-$REPO/third_party}"
 WITH_BASELINES=0
 SKIP_ENVS=0
@@ -25,19 +30,21 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --baselines) WITH_BASELINES=1; shift ;;
     --skip-envs) SKIP_ENVS=1; shift ;;
-    -h|--help)   sed -n '2,16p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help)   usage; exit 0 ;;
     *) echo "unknown flag: $1" >&2; exit 2 ;;
   esac
 done
 
 for tool in git curl; do
-  command -v "$tool" >/dev/null || { echo "error: $tool is required" >&2; exit 1; }
+  if ! command -v "$tool" >/dev/null; then
+    echo "error: $tool is required" >&2
+    exit 1
+  fi
 done
-if [ "$SKIP_ENVS" -eq 0 ]; then
-  command -v uv >/dev/null || {
-    echo "error: uv is required to build the environments." >&2
-    echo "       Install it from https://docs.astral.sh/uv/, or pass --skip-envs." >&2
-    exit 1; }
+if [ "$SKIP_ENVS" -eq 0 ] && ! command -v uv >/dev/null; then
+  echo "error: uv is required to build the environments." >&2
+  echo "       Install it from https://docs.astral.sh/uv/, or pass --skip-envs." >&2
+  exit 1
 fi
 
 mkdir -p "$THIRD_PARTY"
@@ -47,20 +54,25 @@ mkdir -p "$THIRD_PARTY"
 pin() {  # pin <section> <name> <field>
   RAPICK_REPO="$REPO" uv run --quiet --with pyyaml python3 -c '
 import os, sys, yaml
+
+section, name, field = sys.argv[1], sys.argv[2], sys.argv[3]
 lock = yaml.safe_load(open(os.environ["RAPICK_REPO"] + "/repos.lock.yaml"))
-print(lock[sys.argv[1]][sys.argv[2]].get(sys.argv[3], "") or "")
+print(lock[section][name].get(field, "") or "")
 ' "$1" "$2" "$3"
 }
 
 clone_pinned() {  # clone_pinned <section> <name>
-  local section="$1" name="$2"
+  local section="$1"
+  local name="$2"
   local url path commit branch subdir dest
   url=$(pin "$section" "$name" url)
   path=$(pin "$section" "$name" path)
   commit=$(pin "$section" "$name" commit)
   branch=$(pin "$section" "$name" branch)
   subdir=$(pin "$section" "$name" subdir)
-  [ -n "$path" ] || path="$name"
+  if [ -z "$path" ]; then
+    path="$name"
+  fi
   dest="$THIRD_PARTY/$path"
 
   if [ -d "$dest/.git" ]; then
@@ -77,10 +89,11 @@ clone_pinned() {  # clone_pinned <section> <name>
     git -C "$dest" sparse-checkout set --no-cone "$subdir"
     if [ -n "$commit" ]; then
       git -C "$dest" checkout --quiet "$commit"
+      echo "  $name: pinned at $commit ($(du -sh "$dest" | cut -f1))"
     else
       git -C "$dest" checkout --quiet "$branch"
+      echo "  $name: pinned at $branch ($(du -sh "$dest" | cut -f1))"
     fi
-    echo "  $name: pinned at ${commit:-$branch} ($(du -sh "$dest" | cut -f1))"
     return
   fi
 
@@ -120,10 +133,13 @@ fi
 echo "==> Applying the CryoTransformer overlay"
 CT="$THIRD_PARTY/$(pin pipeline cryotransformer path)"
 if [ ! -d "$CT" ]; then
-  echo "error: $CT is missing; the clone above did not succeed" >&2; exit 1
+  echo "error: $CT is missing; the clone above did not succeed" >&2
+  exit 1
 fi
-cp -R "$REPO/src/rapick/picker/overlay/." "$CT/"
-echo "  copied $(find "$REPO/src/rapick/picker/overlay" -name '*.py' | wc -l | tr -d ' ') files over the clone"
+OVERLAY="$REPO/src/rapick/picker/overlay"
+cp -R "$OVERLAY/." "$CT/"
+OVERLAY_FILES=$(find "$OVERLAY" -name '*.py' | wc -l | tr -d ' ')
+echo "  copied $OVERLAY_FILES files over the clone"
 echo "  the changes against upstream are readable in src/rapick/picker/patches/"
 
 # --- environments ------------------------------------------------------------
@@ -135,7 +151,9 @@ fi
 
 # uv's file locks hang on NFS, so the cache has to sit on a local disk.
 export UV_LINK_MODE=copy
-: "${UV_CACHE_DIR:=${TMPDIR:-/tmp}/uv-cache-rapick}"
+if [ -z "${UV_CACHE_DIR:-}" ]; then
+  UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache-rapick"
+fi
 export UV_CACHE_DIR
 mkdir -p "$UV_CACHE_DIR"
 
@@ -146,18 +164,20 @@ mkdir -p "$UV_CACHE_DIR"
 # A case rather than an associative array: macOS still ships bash 3.2, which has none.
 own_builder() {  # own_builder <name> -> path, or empty
   case "$1" in
-    (cryosift)           echo "src/rapick/select2d/scripts/build_env.sh" ;;
-    (micrograph_cleaner) echo "src/rapick/cleaner/build_env.sh" ;;
-    (*)                  echo "" ;;
+    cryosift)           echo "src/rapick/select2d/scripts/build_env.sh" ;;
+    micrograph_cleaner) echo "src/rapick/cleaner/build_env.sh" ;;
+    *)                  echo "" ;;
   esac
 }
 
 build_env() {  # build_env <name>
-  local name="$1" dir="$REPO/envs/$1" own
-  own="$(own_builder "$1")"
+  local name="$1"
+  local dir="$REPO/envs/$name"
+  local own
+  own="$(own_builder "$name")"
 
   if [ -n "$own" ]; then
-    if [ ! -x "$REPO/$own" ] && [ ! -f "$REPO/$own" ]; then
+    if [ ! -f "$REPO/$own" ]; then
       echo "  $name: $own is missing, skipping"
       return
     fi
@@ -175,16 +195,19 @@ build_env() {  # build_env <name>
     return
   fi
   echo "  $name: building"
+  # In a subshell, so that the cd does not follow us into the next environment.
   ( cd "$dir" && UV_PROJECT_ENVIRONMENT="$dir/.venv" uv sync --quiet --locked )
 }
 
 echo "==> Building environments"
-for e in cryotransformer micrograph_cleaner cryosift recon figures; do
-  build_env "$e"
+for env_name in cryotransformer micrograph_cleaner cryosift recon figures; do
+  build_env "$env_name"
 done
 
 if [ "$WITH_BASELINES" -eq 1 ]; then
-  for e in topaz cryosegnet; do build_env "$e"; done
+  for env_name in topaz cryosegnet; do
+    build_env "$env_name"
+  done
   echo "  cryolo: needs conda, not uv. See docs/BASELINES.md."
 fi
 

@@ -1,22 +1,29 @@
 # Configuration
 
-Every path this repository needs comes from one of five environment variables
-and a `.env` file. Nothing is hardcoded to a machine: a script that cannot
-resolve one of these fails immediately with the variable's name, rather than
-falling back to a default that happens to exist on the author's server.
+Every path comes from an environment variable or `.env`. Nothing is hardcoded to a
+machine: a script that cannot resolve one fails immediately, naming the variable.
 
 ## Environment variables
 
 | Variable | Holds | Example |
 | --- | --- | --- |
-| `RAPICK_DATA` | Downloaded inputs: micrographs, annotations, pretrained weights. Read-mostly, and large (about 1.6 TB for all four entries at full-set scale). | `/mnt/data/rapick-data` |
+| `RAPICK_DATA` | Downloaded inputs: micrographs, annotations, pretrained weights. Read-mostly, and large (~1.6 TB for all four entries at full-set scale). | `/mnt/data/rapick-data` |
 | `RAPICK_WORK` | Everything the pipeline produces: masks, filtered STAR, per-condition manifests, `metrics.json`. Grows during a run. | `/mnt/data/rapick-work` |
 | `RAPICK_THIRD_PARTY` | Upstream checkouts fetched by `scripts/00_setup.sh`. | `<repo>/third_party` (default) |
 | `RAPICK_ENVS` | Where the per-tool virtual environments are built. Point it at a local SSD: `uv` file locks hang on NFS. | `<repo>` (default, one `.venv` per env dir) |
 | `RAPICK_GPU` | Default GPU index for the stages that take one. Every driver also accepts `--gpu`. | `0` |
-| `RAPICK_TEST_DATA` | Root of the per-entry micrograph directories the picker reads, laid out as `<id>/images/`. Upstream CryoTransformer resolves its input that way and we kept the contract; `scripts/03_pick.sh` creates the links. | `$RAPICK_WORK/test_data` |
-| `RAPICK_CRYOSPARC_PROJECT_DIR` | The CryoSPARC project directory on disk. Only the one-off scripts under `results/analysis/` need it: several read a job's `.cs` and `job.json` off disk rather than through the API. | `/mnt/cryosparc/P1` |
+| `RAPICK_TEST_DATA` | Root of the per-entry micrograph directories the picker reads, as `<id>/images/` — upstream CryoTransformer's contract, which we kept. `scripts/03_pick.sh` creates the links. | `$RAPICK_WORK/test_data` |
+| `RAPICK_CRYOSPARC_PROJECT_DIR` | The CryoSPARC project directory on disk. Needed only by the one-off scripts under `results/analysis/` that read a job's `.cs` and `job.json` off disk rather than through the API. | `/mnt/cryosparc/P1` |
 | `RAPICK_FIGURES_OUT` | Where the figure scripts write. Nothing writes back into the repository, so the figure in the paper and the figure a checkout produces stay separable. | `$RAPICK_WORK/figures` (default) |
+
+Set the main ones once, for example in `~/.rapick.env`, and source it before running
+anything:
+
+```bash
+export RAPICK_DATA=/mnt/data/rapick-data
+export RAPICK_WORK=/mnt/data/rapick-work
+export RAPICK_GPU=0
+```
 
 ### Escape hatches
 
@@ -33,19 +40,10 @@ reason to be overridable.
 | `RAPICK_FT_MIN_FREE_MB`, `RAPICK_FT_MAX_WAIT_S` | How much free GPU memory a fine-tune waits for, and how long it waits before giving up. | 20000 MB, 7200 s |
 | `RAPICK_LOCK_DIR` | Where the loop keeps its per-entry lock, so two rounds of the same entry cannot run at once. | `/tmp` |
 
-Set the main ones once, for example in `~/.rapick.env`, and source it before
-running anything:
-
-```bash
-export RAPICK_DATA=/mnt/data/rapick-data
-export RAPICK_WORK=/mnt/data/rapick-work
-export RAPICK_GPU=0
-```
-
 ## Layout under `RAPICK_DATA`
 
-Created by `scripts/01_download_data.sh`. The four EMPIAR entries are 10081,
-10093, 10345 and 10532.
+Created by `scripts/01_download_data.sh`. The four EMPIAR entries are 10081, 10093,
+10345 and 10532.
 
 ```
 $RAPICK_DATA/
@@ -77,9 +75,8 @@ deposition). `<condition>` is one of the names in
 
 ## CryoSPARC connection: `.env`
 
-Copy `.env.example` to `.env` at the repository root and fill it in. It is
-git-ignored. This is the only file that holds credentials, and every stage that
-talks to CryoSPARC reads it from here.
+Copy `.env.example` to `.env` at the repository root. It is git-ignored, is the only
+file holding credentials, and every stage that talks to CryoSPARC reads it.
 
 ```
 CRYOSPARC_LICENSE_ID=
@@ -91,8 +88,7 @@ CRYOSPARC_WORKER=
 CRYOSPARC_PROJECT=
 ```
 
-`CRYOSPARC_WORKER` is the name of your worker lane as CryoSPARC reports it
-(`cryosparcm cli "get_scheduler_targets()"`). `CRYOSPARC_PROJECT` is the project
-uid the pipeline writes into, for example `P1`; create it once in the CryoSPARC
-web interface. See [CRYOSPARC.md](CRYOSPARC.md) for the version requirement and
-the job chain.
+`CRYOSPARC_WORKER` is the worker hostname as CryoSPARC reports it
+(`cryosparcm cli "get_scheduler_targets()"`); `CRYOSPARC_PROJECT` is the project uid to
+write into, for example `P1`. Setup steps and the job chain are in
+[CRYOSPARC.md](CRYOSPARC.md).

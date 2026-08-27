@@ -1,31 +1,40 @@
 #!/usr/bin/env bash
 # Rebuild the tables and the figures that need nothing but this repository.
-#
-# Most of the paper's figures are drawn over micrographs, class averages or density
-# maps, and none of those is committed: they are large binaries, and this repository
-# commits code and numbers. Those figures take an --assets directory instead, and
-# results/figures/README.md says what each one wants. What runs here is the part
-# that reads only results/tables/.
-#
-#   bash scripts/08_tables_figures.sh              figures that stand alone
-#   bash scripts/08_tables_figures.sh --tables     re-derive the 2D tables instead
-#   bash scripts/08_tables_figures.sh --list       what is here and what it needs
-#
-# Figures land in $RAPICK_FIGURES_OUT, default $RAPICK_WORK/figures.
+# `--help` prints the whole story; usage() below is the one copy of it.
 
-source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+usage() {
+  cat <<'HELP'
+Rebuild the tables and the figures that need nothing but this repository.
+
+Most of the paper's figures are drawn over micrographs, class averages or density
+maps, and none of those is committed: they are large binaries, and this repository
+commits code and numbers. Those figures take an --assets directory instead, and
+results/figures/README.md says what each one wants. What runs here is the part
+that reads only results/tables/.
+
+  bash scripts/08_tables_figures.sh              figures that stand alone
+  bash scripts/08_tables_figures.sh --tables     re-derive the 2D tables instead
+  bash scripts/08_tables_figures.sh --list       what is here and what it needs
+
+Figures land in $RAPICK_FIGURES_OUT, default $RAPICK_WORK/figures.
+HELP
+}
+
+source "$(dirname "$0")/_common.sh"
 
 MODE="figures"
 while [ $# -gt 0 ]; do
   case "$1" in
     --tables)  MODE="tables"; shift ;;
     --list)    MODE="list"; shift ;;
-    -h|--help) sed -n '2,16p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help) usage; exit 0 ;;
     *) echo "unknown flag: $1" >&2; exit 2 ;;
   esac
 done
 
 if [ "$MODE" = "list" ]; then
+  # Print the index table out of the figures README: every line from the "## Index"
+  # heading down to the paragraph that follows the table.
   sed -n '/^## Index/,/^\[`lib\//p' "$REPO/results/figures/README.md"
   exit 0
 fi

@@ -1,27 +1,38 @@
 #!/usr/bin/env bash
 # Download everything the pipeline reads, into $RAPICK_DATA.
-#
-# Nothing is written into this repository. All four entries at full-set scale come
-# to about 1.6 TB, so run --dry-run first: it enumerates what would be fetched and
-# checks that the disk has the space.
-#
-# Usage:
-#   bash scripts/01_download_data.sh --dry-run
-#   bash scripts/01_download_data.sh                      all four entries
-#   bash scripts/01_download_data.sh --entry 10081        one entry
-#   bash scripts/01_download_data.sh --annot-only         skip the full depositions
-#   bash scripts/01_download_data.sh --intermediates      add the published artifacts
-#   bash scripts/01_download_data.sh --intermediates --picks
-#   bash scripts/01_download_data.sh --fb-weights          the Ours checkpoints
-#
-# --intermediates fetches theta_0 and the contamination masks from Hugging Face,
-# so the head repair and the masking stage can be skipped. --picks additionally
-# fetches the four pickers' picks, so Table 2 and Table S2 can be reproduced
-# without installing crYOLO, Topaz or CryoSegNet.
+# `--help` prints the whole story; usage() below is the one copy of it.
 
+usage() {
+  cat <<'HELP'
+Download everything the pipeline reads, into $RAPICK_DATA.
+
+Nothing is written into this repository. All four entries at full-set scale come
+to about 1.6 TB, so run --dry-run first: it enumerates what would be fetched and
+checks that the disk has the space.
+
+Usage:
+  bash scripts/01_download_data.sh --dry-run
+  bash scripts/01_download_data.sh                      all four entries
+  bash scripts/01_download_data.sh --entry 10081        one entry
+  bash scripts/01_download_data.sh --annot-only         skip the full depositions
+  bash scripts/01_download_data.sh --intermediates      add the published artifacts
+  bash scripts/01_download_data.sh --intermediates --picks
+  bash scripts/01_download_data.sh --fb-weights          the Ours checkpoints
+
+--intermediates fetches theta_0 and the contamination masks from Hugging Face,
+so the head repair and the masking stage can be skipped. --picks additionally
+fetches the four pickers' picks, so Table 2 and Table S2 can be reproduced
+without installing crYOLO, Topaz or CryoSegNet.
+HELP
+}
+
+# -e  stop at the first command that fails
+# -u  treat reading an unset variable as an error
+# -o pipefail  a pipeline fails when any command in it fails, not just the last
 set -euo pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# This script lives in scripts/, so the repository root is the directory above it.
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 
 ENTRIES=(10081 10093 10345 10532)
 DRY_RUN=""
@@ -40,23 +51,38 @@ while [ $# -gt 0 ]; do
     --picks)          PICKS=1; shift ;;
     --fb-weights)     FB_WEIGHTS=1; shift ;;
     --workers)        WORKERS="$2"; shift 2 ;;
-    -h|--help)        sed -n '2,20p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help)        usage; exit 0 ;;
     *) echo "unknown flag: $1" >&2; exit 2 ;;
   esac
 done
 
 # --help must work with nothing configured, so the roots are demanded only once the
 # arguments are known to be valid.
-DATA="${RAPICK_DATA:?set RAPICK_DATA to the directory the inputs live in (see docs/CONFIGURATION.md)}"
-WORK="${RAPICK_WORK:?set RAPICK_WORK to the directory the pipeline writes to (see docs/CONFIGURATION.md)}"
+if [ -z "${RAPICK_DATA:-}" ]; then
+  echo "error: RAPICK_DATA is not set." >&2
+  echo "       Point it at the directory the inputs live in (docs/CONFIGURATION.md)." >&2
+  exit 1
+fi
+if [ -z "${RAPICK_WORK:-}" ]; then
+  echo "error: RAPICK_WORK is not set." >&2
+  echo "       Point it at the directory the pipeline writes to (docs/CONFIGURATION.md)." >&2
+  exit 1
+fi
+DATA="$RAPICK_DATA"
+WORK="$RAPICK_WORK"
 
 PY="$REPO/envs/figures/.venv/bin/python3"
-[ -x "$PY" ] || PY=python3
+if [ ! -x "$PY" ]; then
+  PY=python3
+fi
 DL="$REPO/src/rapick/data"
 
 # The downloaders read the CryoPPP catalogue spreadsheet, so they need openpyxl.
 # Run them through uv rather than requiring it in the ambient interpreter.
 run_dl() { uv run --quiet --with openpyxl python3 "$@"; }
+
+# $DRY_RUN below is deliberately left unquoted: it is either empty, and then adds
+# no argument at all, or the single word --dry-run.
 
 echo "==> Data root:  $DATA"
 echo "==> Work root:  $WORK"
@@ -79,8 +105,11 @@ run_dl "$DL/download_cryoppp_micrographs_only.py" \
     --data-root "$DATA" --ids "${ENTRIES[@]}" --workers "$WORKERS" --max-retries 5 $DRY_RUN
 
 echo "==> Expert annotations"
+# This downloader wants one comma-separated list where the others take repeated
+# ids, so join them: the entries with spaces between, then spaces turned into commas.
+ENTRIES_CSV="$(echo "${ENTRIES[*]}" | tr ' ' ',')"
 run_dl "$DL/download_cryoppp_star.py" \
-    --data-root "$DATA" --ids "$(IFS=,; echo "${ENTRIES[*]}")" --max-retries 5 $DRY_RUN
+    --data-root "$DATA" --ids "$ENTRIES_CSV" --max-retries 5 $DRY_RUN
 
 # --- the full depositions ----------------------------------------------------
 if [ "$ANNOT_ONLY" -eq 0 ]; then
@@ -102,14 +131,19 @@ fi
 # Patch CTF. Both are worth catching before a run, not during one.
 if [ -z "$DRY_RUN" ]; then
   echo "==> Recovering anything that failed"
-  run_dl "$DL/recover_failed_mrc_from_targz.py" --data-root "$DATA" --max-retries 5 || \
+  # A failure here is not fatal: there may simply be nothing to recover.
+  if ! run_dl "$DL/recover_failed_mrc_from_targz.py" --data-root "$DATA" --max-retries 5; then
     echo "  (nothing to recover, or recovery reported failures; see the log under cryoppp_tools/)"
+  fi
 
   echo "==> Verifying micrograph integrity"
+  # The verifier exits non-zero when it finds a bad file. It has already said which
+  # one, so keep going and let the operator decide.
   for id in "${ENTRIES[@]}"; do
     run_dl "$DL/verify_mrc_integrity.py" --data-root "$DATA" --dataset cryoppp --ids "$id" || true
-    [ "$ANNOT_ONLY" -eq 0 ] && \
+    if [ "$ANNOT_ONLY" -eq 0 ]; then
       run_dl "$DL/verify_mrc_integrity.py" --data-root "$DATA" --dataset fullset --ids "$id" || true
+    fi
   done
 fi
 
@@ -140,13 +174,13 @@ fi
 # --- published artifacts -----------------------------------------------------
 if [ "$INTERMEDIATES" -eq 1 ]; then
   echo "==> Published artifacts from Hugging Face"
-  HF_ARGS=(--repo-weights rikrikrik/recon-aware-pick-weights
-           --repo-data    rikrikrik/recon-aware-pick-data
-           --data-root    "$DATA"
-           --experiments-root "$WORK"
-           --ids "${ENTRIES[@]}"
-           --with-masks)
-  uv run --quiet --with huggingface_hub python3 "$DL/hf_assets.py" download "${HF_ARGS[@]}"
+  uv run --quiet --with huggingface_hub python3 "$DL/hf_assets.py" download \
+      --repo-weights rikrikrik/recon-aware-pick-weights \
+      --repo-data rikrikrik/recon-aware-pick-data \
+      --data-root "$DATA" \
+      --experiments-root "$WORK" \
+      --ids "${ENTRIES[@]}" \
+      --with-masks
   echo "  theta_0        -> $DATA/checkpoints/CryoTransformer_head_repaired.pth"
   echo "  masks          -> $WORK/masks/<id>/"
   echo "  masked picks   -> $WORK/picks/<id>/"
@@ -179,19 +213,27 @@ if [ -z "$DRY_RUN" ]; then
   echo
   echo "==> Micrograph counts"
   # A case rather than an associative array: macOS still ships bash 3.2.
-  expected_full() {
+  expected_full() {  # expected_full <id>
     case "$1" in
-      (10081) echo 997 ;; (10093) echo 1873 ;;
-      (10345) echo 1644 ;; (10532) echo 1556 ;;
-      (*) echo "?" ;;
+      10081) echo 997 ;;
+      10093) echo 1873 ;;
+      10345) echo 1644 ;;
+      10532) echo 1556 ;;
+      *)     echo "?" ;;
     esac
   }
   for id in "${ENTRIES[@]}"; do
-    a=$(find "$DATA/cryoppp/$id/micrographs" -name '*.mrc' 2>/dev/null | wc -l | tr -d ' ')
-    printf "  %s  annotated %4s / 300" "$id" "$a"
+    annotated=0
+    if [ -d "$DATA/cryoppp/$id/micrographs" ]; then
+      annotated=$(find "$DATA/cryoppp/$id/micrographs" -name '*.mrc' | wc -l | tr -d ' ')
+    fi
+    printf "  %s  annotated %4s / 300" "$id" "$annotated"
     if [ "$ANNOT_ONLY" -eq 0 ]; then
-      f=$(find "$DATA/cryoppp_fullset/$id/micrographs" -name '*.mrc' 2>/dev/null | wc -l | tr -d ' ')
-      printf "   full %5s / %s" "$f" "$(expected_full "$id")"
+      full=0
+      if [ -d "$DATA/cryoppp_fullset/$id/micrographs" ]; then
+        full=$(find "$DATA/cryoppp_fullset/$id/micrographs" -name '*.mrc' | wc -l | tr -d ' ')
+      fi
+      printf "   full %5s / %s" "$full" "$(expected_full "$id")"
     fi
     echo
   done

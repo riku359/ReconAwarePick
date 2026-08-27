@@ -3,13 +3,13 @@
 Official implementation of *"Reconstruction-Aware Cryo-EM Particle Picking"*.
 
 Extracting a clean particle stack from cryo-EM micrographs is usually split into
-three sub-tasks: particle picking, contamination removal, and 2D class selection.
-Each is trained and evaluated on its own, and none is optimized for the 3D
-reconstruction that consumes their output. We treat the three as one selection
-problem posed against reconstruction quality: CryoTransformer picks permissively,
-a MicrographCleaner mask discards the candidates that fall on contamination,
+three sub-tasks — particle picking, contamination removal, and 2D class
+selection — each trained and evaluated on its own, none optimized for the 3D
+reconstruction that consumes their output. We treat them as one selection problem
+posed against reconstruction quality: CryoTransformer picks permissively, a
+MicrographCleaner mask discards the candidates that fall on contamination,
 CryoSift selects 2D classes by a continuous quality score, and the surviving
-particles are fed back to fine-tune the picker.
+particles fine-tune the picker.
 
 ![pipeline](assets/pipeline.png)
 
@@ -35,36 +35,18 @@ four EMPIAR entries of CryoTransformer's independent test set.
 
 ## Requirements
 
-**CryoSPARC v4.7.x is required and is not installed by this repository.** Every
-stage from particle extraction onward runs as a CryoSPARC job: extraction, 2D
-classification, ab-initio reconstruction, homogeneous refinement, and local
-resolution. A free non-commercial licence id is enough. See
-[docs/CRYOSPARC.md](docs/CRYOSPARC.md) for the version requirement, the reason
-v5.0.x is not targeted, and how to point this repository at your instance.
-
-One GPU is enough; every stage occupies a single GPU. The paper's runs used
-NVIDIA RTX A5000 cards with 24 GB each.
-
-Time, measured on the full micrograph sets. Picking costs 0.49 to 0.55 seconds
-per micrograph and applying the cached masks at most 75 seconds for an entire
-entry, but the stages that touch every particle dominate: extraction with 2D
-classification takes 2.6 to 5.0 hours, the CryoSift cycles 1.3 to 8.5 hours, and
-one reconstruction arm of three ab-initio runs and three refinements 1.1 to 2.0
-hours. A fine-tuning round takes just under two hours. Reproducing every
-condition of the paper on all four entries is a matter of weeks, not hours, which
-is why the intermediate artifacts are published; see
-[Quick Start](#quick-start).
-
-Disk: about 1.6 TB for the four entries at full-set scale.
+- **CryoSPARC v4.7.x** — not installed by this repository. See
+  [docs/CRYOSPARC.md](docs/CRYOSPARC.md) for the installation instructions.
+- **GPU** — one is enough; every stage occupies a single GPU. The paper's runs
+  used NVIDIA RTX A5000 cards with 24 GB each.
 
 ---
 
 ## Installation
 
-The stages need mutually incompatible Python environments, so there is one
-environment per stage rather than one for the repository. `scripts/00_setup.sh`
-clones the pinned upstream code and builds all of them from the committed
-lockfiles under `envs/`.
+The stages need mutually incompatible Python environments, so there is one per
+stage rather than one for the repository. `scripts/00_setup.sh` clones the pinned
+upstream code and builds them all from the committed lockfiles under `envs/`.
 
 ```bash
 git clone https://github.com/riku359/ReconAwarePick.git
@@ -83,13 +65,13 @@ bash scripts/00_setup.sh
 | reconstruction | `envs/recon` | 3.10 | cryosparc-tools 4.7 |
 | figures | `envs/figures` | 3.11 | matplotlib |
 
-`uv` builds all of them except crYOLO, which needs conda; crYOLO is only required
-to reproduce two tables, and [docs/BASELINES.md](docs/BASELINES.md) explains how
-to avoid it. Keep the `uv` cache on a local SSD: its file locks hang on NFS.
+`uv` builds everything except crYOLO, which needs conda and is only required for
+two tables; [docs/BASELINES.md](docs/BASELINES.md) explains how to avoid it. Keep
+the `uv` cache on a local SSD: its file locks hang on NFS.
 
-Every path comes from an environment variable. The contract is in
-[docs/CONFIGURATION.md](docs/CONFIGURATION.md); a script that cannot resolve one
-fails naming the variable rather than falling back to a default.
+Every path comes from an environment variable, and a script that cannot resolve
+one fails naming it rather than falling back to a default. The contract is in
+[docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ---
 
@@ -110,17 +92,17 @@ bash scripts/01_download_data.sh
 | Picks | the STAR files each condition starts from | same dataset |
 | Round-1 checkpoints | the weights the `fb` condition (Ours) picks with, one per entry | [🤗 rikrikrik/recon-aware-pick-weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) |
 
-The four entries are EMPIAR-10081, 10093, 10345 and 10532. Details, including the
-two ways a downloaded `.mrc` can be silently corrupt and how to check, are in
-[docs/DATA.md](docs/DATA.md).
+The four entries are EMPIAR-10081, 10093, 10345 and 10532.
+[docs/DATA.md](docs/DATA.md) has the details, including the two ways a downloaded
+`.mrc` can be silently corrupt and how to check.
 
 ---
 
 ## Quick Start
 
 Running the whole pipeline takes weeks. To see one condition end to end without
-re-deriving its inputs, download the published picks and masks and pick up from
-the 2D classification:
+re-deriving its inputs, download the published picks and masks and start from the
+2D classification:
 
 ```bash
 bash scripts/01_download_data.sh --entry 10081 --intermediates
@@ -168,12 +150,11 @@ bash scripts/07_reconstruct.sh --entry 10081 --condition fb        # ab-initio t
 bash scripts/08_tables_figures.sh
 ```
 
-`02` can be skipped by downloading theta_0 and `04` by downloading the masks;
-`scripts/01_download_data.sh --intermediates` fetches both. `05` is resumable:
-each cycle's re-classification runs for hours, and the job uids are recorded in
-`state.json` before they are queued.
+`scripts/01_download_data.sh --intermediates` fetches theta_0 and the masks,
+which skips `02` and `04`. `05` is resumable: each cycle's re-classification runs
+for hours, and its job uid is recorded in `state.json` before it is queued.
 
-Each stage's README carries the details, the exact flags, and the traps:
+Each stage's README has the details, the exact flags, and the traps:
 [picker](src/rapick/picker/README.md) ·
 [cleaner](src/rapick/cleaner/README.md) ·
 [select2d](src/rapick/select2d/README.md) ·
@@ -189,23 +170,25 @@ Each stage's README carries the details, the exact flags, and the traps:
 what produces it, and defines the five condition names the whole repository uses.
 [docs/REPRODUCE.md](docs/REPRODUCE.md) gives the commands table by table.
 
-Every number the paper prints is in `results/tables/`, as JSON, together with the
-unrounded per-seed values and the CryoSPARC job uid behind each one. You can
-check the paper against them without running anything.
+Every number the paper prints is in `results/tables/` as JSON, with the unrounded
+per-seed values and the CryoSPARC job uid behind each one — enough to check the
+paper against without running anything.
 
-Two things do not reproduce exactly, and it is better to know before trying:
-the camera placements behind the local-resolution maps of Fig. 3 were lost, so a
-re-render gives the same maps at a different orientation, and the class-average
-tiles of Fig. S1 came from CryoSPARC jobs whose scratch copies are gone.
+Two things do not reproduce exactly: the camera placements behind Fig. 3's
+local-resolution maps were lost, so a re-render gives the same maps at a
+different orientation, and the class-average tiles of Fig. S1 came from CryoSPARC
+jobs whose scratch copies are gone.
 [docs/PAPER_TO_CODE.md](docs/PAPER_TO_CODE.md) says what survives.
 
-Three caveats bound what the numbers mean. Resolutions on EMPIAR-10345 follow
-CryoPPP's declared pixel size, which is the super-resolution movie value, so they
-are about half the physical figure and compare conditions within that entry only.
-Resolution is best-of-three-seeds, and the seed-to-seed spread sometimes exceeds
-the effect being measured. And the 2D scores against the CryoPPP annotations are
-not held-out numbers, because 50 of the 300 annotated micrographs also train the
-picker in each round.
+Three caveats bound what the numbers mean:
+
+- Resolutions on EMPIAR-10345 follow CryoPPP's declared pixel size, which is the
+  super-resolution movie value, so they are about half the physical figure and
+  compare conditions within that entry only.
+- Resolution is best-of-three-seeds: the reconstruction runs three times with
+  different random seeds and the best of the three by GSFSC 0.143 is reported.
+- The 2D scores against the CryoPPP annotations are not held out: 50 of the 300
+  annotated micrographs also train the picker in each round.
 
 ---
 
@@ -247,10 +230,9 @@ Our own code is released under the [MIT License](LICENSE).
 
 **Included in this repository.** Three files of
 [CryoTransformer](https://github.com/jianlin-cheng/CryoTransformer) (MIT, (c) 2023
-Jianlin Cheng) ship here in modified form, under
-`src/rapick/picker/overlay/`, because the paper depends on those modifications.
-The changes are readable as diffs in `src/rapick/picker/patches/` and the
-upstream copyright notice is retained.
+Jianlin Cheng) ship in modified form under `src/rapick/picker/overlay/`, because
+the paper depends on those modifications. The changes are readable as diffs in
+`src/rapick/picker/patches/`, and the upstream copyright notice is retained.
 
 **Fetched, not redistributed.** Everything else is cloned at a pinned commit by
 `scripts/00_setup.sh`; see `repos.lock.yaml`.

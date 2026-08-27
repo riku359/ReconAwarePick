@@ -1,29 +1,36 @@
 #!/usr/bin/env bash
 # Reconstruct one condition and collect its metrics (Sec. S1).
-#
-# The chain is the same for every condition: import micrographs, patch CTF, import
-# particles, extract, 2D classify, three ab-initio reconstructions, three
-# homogeneous refinements, best of the three by GSFSC 0.143, and a local
-# resolution estimate on the winner.
-#
-#   bash scripts/07_reconstruct.sh --entry 10081 --condition baseline
-#   bash scripts/07_reconstruct.sh --entry 10081 --condition both
-#   bash scripts/07_reconstruct.sh --entry 10081 --condition fb --setting full
-#   bash scripts/07_reconstruct.sh --entry 10081 --condition baseline --dry-run
-#
-# Conditions fall into two groups. Most start from a STAR of their own and run
-# straight through. Four of them (select, both, cryosegnet_both, fb, and fb_gt)
-# take their particles from a 2D class selection instead, so their chain starts one
-# step lower, at an existing Select 2D Classes job; this script finds that job in
-# the state.json that scripts/05_select2d.sh wrote and hands it to the driver that
-# can start there.
-#
-# WHY THREE SEEDS. A single-seed resolution is not trustworthy. The seed-to-seed
-# spread measured in this project ranges from 0.011 to 2.073 angstrom, so on some
-# entries it exceeds the effect being compared. If a seed's ab-initio dies, advance
-# the seed number rather than reporting a best-of-two as a best-of-three.
+# `--help` prints the whole story; usage() below is the one copy of it.
 
-source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+usage() {
+  cat <<'HELP'
+Reconstruct one condition and collect its metrics (Sec. S1).
+
+The chain is the same for every condition: import micrographs, patch CTF, import
+particles, extract, 2D classify, three ab-initio reconstructions, three
+homogeneous refinements, best of the three by GSFSC 0.143, and a local
+resolution estimate on the winner.
+
+  bash scripts/07_reconstruct.sh --entry 10081 --condition baseline
+  bash scripts/07_reconstruct.sh --entry 10081 --condition both
+  bash scripts/07_reconstruct.sh --entry 10081 --condition fb --setting full
+  bash scripts/07_reconstruct.sh --entry 10081 --condition baseline --dry-run
+
+Conditions fall into two groups. Most start from a STAR of their own and run
+straight through. Five of them (select, both, cryosegnet_both, fb and fb_gt)
+take their particles from a 2D class selection instead, so their chain starts one
+step lower, at an existing Select 2D Classes job; this script finds that job in
+the state.json that scripts/05_select2d.sh wrote and hands it to the driver that
+can start there.
+
+THREE SEEDS, NOT ONE. The protocol (Sec. 4.2) reports the best of three by GSFSC
+0.143, so a single-seed run reproduces something the paper does not report. If a
+seed's ab-initio dies, advance the seed number rather than reporting a
+best-of-two as a best-of-three.
+HELP
+}
+
+source "$(dirname "$0")/_common.sh"
 
 ENTRY=""
 CONDITION=""
@@ -41,42 +48,53 @@ while [ $# -gt 0 ]; do
     --select2d)  SELECT2D="$2"; shift 2 ;;
     --gpus)      GPUS="$2"; shift 2 ;;
     --dry-run)   DRY_RUN="--dry-run"; shift ;;
-    -h|--help)   sed -n '2,24p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help)   usage; exit 0 ;;
     *) echo "unknown flag: $1" >&2; exit 2 ;;
   esac
 done
-[ -n "$ENTRY" ]     || { echo "error: --entry is required" >&2; exit 2; }
-[ -n "$CONDITION" ] || { echo "error: --condition is required" >&2; exit 2; }
+if [ -z "$ENTRY" ]; then
+  echo "error: --entry is required" >&2
+  exit 2
+fi
+if [ -z "$CONDITION" ]; then
+  echo "error: --condition is required" >&2
+  exit 2
+fi
 valid_entry "$ENTRY"
-case "$SETTING" in (annot|full) ;; (*) echo "error: --setting is annot or full" >&2; exit 2 ;; esac
+require_setting "$SETTING"
 
 CONDCFG="$REPO/configs/conditions/$CONDITION.yaml"
 DATACFG="$REPO/configs/datasets/empiar_$ENTRY.yaml"
-[ -f "$CONDCFG" ] || { echo "error: no such condition: $CONDITION" >&2
-                       echo "       Available: $(ls "$REPO/configs/conditions" | sed 's/\.yaml//' | tr '\n' ' ')" >&2
-                       exit 2; }
+if [ ! -f "$CONDCFG" ]; then
+  echo "error: no such condition: $CONDITION" >&2
+  echo "       Available: $(ls "$REPO/configs/conditions" | sed 's/\.yaml//' | tr '\n' ' ')" >&2
+  exit 2
+fi
 
 # --help must work with nothing configured, so the roots are demanded only once
 # the arguments are known to be valid.
 require_roots
 
 PY="$(venv_python recon)"
-RECON=( env PYTHONPATH="$REPO/src" "$PY" -m rapick.recon.cli )
-COMMON=( --condition "$CONDCFG" --dataset "$DATACFG" --setting "$SETTING" )
+
+# Every call into the reconstruction CLI goes through here.
+recon() {  # recon <subcommand> [flags...]
+  PYTHONPATH="$REPO/src" "$PY" -m rapick.recon.cli "$@"
+}
 
 # Which conditions take their particles from a 2D class selection, and whose
 # class_2D that selection sits on.
 case "$CONDITION" in
-  (select)          FROM_SELECTION=1; PARENT="baseline"   ; OWN_STACK=0 ;;
-  (both)            FROM_SELECTION=1; PARENT="mask"       ; OWN_STACK=0 ;;
-  (cryosegnet_both) FROM_SELECTION=1; PARENT="cryosegnet" ; OWN_STACK=0 ;;
-  (fb)              FROM_SELECTION=1; PARENT="fb"         ; OWN_STACK=1 ;;
-  (fb_gt)           FROM_SELECTION=1; PARENT="fb_gt"      ; OWN_STACK=1 ;;
-  (*)               FROM_SELECTION=0; PARENT=""           ; OWN_STACK=0 ;;
+  select)          FROM_SELECTION=1; PARENT="baseline"   ; OWN_STACK=0 ;;
+  both)            FROM_SELECTION=1; PARENT="mask"       ; OWN_STACK=0 ;;
+  cryosegnet_both) FROM_SELECTION=1; PARENT="cryosegnet" ; OWN_STACK=0 ;;
+  fb)              FROM_SELECTION=1; PARENT="fb"         ; OWN_STACK=1 ;;
+  fb_gt)           FROM_SELECTION=1; PARENT="fb_gt"      ; OWN_STACK=1 ;;
+  *)               FROM_SELECTION=0; PARENT=""           ; OWN_STACK=0 ;;
 esac
 
 banner "Preflight"
-"${RECON[@]}" check-setup "${COMMON[@]}"
+recon check-setup --condition "$CONDCFG" --dataset "$DATACFG" --setting "$SETTING"
 
 # `rapick-recon run` has no dry run: it either creates the chain or it does not.
 # For a condition that goes through it, --dry-run therefore means the preflight
@@ -94,67 +112,76 @@ fi
 
 if [ "$FROM_SELECTION" -eq 0 ]; then
   banner "Reconstructing $CONDITION on $ENTRY ($SETTING), seeds $SEEDS"
-  "${RECON[@]}" run "${COMMON[@]}" --seeds "$SEEDS" --gpus "$GPUS"
+  recon run --condition "$CONDCFG" --dataset "$DATACFG" --setting "$SETTING" \
+      --seeds "$SEEDS" --gpus "$GPUS"
 else
   # fb and fb_gt classify a stack of their own before anything can be selected on
   # it; the other three select on a class_2D their parent condition already made.
   MANIFEST="$WORK/empiar_$ENTRY/$SETTING/$PARENT/manifest.json"
   if [ "$OWN_STACK" -eq 1 ] && [ ! -f "$MANIFEST" ]; then
     banner "Building $CONDITION's own stack up to 2D classification"
-    "${RECON[@]}" run "${COMMON[@]}" --seeds "$SEEDS" --gpus "$GPUS"
+    recon run --condition "$CONDCFG" --dataset "$DATACFG" --setting "$SETTING" \
+        --seeds "$SEEDS" --gpus "$GPUS"
   fi
-  [ -f "$MANIFEST" ] || { echo "error: no manifest for the parent condition '$PARENT' at" >&2
-                          echo "         $MANIFEST" >&2
-                          echo "       Run it first:" >&2
-                          echo "         bash scripts/07_reconstruct.sh --entry $ENTRY --condition $PARENT --setting $SETTING" >&2
-                          exit 1; }
+  if [ ! -f "$MANIFEST" ]; then
+    echo "error: no manifest for the parent condition '$PARENT' at" >&2
+    echo "         $MANIFEST" >&2
+    echo "       Run it first:" >&2
+    echo "         bash scripts/07_reconstruct.sh --entry $ENTRY --condition $PARENT --setting $SETTING" >&2
+    exit 1
+  fi
 
   # The selection's final Select 2D Classes job, at the 3.5 cutoff, is recorded in
   # the state.json that scripts/05_select2d.sh left behind.
   if [ -z "$SELECT2D" ]; then
-    CLASS2D="$(uv run --quiet python3 -c '
-import json, sys
-j = (json.load(open(sys.argv[1])).get("jobs") or {}).get("class2d")
-print(j.get("uid", "") if isinstance(j, dict) else (j or ""))
-' "$MANIFEST")"
-    STATE="$WORK/select2d/${CRYOSPARC_PROJECT:-}_${CLASS2D}_iter/state.json"
+    CLASS2D="$(manifest_class2d "$MANIFEST")"
+    STATE="$(select2d_state_file "$CLASS2D")"
     if [ -f "$STATE" ]; then
-      SELECT2D="$(uv run --quiet python3 -c '
-import json, sys
-s = json.load(open(sys.argv[1]))
-print((s.get("final_selects", {}).get("3.5") or {}).get("uid", ""))
-' "$STATE")"
+      SELECT2D="$(select2d_at_cutoff "$STATE")"
     fi
   fi
-  [ -n "$SELECT2D" ] || { echo "error: no 2D class selection to reconstruct from." >&2
-                          echo "       Build it first:" >&2
-                          echo "         bash scripts/05_select2d.sh --entry $ENTRY --condition $CONDITION" >&2
-                          echo "       or name the job with --select2d J<n>." >&2
-                          exit 1; }
+  if [ -z "$SELECT2D" ]; then
+    echo "error: no 2D class selection to reconstruct from." >&2
+    echo "       Build it first:" >&2
+    echo "         bash scripts/05_select2d.sh --entry $ENTRY --condition $CONDITION" >&2
+    echo "       or name the job with --select2d J<n>." >&2
+    exit 1
+  fi
 
   banner "Reconstructing $CONDITION on $ENTRY from $SELECT2D, seeds $SEEDS"
-  "${RECON[@]}" reconstruct-from-selection \
+  # This driver takes a single GPU, so hand it the first of the list.
+  FIRST_GPU="$(echo "$GPUS" | cut -d, -f1)"
+  # $DRY_RUN is deliberately left unquoted: it is either empty, and then adds no
+  # argument at all, or the single word --dry-run.
+  recon reconstruct-from-selection \
       --entry "$ENTRY" --select2d "$SELECT2D" \
       --condition "$CONDITION" --parent "$PARENT" --setting "$SETTING" \
-      --seeds "$SEEDS" --gpu "${GPUS%%,*}" $DRY_RUN
+      --seeds "$SEEDS" --gpu "$FIRST_GPU" $DRY_RUN
 fi
 
-[ -n "$DRY_RUN" ] && exit 0
+if [ -n "$DRY_RUN" ]; then
+  exit 0
+fi
 
 # The from-selection driver deliberately does not collect, so this is not optional:
 # without it the arm ends up with a manifest and no metrics.json.
 banner "Collecting metrics"
-"${RECON[@]}" collect "${COMMON[@]}"
+recon collect --condition "$CONDCFG" --dataset "$DATACFG" --setting "$SETTING"
 
 OUT="$WORK/empiar_$ENTRY/$SETTING/$CONDITION"
 echo
 echo "Metrics: $OUT/metrics.json"
 if [ -f "$OUT/metrics.json" ]; then
+  # A one-line summary of the file just written. Reading it is a convenience, so a
+  # failure here must not fail the run.
   uv run --quiet python3 -c '
 import json, sys
-m = json.load(open(sys.argv[1]))
-res = m.get("res_gsfsc_0143") or (m.get("best") or {}).get("res_gsfsc_0143")
-if res: print(f"  GSFSC 0.143: {res} A  (best of the seeds run)")
+
+metrics = json.load(open(sys.argv[1]))
+best = metrics.get("best") or {}
+resolution = metrics.get("res_gsfsc_0143") or best.get("res_gsfsc_0143")
+if resolution:
+    print(f"  GSFSC 0.143: {resolution} A  (best of the seeds run)")
 ' "$OUT/metrics.json" || true
 fi
 echo "Compare against results/tables/ — see docs/PAPER_TO_CODE.md for which table this row is."

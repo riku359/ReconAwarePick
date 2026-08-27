@@ -1,25 +1,27 @@
 #!/usr/bin/env bash
 # Pick candidates with CryoTransformer (Sec. 3.2).
-#
-# The picker over-picks on purpose: it emits 600 scored candidate queries per
-# micrograph, keeps the top 75% by score, and removes duplicates by non-maximum
-# suppression at an overlap threshold of 0.7. Accepting background candidates in
-# exchange for missing few true particles is what the two purification stages
-# downstream are for, and neither of them can recover a particle the picker never
-# proposed.
-#
-# The operating point is the original implementation's, unchanged at every round
-# and for every entry.
-#
-#   bash scripts/03_pick.sh --entry 10081                  full deposition
-#   bash scripts/03_pick.sh --entry 10081 --setting annot  the 300 annotated
-#   bash scripts/03_pick.sh --entry 10081 --checkpoint PATH --out-name fb
-#
-# Writes a GT-aligned STAR to $RAPICK_WORK/picks/<entry>/<out-name>.star, which
-# defaults to baseline.star. Re-picking with a fine-tuned checkpoint needs a
-# different --out-name, or it overwrites the base checkpoint's candidates.
+# `--help` prints the whole story; usage() below is the one copy of it.
 
-source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
+usage() {
+  cat <<'HELP'
+Pick candidates with CryoTransformer (Sec. 3.2).
+
+The picker over-picks on purpose: the two purification stages downstream remove
+the background it accepts, and neither can recover a particle it never proposed.
+The operating point is the original implementation's, unchanged at every round
+and for every entry; the settings are in src/rapick/picker/README.md.
+
+  bash scripts/03_pick.sh --entry 10081                  full deposition
+  bash scripts/03_pick.sh --entry 10081 --setting annot  the 300 annotated
+  bash scripts/03_pick.sh --entry 10081 --checkpoint PATH --out-name fb
+
+Writes a GT-aligned STAR to $RAPICK_WORK/picks/<entry>/<out-name>.star, which
+defaults to baseline.star. Re-picking with a fine-tuned checkpoint needs a
+different --out-name, or it overwrites the base checkpoint's candidates.
+HELP
+}
+
+source "$(dirname "$0")/_common.sh"
 
 ENTRY=""
 SETTING="full"
@@ -33,28 +35,35 @@ while [ $# -gt 0 ]; do
     --checkpoint) CKPT="$2"; shift 2 ;;
     --out-name)   OUT_NAME="$2"; shift 2 ;;
     --gpu)        GPU="$2"; shift 2 ;;
-    -h|--help)    sed -n '2,22p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help)    usage; exit 0 ;;
     *) echo "unknown flag: $1" >&2; exit 2 ;;
   esac
 done
-[ -n "$ENTRY" ] || { echo "error: --entry is required" >&2; exit 2; }
+if [ -z "$ENTRY" ]; then
+  echo "error: --entry is required" >&2
+  exit 2
+fi
 valid_entry "$ENTRY"
-case "$SETTING" in annot|full) ;; *) echo "error: --setting is annot or full" >&2; exit 2 ;; esac
+require_setting "$SETTING"
 
 # --help must work with nothing configured, so the roots are demanded only
 # once the arguments are known to be valid.
 require_roots
 
-[ -n "$CKPT" ] || CKPT="$DATA/checkpoints/CryoTransformer_head_repaired.pth"
-[ -f "$CKPT" ] || { echo "error: no checkpoint at $CKPT." >&2
-                    echo "       Run scripts/01_download_data.sh --intermediates, or scripts/02_repair_head.sh." >&2
-                    exit 1; }
+if [ -z "$CKPT" ]; then
+  CKPT="$DATA/checkpoints/CryoTransformer_head_repaired.pth"
+fi
+if [ ! -f "$CKPT" ]; then
+  echo "error: no checkpoint at $CKPT." >&2
+  echo "       Run scripts/01_download_data.sh --intermediates, or scripts/02_repair_head.sh." >&2
+  exit 1
+fi
 
-case "$SETTING" in
-  annot) MICS="$DATA/cryoppp/$ENTRY/micrographs" ;;
-  full)  MICS="$DATA/cryoppp_fullset/$ENTRY/micrographs" ;;
-esac
-[ -d "$MICS" ] || { echo "error: no micrographs at $MICS. Run scripts/01_download_data.sh." >&2; exit 1; }
+MICS="$(micrograph_root "$SETTING")/$ENTRY/micrographs"
+if [ ! -d "$MICS" ]; then
+  echo "error: no micrographs at $MICS. Run scripts/01_download_data.sh." >&2
+  exit 1
+fi
 
 require_upstream cryotransformer "CryoTransformer"
 PY="$(venv_python cryotransformer)"
@@ -79,13 +88,23 @@ banner "Picking $ENTRY ($SETTING) with $(basename "$CKPT")"
       --data_root "$TEST_DATA" --remarks "$REMARKS" )
 
 banner "Collecting the STAR"
-PRED_DIR="$(ls -dt "$CT"/output/predictions/predictions_EMPIAR_"$ENTRY"_remarks_"$REMARKS"_timestamp_* 2>/dev/null | head -1)"
-[ -n "$PRED_DIR" ] || { echo "error: the picker wrote no output directory under $CT/output/predictions/." >&2; exit 1; }
-STAR="$(ls "$PRED_DIR"/*star_file.star 2>/dev/null | head -1)"
-[ -n "$STAR" ] || { echo "error: no combined STAR in $PRED_DIR." >&2; exit 1; }
+# ls -dt lists newest first, so the first line is the run that just finished.
+# The trailing `|| true` keeps an empty or short-circuited listing from ending
+# the script here, so that the check below can report it properly.
+PRED_DIR="$(ls -dt "$CT"/output/predictions/predictions_EMPIAR_"$ENTRY"_remarks_"$REMARKS"_timestamp_* 2>/dev/null | head -1 || true)"
+if [ -z "$PRED_DIR" ]; then
+  echo "error: the picker wrote no output directory under $CT/output/predictions/." >&2
+  exit 1
+fi
+STAR="$(ls "$PRED_DIR"/*star_file.star 2>/dev/null | head -1 || true)"
+if [ -z "$STAR" ]; then
+  echo "error: no combined STAR in $PRED_DIR." >&2
+  exit 1
+fi
 cp "$STAR" "$OUT_DIR/$OUT_NAME.star"
 
 echo
+# grep -c . counts the lines that are not empty, which is what a STAR reader sees.
 echo "Picks:  $OUT_DIR/$OUT_NAME.star  ($(grep -c . "$OUT_DIR/$OUT_NAME.star") lines)"
 echo "Source: $PRED_DIR"
 # The masking stage names its output after the condition that consumes it, which
@@ -93,6 +112,8 @@ echo "Source: $PRED_DIR"
 if [ "$OUT_NAME" = "baseline" ]; then
   echo "Next:   bash scripts/04_mask.sh --entry $ENTRY"
 else
+  # Its convention is <name>_raw in, <name> out, so drop a trailing _raw.
+  NEXT_NAME="$(echo "$OUT_NAME" | sed 's/_raw$//')"
   echo "Next:   bash scripts/04_mask.sh --entry $ENTRY \\"
-  echo "          --star $OUT_DIR/$OUT_NAME.star --out-name ${OUT_NAME%_raw}"
+  echo "          --star $OUT_DIR/$OUT_NAME.star --out-name $NEXT_NAME"
 fi
