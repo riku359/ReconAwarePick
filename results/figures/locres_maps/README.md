@@ -24,9 +24,9 @@ overridable with `CHIMERAX_CACHE` and `CHIMERAX_LOCAL`.
 envs/figures/.venv/bin/python results/figures/locres_maps/build_locres_spec.py \
     --out /tmp/locres/spec.json
 
-# 2. render the twenty panels and tile them, replaying each row's frozen placement
+# 2. render the panels of two rows and tile them, replaying each row's frozen placement
 envs/figures/.venv/bin/python results/figures/locres_maps/render_locres_3d.py \
-    --spec /tmp/locres/spec.json --out /tmp/locres/locres_maps.pdf \
+    --spec /tmp/locres/spec.json --out /tmp/locres/locres_maps_10093_10345.pdf \
     --entries 10093 10345 --reference crYOLO \
     --poses results/figures/locres_maps/poses/poses_10093.json \
     --poses results/figures/locres_maps/poses/poses_10345.json \
@@ -126,5 +126,18 @@ second freeze of the same row lands somewhere else: a re-render gives the same m
 different orientation. Those two rows survive only inside the figure PDF the manuscript
 carries, and [`poses/README.md`](poses/README.md) says how their panels are read back out
 of it. The palette stops they were coloured with are EMPIAR-10081 `4.174,9.526,15.32` and
-EMPIAR-10532 `3.345,7.703,16.73`; `tile_locres_panels.py` takes them in its manifest,
-alongside panels rendered fresh for the other rows.
+EMPIAR-10532 `3.345,7.703,16.73`; the render prints the stops of any row it draws.
+
+A figure whose rows come from different runs is laid out by `tile_locres_panels.py` rather
+than by a render, from a manifest naming each row's panel PNGs and its stops:
+
+```bash
+envs/figures/.venv/bin/python results/figures/locres_maps/tile_locres_panels.py \
+    --manifest /tmp/locres/panels.json --out /tmp/locres/locres_maps.pdf \
+    --per-entry /tmp/locres/locres_maps_{entry}.pdf
+```
+
+It scales rows to a common height where the render pads them to a common pixel box, because
+panel size in pixels only means something inside one run: the camera fits the reference map
+of its row, so a reused row and a fresh one would otherwise come out at different sizes.
+The per-entry files are rows of the combined figure rather than separate layouts.

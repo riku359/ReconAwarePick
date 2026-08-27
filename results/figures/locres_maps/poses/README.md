@@ -32,8 +32,6 @@ pdfimages -png -all <the figure PDF> /tmp/locres/extract/p
 
 That writes each panel as an image and its alpha as a separate `smask`, in drawing order:
 five panels of EMPIAR-10081 in column order, then five of 10532. Recombine each pair into
-one RGBA PNG, name every panel and its row's palette stops in a manifest, and lay the
-rows out with `tile_locres_panels.py`, which scales rows to a common height rather than
-padding them, so a reused row and a freshly rendered one come out the same size. The
-stops of those two rows are in [`../README.md`](../README.md). Nothing in this figure is
-lost while its PDF exists.
+one RGBA PNG, name every panel and its row's palette stops in a manifest, and lay the rows
+out with `tile_locres_panels.py`; [`../README.md`](../README.md) carries that command and
+the stops of those two rows. Nothing in this figure is lost while its PDF exists.

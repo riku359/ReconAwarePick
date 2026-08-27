@@ -17,7 +17,7 @@ outputs of `run_geom_stage0.py` (common-line geometry), `collect_class_view_trut
 (true viewing directions from the refined poses) and `probe_class_is_projection.py`
 (matching each class average against projections of a reference map) into one table. It
 was written to `output/3d_recon/geom2d/stage0_classes.csv` and is copied here unchanged.
-The figure itself is drawn by `figures/scripts/build_cryosift_scores.py` in the manuscript
+The figure itself is drawn by `results/figures/cryosift_scores/build_cryosift_scores.py` in the manuscript
 repository, which reads this file directly.
 
 The eight sets come from the authors' earlier processing project, not from the project

@@ -1,7 +1,6 @@
 # Reconstruction-Aware Cryo-EM Particle Picking
 
-Official implementation of *"Reconstruction-Aware Cryo-EM Particle Picking"*
-(WACV 2027).
+Official implementation of *"Reconstruction-Aware Cryo-EM Particle Picking"*.
 
 Extracting a clean particle stack from cryo-EM micrographs is usually split into
 three sub-tasks: particle picking, contamination removal, and 2D class selection.

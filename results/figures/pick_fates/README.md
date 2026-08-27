@@ -13,8 +13,8 @@ Three of the five populations exist only inside CryoSPARC, and the loop does not
 them behind, so export them first from a session that reaches the server:
 
 ```bash
-python ../../../src/rapick/loop/fb_export_stage_stars.py --id 10081 --rounds 1
-python ../../../src/rapick/loop/fb_export_stage_stars.py --id 10532 --rounds 1
+PYTHONPATH=src envs/recon/.venv/bin/python -m rapick.loop.export_stage_stars --id 10081 --rounds 1
+PYTHONPATH=src envs/recon/.venv/bin/python -m rapick.loop.export_stage_stars --id 10532 --rounds 1
 ```
 
 That writes `extracted.star`, `class2d_accepted.star` and `survivors.star` into

@@ -58,7 +58,8 @@ scan "no local macOS paths"     '/Users/[A-Za-z]'
 scan "no shared_data roots"     'shared_data|/shared/home|rapick_experiments|rapick_results'
 scan "no lab disks"             '/mnt/(hdd|ssd)'
 scan "no host names"            'dlbox[0-9]*|DL-BoxVI|xu-lab|xulab|aces-jump|hprc\.tamu'
-scan "no sibling repo paths"    'Desktop/wacv2027|Desktop/recon-aware-pick|recon-pipe/'
+scan "no sibling repo paths"    'Desktop/[a-z0-9]*2027|Desktop/recon-aware-pick|recon-pipe/'
+scan "no venue name"            'WACV|wacv'
 
 echo
 echo "== the private repository's vocabulary must not leak =="

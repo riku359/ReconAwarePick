@@ -58,7 +58,7 @@ first residual stage of the backbone (`--finetune_mode head_decoder_encoder_resn
 | Table 3 | Candidates the mask removes, split by whether they overlap an annotated particle | `results/analysis/ablation_2d_metrics.py`, as the difference between the `baseline` and `mask` conditions: removals are the drop in matched candidates, and the particle row is the drop in true positives |
 | Table 4 | The ablation, five conditions x four entries | the same reconstruction runs as Table 2, conditions `baseline` / `mask` / `select` / `both` / `fb` |
 | Table 5 | Particles retained through the pipeline | the `particle_counts` block of each condition's `metrics.json` |
-| Table 6 | Per-round loop diagnostics on the 300 annotated micrographs | `src/rapick/loop/fb_round_metrics.py`, scoring with `src/rapick/eval/calc_common_2d_metrics.py` |
+| Table 6 | Per-round loop diagnostics on the 300 annotated micrographs | `src/rapick/loop/round_metrics.py`, scoring with `src/rapick/eval/calc_common_2d_metrics.py` |
 | Table 7 | Pseudo-labels against a perfect teacher | conditions `fb` and `fb_gt` |
 | Table 8 | The same selection applied to CryoSegNet | conditions `cryosegnet`, `cryosegnet_both`, `both`, `fb` |
 | Table S1 | Hyperparameters of the two training stages | `src/rapick/picker/` — see its README |
@@ -69,16 +69,16 @@ first residual stage of the backbone (`--finetune_mode head_decoder_encoder_resn
 | | What it shows | Produced by |
 | --- | --- | --- |
 | Fig. 1 | The pipeline | hand-drawn, `results/figures/pipeline_overview/` |
-| Fig. 2 | What survives each stage, on one micrograph per entry | `src/rapick/loop/fb_export_stage_stars.py` then the overlay renderer |
+| Fig. 2 | What survives each stage, on one micrograph per entry | `src/rapick/loop/export_stage_stars.py`, then `results/figures/pick_fates/` |
 | Fig. 3 | Local-resolution maps of 10081 and 10532 | ChimeraX, `results/figures/locres_maps/` |
 | Fig. 4 | 2D F1 against resolution | `results/figures/f1_vs_resolution/`; reads Table 2 and Table S2 |
 | Fig. 5 | CryoSift scores of the 50 classes of each entry | `results/figures/cryosift_scores/`; reads `results/tables/cryosift_class_scores.csv` |
-| Fig. 6 | Where the contamination mask fails on 10532 | `src/rapick/cleaner/` overlays |
+| Fig. 6 | Where the contamination mask fails on 10532 | `results/figures/cleaner_failure/`, over overlays `src/rapick/cleaner/` renders |
 | Fig. S1 | The pipeline as the CryoSPARC jobs that run it | TikZ in the manuscript, over panels CryoSPARC renders for its own jobs |
-| Fig. S2 | The two mask post-processings on a real micrograph | `src/rapick/cleaner/plot_mask_postproc_figures.py` |
-| Fig. S3 | Uniform averaging against triangular blending | `src/rapick/cleaner/plot_mask_postproc_figures.py` |
+| Fig. S2 | The two mask post-processings on a real micrograph | `results/figures/mask_postproc/`, over panels `src/rapick/cleaner/plot_mask_postproc_figures.py` cuts |
+| Fig. S3 | Uniform averaging against triangular blending | `results/figures/mask_postproc/`; it needs no input |
 | Fig. S4 | The iterative workflow of CryoSift | TikZ in the manuscript |
-| Fig. S5 | What the first cycle of 2D class selection does | `src/rapick/select2d/plot_selection_panel.py` |
+| Fig. S5 | What the first cycle of 2D class selection does | `results/figures/first_cycle/` |
 | Fig. S6 | Gold-standard FSC of every reconstruction | CryoSPARC's own FSC panel for each refinement job |
 | Fig. S7 | Viewing directions of every reconstruction | CryoSPARC's own viewing-direction panel |
 

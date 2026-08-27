@@ -13,7 +13,8 @@ domain shift Sec. 6 draws from the figure.
 envs/figures/.venv/bin/python results/figures/lib/prepare_overlay_panels.py \
     --strips <dir> --only cleaner_failure
 envs/figures/.venv/bin/python results/figures/cleaner_failure/build_cleaner_failure.py
-soffice --headless --convert-to pdf --outdir <dir> <dir>/cleaner_failure.pptx
+soffice --headless --convert-to pdf --outdir "$RAPICK_FIGURES_OUT" \
+    "$RAPICK_FIGURES_OUT/cleaner_failure.pptx"
 ```
 
 Then crop the PDF to the drawing exactly as [`../pipeline_overview/README.md`](../pipeline_overview/README.md)

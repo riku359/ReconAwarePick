@@ -14,7 +14,8 @@ reads the classification. Nothing here is redrawn, so the tiles have to be fetch
 from a session that reaches the instance.
 
 ```bash
-# 50 class tiles of one selection; cryosparc-tools lives in the recon environment
+# 50 class tiles of one selection; cryosparc-tools lives in the recon environment.
+# Repeat for J225 into /tmp/cls45, and for the eight protocol jobs into /tmp/tiles.
 SPEC=$(python3 -c "print(','.join('J115=class2D_%d.png' % i for i in range(50)))")
 envs/recon/.venv/bin/python results/figures/lib/cs_fetch_assets.py \
     --project P1 --spec "$SPEC" --out /tmp/cls81
@@ -23,7 +24,7 @@ envs/recon/.venv/bin/python results/figures/lib/cs_fetch_assets.py \
 envs/figures/.venv/bin/python results/figures/first_cycle/build_first_cycle_fig.py \
     --assets-10081 /tmp/cls81 --assets-10345 /tmp/cls45
 
-# the eight sheets and ten carry strips of Fig. S1
+# the eight sheets and ten carry strips of Fig. S1, from all eight selections at once
 envs/figures/.venv/bin/python results/figures/first_cycle/build_protocol_cycles.py \
     --assets /tmp/tiles
 

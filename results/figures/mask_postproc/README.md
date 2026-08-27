@@ -43,8 +43,8 @@ built here.
   it was exported comes out inverted with no error.
 - **The two masks are made at different scales**: the released post-processing's from the
   stored full-resolution npz, the triangular one at the 376 px model scale. Both are
-  resampled to the 1600 px display size, so the figure compares post-processings and not
-  resolutions.
+  resampled to the micrograph's 1600 px display size, so the figure compares
+  post-processings and not resolutions.
 - The micrograph is EMPIAR-10532 `FoilHole_24136458_..._021514`, identified by correlation
   (0.87) against the saved default overlays of the contamination stage. It is not the
   micrograph `plot_mask_postproc_figures.py` defaults to, which is the flooded-band
