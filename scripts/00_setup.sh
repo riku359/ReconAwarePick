@@ -139,10 +139,35 @@ export UV_LINK_MODE=copy
 export UV_CACHE_DIR
 mkdir -p "$UV_CACHE_DIR"
 
+# Two stages do not use a uv project. CryoSift's lockfile is upstream's own frozen
+# requirements list, kept unconverted so the difference from upstream stays legible,
+# and MicrographCleaner installs its upstream checkout editable. Each has its own
+# build script; delegate rather than reimplementing them here.
+# A case rather than an associative array: macOS still ships bash 3.2, which has none.
+own_builder() {  # own_builder <name> -> path, or empty
+  case "$1" in
+    (cryosift)           echo "src/rapick/select2d/scripts/build_env.sh" ;;
+    (micrograph_cleaner) echo "src/rapick/cleaner/build_env.sh" ;;
+    (*)                  echo "" ;;
+  esac
+}
+
 build_env() {  # build_env <name>
-  local name="$1" dir="$REPO/envs/$1"
+  local name="$1" dir="$REPO/envs/$1" own
+  own="$(own_builder "$1")"
+
+  if [ -n "$own" ]; then
+    if [ ! -x "$REPO/$own" ] && [ ! -f "$REPO/$own" ]; then
+      echo "  $name: $own is missing, skipping"
+      return
+    fi
+    echo "  $name: building via $own"
+    bash "$REPO/$own"
+    return
+  fi
+
   if [ ! -f "$dir/pyproject.toml" ]; then
-    echo "  $name: no pyproject.toml, skipping"
+    echo "  $name: no pyproject.toml and no build script, skipping"
     return
   fi
   if [ ! -f "$dir/uv.lock" ]; then
