@@ -36,8 +36,12 @@ repository's condition names appearing outside the translation table.
         has not run yet refuses with the command that would fix it
       - `01_download_data.sh --dry-run` resolves the real remote data and counts
         **997 micrographs for EMPIAR-10081, matching Table 1**
-      - the 2D scorer on real picks reproduces **Table S2's CryoTransformer row for
-        EMPIAR-10081 exactly**: macro P 0.469, R 0.954, F1 0.610
+      - all five stage environments build, including the two that are not uv
+        projects and the Python 3.7 one the picker needs, and every CLI runs
+      - **47 of Table S2's 48 published cells reproduce exactly** from the published
+        picks. The one that does not is Topaz's F1 on EMPIAR-10345, 0.483 against
+        0.482, whose precision and recall both reproduce: a macro F1 landing on a
+        rounding boundary, not a different measurement
 - [ ] **Run one condition through to a reconstruction.** The above stops short of
       creating CryoSPARC jobs. The smallest useful test is EMPIAR-10081, condition
       `mask`, at `annot` scale, from the published intermediates.
@@ -74,6 +78,8 @@ the argument for doing the same again before going public.
 | The 2D selection environment would not build at all | upstream pins `pysqlite3`, which has no wheel and needs a system header nothing here imports |
 | `--dry-run` died on an argparse error for six of the eleven conditions | `rapick-recon run` has no such flag, and only the from-selection driver was tested by hand |
 | The released picker weights were referenced everywhere and downloadable from nowhere | every machine that ran the experiments already had them |
+| `finetune.py --help` died: it could not find the repository's STAR reader | its fallback path was right only while the file sat in the repository, and setup copies it into the clone |
+| `--help` needed the data roots set before it would print anything | nobody runs `--help` on a machine that has no data |
 
 ## Two things to settle in the manuscript, not here
 
