@@ -54,7 +54,20 @@ WEIGHTS="$UPSTREAM/class_labeling/final_model/final_model_cont.pth"
 
 # uv fetches a managed CPython where the host has no python3.12.
 uv venv --python 3.12 "$ENV_DIR"
-VIRTUAL_ENV="$ENV_DIR" uv pip install -r "$REQ"
+
+# pysqlite3 is dropped from upstream's list rather than removed from the committed
+# copy of it, so that the file stays byte-identical to upstream and the deviation is
+# visible here instead. It has no source wheel, so pip compiles it, and the compile
+# needs sqlite3.h -- a system header most machines do not have. Nothing imports it:
+# not upstream's particle_processor, not this stage, and Python has carried `sqlite3`
+# in its standard library since long before the version this environment pins.
+FILTERED="$(mktemp)"
+trap 'rm -f "$FILTERED"' EXIT
+grep -v '^pysqlite3==' "$REQ" > "$FILTERED"
+if ! diff -q "$REQ" "$FILTERED" >/dev/null; then
+  echo "note: skipping pysqlite3 (unused, and building it needs sqlite3.h)" >&2
+fi
+VIRTUAL_ENV="$ENV_DIR" uv pip install -r "$FILTERED"
 
 # When RAPICK_ENVS points elsewhere, leave an absolute symlink at the in-repo path so
 # every command in the README works unchanged. Moving the repository to another machine
