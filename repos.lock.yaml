@@ -6,8 +6,9 @@
 # in `src/rapick/picker/overlay/`; the modifications themselves are readable as diffs
 # in `src/rapick/picker/patches/`, and setup copies the overlay over the clean clone.
 #
-# Each entry also names a fork under github.com/riku359 that is pinned at the same
-# commit, so the build still resolves if an upstream repository moves or disappears.
+# Where an entry carries a `mirror`, it is a fork under github.com/riku359 pinned at
+# the same commit, to fall back on by hand if the upstream repository moves or
+# disappears. Nothing reads it automatically: `setup.sh` clones `url`.
 #
 # Re-create any checkout by hand with:
 #   git clone <url> <path>

@@ -54,9 +54,8 @@ cd envs/recon && UV_PROJECT_ENVIRONMENT="$PWD/.venv" uv sync --locked && cd ../.
 alias rapick-recon='PYTHONPATH=src envs/recon/.venv/bin/python -m rapick.recon.cli'
 ```
 
-`envs/recon/uv.lock` is the lock as it was generated, so `uv sync --locked` resolves
-against it byte for byte. `envs/recon/pyproject.toml` therefore keeps the project name it
-was locked under and declares no packages of its own.
+`envs/recon/pyproject.toml` keeps the project name it was locked under and declares no
+packages of its own.
 
 ## CLI
 
@@ -136,8 +135,7 @@ the CryoSPARC job directory stays the source of truth.
 
 ## Gotchas
 
-These are the failure modes that cost this project real time. None of them announces
-itself.
+None of these announces itself.
 
 **Never set `compute_use_ssd: false`.** CryoSPARC's SSD particle cache stays on. Turning
 it off to save disk makes `class_2D` die with SIGFPE ("Floating point exception"): the
@@ -169,8 +167,12 @@ confounded. `collect` records the used/unused split so the clamp is visible in
 times with different random seeds and reports the best of the three by GSFSC 0.143, so a
 single-seed run reproduces something the paper does not report. `--seeds` must be passed
 explicitly on every `run` and `collect`; the `reconstruction.seeds` block in the recon
-YAML is documentation, not enforced config. If an ab-initio dies and you retry, say which seeds
-were actually used — do not report a best-of-2 as a best-of-3.
+YAML is documentation, not enforced config. When an ab-initio dies with a SIGSEGV, retry
+the same seed at most twice and then advance the seed number (`--seeds 0,1,2` ->
+`--seeds 0,1,3`); completed jobs are reused from the manifest, so a retry resumes the trio
+rather than restarting it. Say which seeds were actually used — do not report a best-of-2
+as a best-of-3. In one measured night 7 of 19 runs died, and one entry's seed 2 died four
+times in a row while seeds 0, 1 and 3 completed.
 
 **`import_particles` dies on the first micrograph its STAR names but cannot find**, and a
 `*.mrc` glob happily imports a partial download. Confirm the expected micrograph count
@@ -211,6 +213,6 @@ unset unless you have checked what was lost.
 `jobs/rebalance_orientations.py` wires CryoSPARC's Rebalance Orientations job but is not
 used by any arm of the paper, is not exported from `jobs/__init__.py`, and the
 shipped profile declares no `rebalance_orient` step — add one before calling it.
-`jobs/junk_detector.py` is likewise unused: contamination removal in this paper is the
+`jobs/junk_detector.py` is wired and exported, but no arm of the paper uses it: contamination removal in this paper is the
 MicrographCleaner mask of [`src/rapick/cleaner/`](../cleaner/), applied to the picks
 before import. It is kept as a cross-check of the same idea using CryoSPARC's own network.

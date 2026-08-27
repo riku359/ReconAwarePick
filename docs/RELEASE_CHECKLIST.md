@@ -1,8 +1,7 @@
 # Release checklist
 
 What is left before this repository goes public, in the order it makes sense to do it.
-Delete this file at that point: by then each item is either done or belongs in the
-README's TODO.
+Delete this file at that point: by then each item is either done or belongs in an issue.
 
 ## Where it stands
 
@@ -20,18 +19,15 @@ private repository's arm names. `--links` also fetches every external URL.
 - [x] **Check the repository on a machine that has never run this code.** Done on a
       fresh clone on the lab's GPU host:
       - the hygiene gate passes on Linux (it did not at first: see below)
-      - `00_setup.sh` clones all three upstreams at their pins and applies the
+      - `scripts/setup.sh` clones all three upstreams at their pins and applies the
         CryoTransformer overlay, matching the shipped overlay file for file
-      - the `figures` and `recon` environments build from their lockfiles
       - `rapick-recon check-setup` passes against the live CryoSPARC instance:
         connection, project, 300 healthy micrographs, distinct STARs
       - `--dry-run` works for both ways into the reconstruction, and an arm whose
         parent has not run refuses with the command that would fix it
       - the download step resolves the real remote data and counts
-        **997 micrographs for EMPIAR-10081, matching Table 1** (it was checked through
-        the old `01_download_data.sh --dry-run`, which the split into
-        `scripts/download/` replaced with `05_verify_micrographs.sh`'s count)
-      - all five stage environments build, including the two that are not uv projects
+        **997 micrographs for EMPIAR-10081, matching Table 1**
+      - all four stage environments build, including the two that are not uv projects
         and the Python 3.7 one the picker needs, and every CLI runs
       - the 2D class selection scores real class averages with CryoSift's network and
         splits them as Sec. S4 describes: a 256 px extraction box gives three cycles,
@@ -81,9 +77,9 @@ public.
 | --- | --- |
 | The hygiene gate failed on Linux, flagging every emoji as Japanese prose | GNU grep under `LC_CTYPE=POSIX` compares a character range byte by byte; macOS's grep does not |
 | Setup cloned Magellon whole, 2.2 GB instead of 166 MB | `repos.lock.yaml` recorded the subdirectory and the clone helper ignored it |
-| Two of the five environments were never built | they are not uv projects, and setup skipped them with a message no one reads |
+| Two of the environments were never built | they are not uv projects, and setup skipped them with a message no one reads |
 | The 2D selection environment would not build at all | upstream pins `pysqlite3`, which has no wheel and needs a system header nothing here imports |
-| `--dry-run` died on an argparse error for six of the eleven arms | `rapick-recon run` has no such flag, and only the from-selection driver was tested by hand |
+| `--dry-run` died on an argparse error for most of the arms | `rapick-recon run` has no such flag, and only the from-selection driver was tested by hand |
 | The released picker weights were referenced everywhere and downloadable from nowhere | every machine that ran the experiments already had them |
 | `finetune.py --help` died: it could not find the repository's STAR reader | its fallback path was right only while the file sat in the repository, and setup copies it into the clone |
 | `--help` needed the data roots set before it would print anything | nobody runs `--help` on a machine that has no data |

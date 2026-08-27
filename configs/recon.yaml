@@ -1,9 +1,8 @@
 # The reconstruction pipeline's parameters. One file, not one per arm.
 #
-# There used to be eleven of these under configs/conditions/, one per row of the
-# paper's tables. Every one of them declared the same K, the same iteration count, the
-# same seeds and the same artifacts, because that is the point: the arms differ in
-# which particles reach the chain, never in what the chain does to them. Comparing two
+# A file per arm would declare the same K, the same iteration count, the same seeds and
+# the same artifacts in every copy, because that is the point: the arms differ in which
+# particles reach the chain, never in what the chain does to them. Comparing two
 # resolutions produced under different class_2D parameters would not be an ablation of
 # the selection, so there is one file and the arms cannot drift apart.
 #

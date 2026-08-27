@@ -98,7 +98,9 @@ def read_env(env_file=None):
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        env[key.strip()] = value.strip()
+        # Same unquoting as rapick.recon.config.load_env: a value written as
+        # KEY="..." must not authenticate with the quote characters in it.
+        env[key.strip()] = value.strip().strip('"').strip("'")
     return env
 
 

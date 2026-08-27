@@ -34,22 +34,6 @@ DEFAULT_MAX_WAIT_S = 86400   # 24 h
 POLL_S = 30
 
 
-def _free_memory() -> "dict[int, int]":
-    """GPU index -> free MiB, from nvidia-smi. Empty dict if nvidia-smi is absent."""
-    try:
-        out = subprocess.run(
-            ["nvidia-smi", "--query-gpu=index,memory.free",
-             "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=30, check=True).stdout
-    except Exception:
-        return {}
-    free = {}
-    for line in out.strip().splitlines():
-        index, free_mb = (field.strip() for field in line.split(","))
-        free[int(index)] = int(free_mb)
-    return free
-
-
 def _reserved(cryosparcm: Optional[str]) -> "set[int]":
     """GPU indices held by a running CryoSPARC job on this instance (best-effort)."""
     if not cryosparcm:

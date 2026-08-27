@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Download the FULL set of `.mrc` micrographs (not just the CryoPPP 300-subset)
-for six EMPIAR datasets, straight from the EBI EMPIAR world_availability mirror.
+for the paper's four EMPIAR entries, straight from the EBI EMPIAR
+world_availability mirror.
 
 CryoPPP ships only ~300 hand-picked micrographs per dataset. The original
 depositions on EMPIAR contain many more (≈1k–1.6k each). This tool enumerates
@@ -25,7 +26,6 @@ import html
 import os
 import re
 import subprocess
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -73,25 +73,13 @@ def _init_paths(data_root):
 # `dirs`    : list of (dir_path, prefix). dir_path is relative to BASE_URL;
 #             prefix is prepended to the saved filename so files from different
 #             source dirs that reuse the same basename do not collide on disk
-#             (e.g. 10028 part1/part2 both number 001.mrc..). prefix "" = none.
+#             (e.g. a deposition split over part1/part2 that numbers both
+#             001.mrc..). prefix "" = none.
 # `include` : regex a basename must match to be kept (None = any .mrc).
 # `exclude` : regex that, if it matches, drops the file (None = drop nothing).
 # These were verified by listing the live EMPIAR directories on 2026-06-24.
 # ----------------------------------------------------------------------------
 DATASETS = {
-    "10017": {
-        "dirs": [("10017/data/", "")],
-        "include": None,
-        "exclude": None,
-    },
-    "10028": {
-        "dirs": [
-            ("10028/data/Micrographs/Micrographs_part1/", "part1_"),
-            ("10028/data/Micrographs/Micrographs_part2/", "part2_"),
-        ],
-        "include": None,
-        "exclude": None,
-    },
     "10081": {
         "dirs": [("10081/data/micrographs/", "")],
         "include": None,
@@ -245,7 +233,7 @@ def main():
     ap.add_argument("--data-root", required=True,
                     help="REQUIRED. Data root; full-set .mrc land under <root>/cryoppp_fullset/.")
     ap.add_argument("--ids", nargs="+", default=sorted(DATASETS.keys()),
-                    help="EMPIAR IDs to fetch (default: all six configured).")
+                    help="EMPIAR IDs to fetch (default: all four configured).")
     ap.add_argument("--output-root", default=None,
                     help="Override the output dir (default <data-root>/cryoppp_fullset).")
     ap.add_argument("--workers", type=int, default=4, help="Concurrent downloads.")

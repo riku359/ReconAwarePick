@@ -131,8 +131,7 @@ the three-column form.
 | `RAPICK_WORK` | `picks/<ID>/` in `--batch` mode, and the default overlay output directory |
 | `RAPICK_TEST_DATA` | background jpgs for `vis_star_overlay.py`, as `<ID>/images/*.jpg` |
 
-None of them has a default. A script that needs one and does not find it stops with an
-error naming the variable, rather than falling back to a path that happens to exist.
+None has a default; see [docs/CONFIGURATION.md](../../../docs/CONFIGURATION.md).
 
 ## Commands
 
@@ -175,7 +174,7 @@ round), against that round's GT-aligned picks under `$RAPICK_WORK/loop/<ID>/roun
 ```bash
 for n in 0 1 2 3; do
   python calc_common_2d_metrics.py --id 10081 \
-      --pred $RAPICK_WORK/loop/10081/round$n/picks.star --json
+      --pred $RAPICK_WORK/loop/10081/round$n/cryotransformer.star --json
 done
 ```
 
@@ -192,7 +191,7 @@ micrographs the annotations cover.
 ```bash
 python vis_star_overlay.py --picker cryotransformer --id 10081 --n 2
 python vis_star_overlay.py --gt --id 10081 --mic HCN1apo_0008_2xaligned
-python vis_star_overlay.py --star $RAPICK_WORK/loop/10081/round1/picks.star --id 10081 --n 3
+python vis_star_overlay.py --star $RAPICK_WORK/loop/10081/round1/cryotransformer.star --id 10081 --n 3
 ```
 
 The overlay reuses the scorer's STAR resolution, STAR reading and diameter table, so the

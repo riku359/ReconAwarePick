@@ -119,8 +119,7 @@ check.
 
 ## Quick Start
 
-Each driver is one transform, with its input and its output named on the command line, so
-the order they run in is the order the arguments imply:
+Each driver is one transform, with its input and its output named on the command line:
 
 ```
 pick -> contamination_removal -> 2d_classification -> select2d -> reconstruct
@@ -204,8 +203,7 @@ Either way, re-pick the full deposition with the resulting checkpoint and follow
 
 ### Starting from the picker itself
 
-`download.sh` supplies theta_0, the masks and the candidates. Redo them only if you
-mean to.
+`download.sh` supplies theta_0, the masks and the candidates.
 
 ```bash
 # theta_0: refit CryoTransformer's degenerate classification head (Sec. S2).
@@ -297,7 +295,3 @@ Face are derived from them and are redistributed under CC-BY-4.0 with attributio
 To be updated once the proceedings citation is assigned. If you use this code, please
 also cite **CryoTransformer**, **MicrographCleaner**, **CryoSift**, **CryoPPP** and
 **CryoSPARC**.
-
-## Contact
-
-For questions, open an issue on this repository.

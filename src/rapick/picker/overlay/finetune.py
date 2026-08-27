@@ -46,7 +46,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch import nn
 from torch.utils.data import DataLoader, DistributedSampler
 from PIL import Image
 
@@ -60,7 +59,7 @@ from models import build_model
 def _import_common_2d_metrics():
     """Import calc_common_2d_metrics -- the repository's single STAR reader.
 
-    scripts/00_setup.sh copies this file over the upstream clone at
+    scripts/setup.sh copies this file over the upstream clone at
     $RAPICK_THIRD_PARTY/cryotransformer/, so a path relative to __file__ resolves only
     while the file still sits in the repository. Try an already-importable module first
     (put <repo>/src/rapick/eval on PYTHONPATH), then the in-repository location.

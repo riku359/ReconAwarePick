@@ -38,7 +38,6 @@ import os
 import shutil
 import subprocess
 import sys
-from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from download_cryoppp_micrographs_only import TARGET_IDS, human, ts  # noqa: E402

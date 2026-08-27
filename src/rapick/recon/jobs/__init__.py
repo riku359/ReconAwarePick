@@ -4,7 +4,7 @@ Each module exposes `run(api, profile, inputs, params, workspace_uid, gpu) -> Jo
 and documents, in its docstring, exactly which job_type it creates, which inputs
 it wires, which params it sets, and which outputs it exposes. Open the module to
 understand that stage; the job-type/port values themselves live in
-configs/profiles/cryosparc_v47.yaml (single source of truth).
+configs/cryosparc_v47.yaml (single source of truth).
 """
 from . import (
     abinit_reconstruction,

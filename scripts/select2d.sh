@@ -98,7 +98,16 @@ if [ -z "$SELECT2D" ]; then
 fi
 echo "select_2D: $SELECT2D"
 echo
+
+# Both next steps read the parent arm's manifest for the extraction and the STAR,
+# so both need --parent. It is known here only when the run was started with --name.
+ARM="${NAME:-<arm>}"
+SETTING_ARG=""
+if [ "$SETTING" != "full" ]; then
+  SETTING_ARG=" --setting $SETTING"
+fi
 echo "Next, reconstruct what it kept:"
-echo "  bash scripts/reconstruct.sh --entry $ENTRY --from-select2d $SELECT2D --name <arm>"
+echo "  bash scripts/reconstruct.sh --entry $ENTRY$SETTING_ARG --parent $ARM"
 echo "or fine-tune on it, which is one round of the loop:"
-echo "  bash scripts/finetune.sh --entry $ENTRY --select2d $SELECT2D --out <model>.pth"
+echo "  bash scripts/finetune.sh --entry $ENTRY --select2d $SELECT2D --parent $ARM \\"
+echo "      --out <model>.pth"

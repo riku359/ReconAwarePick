@@ -37,23 +37,6 @@ def denoise_flip_frame(mic):
     return dp.guided_filter(clahe_image, wiener)
 
 
-def contam_flags(mask, points, deep_thr):
-    """Return True for each (x,y) that is on the clean side (mask<deep_thr) in the flipped frame.
-
-    The same decision as filter_star_by_contamination.keep_flags (the centre pixel of the
-    flipped mask), made usable for ground-truth points that do not come through a star.
-    Points outside the frame count as clean.
-    """
-    maskf = np.flipud(mask)                     # same flipped frame as the background/ground truth (view)
-    h, w = maskf.shape
-    flags = []
-    for x, y in points:
-        xi, yi = int(round(x)), int(round(y))
-        inside = 0 <= yi < h and 0 <= xi < w
-        flags.append(not (inside and maskf[yi, xi] >= deep_thr))
-    return flags
-
-
 def panel(image, mask, picks, flags, deep, box, max_out_dim, denoised, label, n_rm):
     """Return the overlay panel (header bar + image) for one micrograph, in BGR.
 

@@ -57,22 +57,9 @@ launch), and an unpinned GPU job on a card another user has already filled
 
 ### 4. Fill in `.env`
 
-Copy `.env.example` to `.env` at the repository root. It is git-ignored and is the only
-file here that holds credentials.
-
-```
-CRYOSPARC_LICENSE_ID=
-CRYOSPARC_EMAIL=
-CRYOSPARC_PASSWORD=
-CRYOSPARC_HOST=localhost
-CRYOSPARC_PORT=39000
-CRYOSPARC_WORKER=
-CRYOSPARC_PROJECT=
-```
-
-`CRYOSPARC_HOST` and `CRYOSPARC_PORT` come from `cryosparc_master/config.sh`
-(`CRYOSPARC_MASTER_HOSTNAME`, `CRYOSPARC_BASE_PORT`). `--project` and `--worker` override
-`.env` for a single run; the project uid is never written into a config file.
+Copy `.env.example` to `.env` at the repository root; its comments name every field and
+where to read that field's value from. `--project` and `--worker` override `.env` for a
+single run.
 
 ### 5. Verify the job profile
 
@@ -84,8 +71,8 @@ PYTHONPATH=src envs/recon/.venv/bin/python \
 ```
 
 It builds each candidate job, prints its ports and params, and deletes it. Nothing is
-queued, so it costs no GPU time — but it does create jobs, so point it at a **throwaway
-project**, never one holding results.
+queued, but it does create jobs, so point it at a **throwaway project**, never one
+holding results.
 
 ## The job chain (Fig. S1)
 
@@ -93,8 +80,7 @@ One chain per arm. Steps 1–2 run once per (entry, scale) and are shared by eve
 arm of that entry, so all arms are compared over identical CTF estimates.
 
 Fig. S1 of the manuscript is that chain, drawn as TikZ over the panels CryoSPARC renders
-for these jobs. It is reproduced here; the individual job panels behind it are not
-committed — see [`CONDITIONS.md`](CONDITIONS.md).
+for these jobs; the panels themselves are not committed.
 
 ![Fig. S1 — the pipeline as it runs: one round of the feedback loop on the 300 annotated micrographs (upper block) and the full micrograph set picked with the checkpoint the loop delivers (lower block), every panel as CryoSPARC renders it for that job.](../assets/fig_s1_pipeline.png)
 
@@ -105,7 +91,7 @@ committed — see [`CONDITIONS.md`](CONDITIONS.md).
 | 3 | Import Particle Stack | `import_particles` | "Ignore raw data" — coordinates only, connected to step 1 | CPU |
 | 4 | Extract From Micrographs (Multi) | `extract_micrographs_multi` | this arm's boxes, out of the CTF-estimated micrographs | GPU |
 | 5 | 2D Classification | `class_2D` | 50 classes, 20 full iterations, one seed shared by all three trials | GPU |
-| 6 | Select 2D Classes | `select_2D` | arms that select 2D classes only (`docs/CONDITIONS.md`) | — |
+| 6 | Select 2D Classes | `select_2D` | arms that select 2D classes only ([CONDITIONS.md](CONDITIONS.md)) | — |
 | 7 | Ab-Initio Reconstruction × 3 | `homo_abinit` | one class, forked over seeds 0, 1, 2 | GPU |
 | 8 | Homogeneous Refinement × 3 | `homo_refine` | one per ab-initio, same seed | GPU |
 | 9 | Best of three | — | lowest gold-standard FSC at 0.143; read by the pipeline, not a job | — |

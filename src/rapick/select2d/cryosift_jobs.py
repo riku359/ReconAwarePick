@@ -104,15 +104,6 @@ def finish_select(job):
     return job.doc.get("status")
 
 
-def run_select(workspace, class2d_uid, title, class_scores, keep, finish=True):
-    """Create a select_2D, select classes and finish it, in one call."""
-    job = create_select(workspace, class2d_uid, title)
-    selection = select_classes(job, class_scores, keep)
-    if finish:
-        finish_select(job)
-    return job, selection
-
-
 def create_class2d(workspace, sources, params, title, job_type="class_2D"):
     """Create a class_2D in the building state over a set of particle output ports.
 

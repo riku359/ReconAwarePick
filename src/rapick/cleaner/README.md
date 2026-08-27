@@ -35,7 +35,7 @@ is the same filter over the released assembly, kept so the two can be compared.
 
 ## Environment
 
-Everything except the figure scripts runs in `envs/micrograph_cleaner`: Python
+Everything runs in `envs/micrograph_cleaner`: Python
 3.10, TensorFlow 2.16 + Keras 3, numpy < 2. It needs the upstream
 `micrograph_cleaner_em` checkout on the **`tf2` branch** — the default `master`
 branch is TF1 and will not work:
@@ -48,8 +48,6 @@ src/rapick/cleaner/build_env.sh      # uv sync --locked of envs/micrograph_clean
 src/rapick/cleaner/download_model.sh # the pretrained weight, into $RAPICK_DATA/checkpoints
 ```
 
-`classify_gt_overlap.py` needs matplotlib, which this environment does not have;
-run it from any environment that has numpy and matplotlib.
 
 `envs/micrograph_cleaner/{pyproject.toml,uv.lock}` install the upstream package
 editable from `../../third_party/micrograph_cleaner_em`, which is where
@@ -104,8 +102,9 @@ $RAPICK_WORK/picks/<id>/<prefix>_removed_tri.star the discarded candidates
 $RAPICK_WORK/picks/<id>/filter_stats_tri.csv      per-micrograph counts
 $RAPICK_WORK/picks/<id>/summary_tri.json          totals
 $RAPICK_WORK/picks/<id>/decisions_tri.jsonl       per-micrograph checkpoint, for resuming
-$RAPICK_WORK/mask_compare/                        comparison.csv + arrays/ (Fig. S2)
-$RAPICK_WORK/figures/                             the rendered figures
+$RAPICK_WORK/mask_compare/                        comparison.csv + arrays/ (Fig. S2;
+                                                  no script here draws it)
+$RAPICK_WORK/figures/gt_overlap/                  classify_gt_overlap.py's panels
 ```
 
 `<prefix>` defaults to `cryotransformer`, which is also the name the published
@@ -176,30 +175,16 @@ python src/rapick/cleaner/filter_star_by_contamination.py \
 ### (c) Table 3 — mistaken rate of the contamination mask
 
 Table 3 splits the candidates the mask removed on the annotated micrographs by
-whether they overlap a CryoPPP-annotated particle. Its two rows are differences
-of the 2D matching statistics between the *baseline* and *+mask* conditions
-(total picks, and matches against the annotations), so the table itself is
-assembled by the evaluation stage from the two conditions' metrics. What this
-stage supplies is the `+mask` condition — the filtered STAR from (b) — and the
-per-micrograph accounting of which annotated particles the mask covers:
+whether they overlap a CryoPPP-annotated particle. Its two rows are differences of
+the 2D matching statistics between the *baseline* and *+mask* conditions (total
+picks, and matches against the annotations), so the table is assembled by the
+evaluation stage from those two conditions' metrics. What this stage supplies is
+the `+mask` condition, the filtered STAR from (b).
 
-```bash
-# per-micrograph counts and the method comparison figure
-python src/rapick/cleaner/classify_gt_overlap.py --no-copy
-
-# the same counts aggregated per entry and per distribution class
-python src/rapick/cleaner/count_gt_in_contamination.py
-```
-
-Both read stores written by the contamination-detection driver of the research
-repository, which is not part of this release: `classify_gt_overlap.py` needs the
-released arm's masks (`--official-root`) and its per-micrograph manifest
-(`--manifest`) alongside `$RAPICK_WORK/masks`, and `count_gt_in_contamination.py`
-reads that manifest's `n_gt` / `n_gt_in_contam` columns
-(`empiar_id, dist_class, micrograph, height, width, box_size, deep_thr,
-contam_fraction, max_mask, has_anomaly, n_gt, n_gt_in_contam, overlay_path,
-status`). `--no-copy` skips the overlay classification, which needs the overlay
-galleries that driver renders.
+`classify_gt_overlap.py` and `count_gt_in_contamination.py` ship the per-micrograph
+accounting behind that split, but neither runs from a clean clone: both read the
+mask store and the per-micrograph manifest written by the research repository's
+contamination-detection driver, which is not part of this release.
 
 ### (d) The two post-processings, side by side
 
@@ -213,11 +198,16 @@ python src/rapick/cleaner/compare_official_vs_triangular.py --ids 10532 --gpu 0
 
 ## Skipping this stage
 
-The precomputed masks for all four entries are published in the Hugging Face
-dataset [`rikrikrik/recon-aware-pick-data`](https://huggingface.co/datasets/rikrikrik/recon-aware-pick-data)
-under the path prefix `triangle_mask_overlay/anomaly_mask_npy/`. Download those
-into `$RAPICK_WORK/masks/<id>/` and this stage reduces to (b): no GPU, no model
-weight, and no upstream checkout are needed to reproduce the filtered picks.
+The precomputed masks for all four entries are published, and
+
+```bash
+bash scripts/download/08_published_artifacts.sh
+```
+
+places them at `$RAPICK_WORK/masks/<id>/` along with the already-filtered picks. With
+them this stage reduces to (b): no GPU, no model weight, and no upstream checkout are
+needed to reproduce the filtered picks. Where each file comes from:
+[docs/DATA.md](../../../docs/DATA.md).
 
 ## Notes
 

@@ -28,7 +28,7 @@ import numpy as np
 def _import_common_2d_metrics():
     """Import calc_common_2d_metrics -- the repository's single STAR reader.
 
-    scripts/00_setup.sh copies this directory over the upstream clone at
+    scripts/setup.sh copies this directory over the upstream clone at
     $RAPICK_THIRD_PARTY/cryotransformer/, so a path relative to __file__ resolves only
     while the file still sits in the repository. Try an already-importable module first
     (put <repo>/src/rapick/eval on PYTHONPATH), then the in-repository location.

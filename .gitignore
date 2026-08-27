@@ -1,4 +1,4 @@
-# Upstream code is fetched by scripts/00_setup.sh, never committed.
+# Upstream code is fetched by scripts/setup.sh, never committed.
 /third_party/
 
 # Per-tool virtual environments, built from envs/<name>/ lockfiles.

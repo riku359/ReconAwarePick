@@ -34,7 +34,7 @@ CryoTransformer, which is MIT-licensed:
     predict.py, train.py and datasets/micrograph.py are modified; the change
     against the pinned upstream commit is recorded in
     src/rapick/picker/patches/. Every other file of CryoTransformer is fetched
-    from upstream by scripts/00_setup.sh and is not redistributed here.
+    from upstream by scripts/setup.sh and is not redistributed here.
 
 Every other third-party work this project depends on is fetched at setup time
 and is not redistributed. See docs/BASELINES.md and repos.lock.yaml for the

@@ -1,7 +1,7 @@
 [project]
 name = "rapick-micrograph-cleaner-env"
 version = "0.0.0"
-description = "MicrographCleaner (micrograph_cleaner_em, tf2 branch), installed editable from the checkout scripts/00_setup.sh places at third_party/micrograph_cleaner_em. The editable path is relative to this file, so setting RAPICK_THIRD_PARTY elsewhere means symlinking third_party/ back to it."
+description = "MicrographCleaner (micrograph_cleaner_em, tf2 branch), installed editable from the checkout scripts/setup.sh places at third_party/micrograph_cleaner_em. The editable path is relative to this file, so setting RAPICK_THIRD_PARTY elsewhere means symlinking third_party/ back to it."
 requires-python = ">=3.10,<3.11"
 dependencies = [
     # Upstream MicrographCleaner (tf2 branch), editable from the local clone.

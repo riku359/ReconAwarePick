@@ -20,8 +20,7 @@ before running anything.
 
 ## Escape hatches
 
-Nothing here needs setting for a normal run. Each exists because one stage had a reason
-to be overridable.
+Nothing here needs setting for a normal run.
 
 | Variable | Holds | Default |
 | --- | --- | --- |
@@ -35,4 +34,4 @@ to be overridable.
 
 CryoSPARC's licence id, login and project uid live in `.env` at the repository root,
 which is git-ignored and is the only file holding credentials. Copy `.env.example` to
-`.env` and fill it in as [CRYOSPARC.md](CRYOSPARC.md) describes.
+`.env`; [CRYOSPARC.md](CRYOSPARC.md) is the walkthrough.

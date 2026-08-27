@@ -204,8 +204,8 @@ python head_repair/phase_e_writeback.py --arch linear --loss softmax \
     --checkpoint-out $RAPICK_DATA/checkpoints/CryoTransformer_head_repaired.pth
 ```
 
-Pass `--epochs 15` explicitly: both scripts' CLI defaults differ from the paper's
-setting (`phase_e_writeback.py` defaults to 25).
+Pass `--epochs 15` explicitly to `phase_e_writeback.py`: its CLI defaults to 25, not
+to the paper's setting.
 
 The repaired head is written back as a two-class layer, not a one-logit one. The head is
 trained as a single binary logit -- weighted BCE is numerically identical to two-class

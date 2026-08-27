@@ -55,7 +55,7 @@ while [ $# -gt 0 ]; do
     --parent)        PARENT="$2"; shift 2 ;;
     --setting)       SETTING="$2"; shift 2 ;;
     --seeds)         SEEDS="$2"; shift 2 ;;
-    --select2d|--from-select2d) SELECT2D="$2"; shift 2 ;;
+    --select2d)      SELECT2D="$2"; shift 2 ;;
     --no-local-res)  NO_LOCAL_RES="--no-local-res"; shift ;;
     --gpus)          GPUS="$2"; shift 2 ;;
     --dry-run)       DRY_RUN="--dry-run"; shift ;;

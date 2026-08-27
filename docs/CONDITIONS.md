@@ -36,8 +36,7 @@ result).
 There is no list of arms in the code. A driver is handed a STAR and a `--name`, and an
 arm is whatever comes out; `configs/recon.yaml` holds the parameters and is the same for
 all of them, because the arms differ in which particles reach the chain and never in
-what the chain does to them. So the table above is what the paper reports, not what the
-repository permits — a STAR that no config names still runs:
+what the chain does to them. A STAR that no config names still runs:
 
 ```bash
 bash scripts/2d_classification.sh --entry 10081 --star /some/other.star --name mine
@@ -62,21 +61,7 @@ Three caveats bound what a resolution produced by this repository means:
 
 ## If you ran this repository before the rename
 
-The names changed, and one of them changed meaning: `picks/<id>/fb.star` used to hold
-the fb picks *after* contamination removal and now holds them before it. Every driver
-refuses to run against a work directory written under the old names rather than read one
-as the other; it prints the renames. They are:
-
-| Old | New |
-| --- | --- |
-| `picks/<id>/baseline.star` | `picks/<id>/cryotransformer.star` |
-| `picks/<id>/mask.star` | `picks/<id>/cryotransformer_mask.star` |
-| `picks/<id>/fb.star` | `picks/<id>/fb_mask.star` |
-| `picks/<id>/fb_raw.star` | `picks/<id>/fb.star` |
-| `loop/<id>/round<n>/picks.star` | `loop/<id>/round<n>/cryotransformer.star` |
-| `loop/<id>/round<n>/cryotransformer_clean_tri.star` | `loop/<id>/round<n>/cryotransformer_mask.star` |
-| `loop/<id>/round<n>/survivors.star` | `loop/<id>/round<n>/cryotransformer_mask_select.star` |
-
-Rename `fb.star` before `fb_raw.star`, or the second rename overwrites the first.
-Directories under `empiar_<id>/<setting>/` keep whatever name they were written with;
-nothing reads them by a fixed name.
+The names changed, and one of them changed meaning: `picks/<id>/fb.star` used to hold the
+fb picks *after* contamination removal and now holds them before it. Rather than read one
+file as the other, every driver refuses to run against a work directory written under the
+old names and prints the renames to make, in the order they have to be made.

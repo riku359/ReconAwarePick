@@ -13,8 +13,6 @@ bash scripts/2d_classification.sh --entry 10081 --star $RAPICK_WORK/picks/10081/
 bash scripts/reconstruct.sh       --entry 10081 --name cryolo
 ```
 
-Install them only to re-derive the picks.
-
 ## Installing them anyway
 
 `scripts/setup.sh --baselines` clones each upstream at the commit `repos.lock.yaml`

@@ -124,12 +124,11 @@ any driver resumes rather than rebuilds. `--stop-after <step>` stops at a step, 
 explicitly: a partial `--rounds` would otherwise treat its last round as final and skip a
 fine-tune that is not.
 
-## Checkpoints are not published yet
+## Not running the loop at all
 
-The round-1 checkpoints this loop produces are **not yet released**. They are intended for
-the Hugging Face model repository `rikrikrik/recon-aware-pick-weights`. Until they are
-there, reproducing any round-1 number means re-running the loop from theta_0, which
-`scripts/download.sh` fetches.
+The round-1 checkpoints this loop produces are published;
+`scripts/download/10_finetuned_checkpoints.sh` fetches them. Every round-1 number is
+reproducible from those without running a round.
 
 ## What runs where
 
@@ -167,20 +166,12 @@ at `annot` scale, so it reads the one file every arm reads rather than a copy.
 ## Paths
 
 Everything comes from `docs/CONFIGURATION.md`'s contract; nothing is hardcoded to a host.
+The loop reads the trees the top-level README draws and owns one of its own:
 
 ```
-$RAPICK_DATA/cryoppp/<id>/micrographs           the 300 annotated micrographs
-$RAPICK_DATA/cryoppp/<id>/ground_truth/*.star   the annotation the score step reads
-$RAPICK_DATA/cryoppp_fullset/<id>/micrographs   the full deposition
-$RAPICK_DATA/checkpoints/CryoTransformer_head_repaired.pth      theta_0
-
-$RAPICK_WORK/masks/<id>/                        stored contamination masks
 $RAPICK_WORK/loop/<id>/round<n>/                one round: state, stars, labels, logs
 $RAPICK_WORK/loop/<id>/models/model_<n>.pth     the checkpoints the loop produces
 $RAPICK_WORK/loop/<id>/fullset/<name>/          one full-deposition re-pick
-$RAPICK_WORK/picks/<id>/<name>.star             where the re-pick is published
-$RAPICK_WORK/select2d/<project>_<job>_iter/     the 2D selection's cycle state
-$RAPICK_WORK/empiar_<id>/<setting>/<source>/    manifests and metrics.json
 ```
 
 A round directory names its STARs the way `picks/<id>/` does, by the stages the picks
@@ -226,7 +217,7 @@ workspace, so two arms of one entry never share state.
 | `common.py` | logging, subprocess, the lock, resumable state |
 | `star.py` | reading and writing the GT-aligned STAR |
 
-## Two things that will cost a run if forgotten
+## What will cost a run if forgotten
 
 **One driver per entry at a time.** `common.acquire_lock` takes an exclusive `flock` and
 refuses a second driver on the same entry, because the damage from an overlap is silent
@@ -237,16 +228,6 @@ Nothing fails; the records simply stop describing the files on disk. Two *differ
 entries are fine side by side on separate cards. `repick_fullset.py` locks per (entry,
 condition) for the same reason, and additionally refuses to publish a second checkpoint's
 picks under a condition that already names one.
-
-**A crashed ab-initio job still needs three seeds.** This bites in the reconstruction that
-follows the re-pick, not inside the loop, but it is the trap most likely to turn a
-reported number into a wrong one. When an ab-initio job dies with a SIGSEGV, retry the
-same seed at most twice and then advance the seed number (`--seeds 0,1,2` ->
-`--seeds 0,1,3`). Completed jobs are reused from the manifest, so a retry resumes the trio
-rather than restarting it. **Which seeds were used must be stated with the resolution** —
-a best-of-2 is not a best-of-3, and reporting one as the other is not a rounding error. In
-one measured night 7 of 19 runs died, and one entry's seed 2 died four times in a row
-while seeds 0, 1 and 3 completed.
 
 ## Known limits
 
@@ -268,5 +249,3 @@ while seeds 0, 1 and 3 completed.
   entry's score distribution sits higher than the others'. Teacher labels downstream of
   that are suspect, and a round-over-round decline on 10345 may be the selector rather
   than the feedback.
-- **EMPIAR-10345's pixel size follows CryoPPP** (0.673 A), which is understated by 2x
-  against EMDB, so every resolution reported for that entry is half the physical one.
