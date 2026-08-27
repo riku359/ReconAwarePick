@@ -103,7 +103,8 @@ bash scripts/01_download_data.sh
 | --- | --- | --- |
 | CryoPPP annotated subset | 300 micrographs and expert particle annotations per entry | [CryoPPP](https://github.com/BioinfoMachineLearning/cryoppp) |
 | Full depositions | every micrograph of each entry: 997 / 1,873 / 1,644 / 1,556 | EMPIAR |
-| CryoTransformer weights | the released checkpoint | upstream |
+| CryoTransformer weights | the released checkpoint the head repair starts from | [calla.rnet.missouri.edu](https://calla.rnet.missouri.edu/CryoTransformer/pretrained_model.tar.gz) |
+| MicrographCleaner weights | the released contamination network | [Zenodo](https://zenodo.org/records/17093439) |
 | Repaired head, theta_0 | the base checkpoint of every condition (Sec. S2) | [🤗 rikrikrik/recon-aware-pick-weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) |
 | Contamination masks | triangular-blend masks for all four entries at full-set scale | [🤗 rikrikrik/recon-aware-pick-data](https://huggingface.co/datasets/rikrikrik/recon-aware-pick-data) |
 | Picks | the STAR files each condition starts from | same dataset |
@@ -256,7 +257,7 @@ upstream copyright notice is retained.
 - [MicrographCleaner](https://github.com/rsanchezgarc/micrograph_cleaner_em)
   (Apache-2.0) — contamination masking. We call the released network unchanged and
   replace only its post-processing.
-- [CryoSift](https://www.cryosift.org), upstream
+- [CryoSift](https://cryosift.org), upstream
   [Magellon](https://github.com/sstagg/Magellon) (Apache-2.0) — 2D class scoring.
   We call the released model unchanged and supply the iterative workflow around it.
 - [Topaz](https://github.com/tbepler/topaz) (**GPL-3.0**) and

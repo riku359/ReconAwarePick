@@ -10,6 +10,7 @@
 #
 #   bash scripts/check_release.sh          check the working tree
 #   bash scripts/check_release.sh --staged only what is staged for commit
+#   bash scripts/check_release.sh --links  also fetch every external link
 #
 # Exit status 0 means every check passed.
 
@@ -19,7 +20,14 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
 STAGED=0
-[ "${1:-}" = "--staged" ] && STAGED=1
+LINKS=0
+for a in "$@"; do
+  case "$a" in
+    (--staged) STAGED=1 ;;
+    (--links)  LINKS=1 ;;
+    (*) echo "unknown flag: $a" >&2; exit 2 ;;
+  esac
+done
 
 if [ "$STAGED" -eq 1 ]; then
   files() { git diff --cached --name-only --diff-filter=ACM; }
@@ -148,6 +156,41 @@ deadlinks=$(files | grep '\.md$' | while read -r md; do
   done
 done)
 report "no dead links between documents" "$deadlinks"
+
+# A path quoted in prose is a promise that the file is there. These drift silently
+# when something is renamed, so check them the same way as the links.
+badpaths=$(files | grep -E '\.(md|ya?ml)$' | tr '\n' '\0' | xargs -0 python3 -c '
+import re, sys, os, pathlib
+PAT = re.compile(r"`([A-Za-z0-9_./-]*(?:src|scripts|configs|results|docs|envs)/[A-Za-z0-9_./<>-]+)`")
+for f in sys.argv[1:]:
+    for n, line in enumerate(pathlib.Path(f).read_text(errors="replace").splitlines(), 1):
+        for m in PAT.finditer(line):
+            p = m.group(1).rstrip("/")
+            if "<" in p or "*" in p:            # templated, cannot be checked
+                continue
+            if os.path.exists(p) or os.path.exists(os.path.join(os.path.dirname(f), p)):
+                continue
+            print(f"{f}:{n}  {p}")
+' 2>/dev/null)
+report "every documented path exists" "$badpaths"
+
+# Off by default: it needs the network, and a slow mirror should not fail a commit.
+# This repository's own URL is skipped: it 404s for an anonymous fetch while the
+# repository is private, which says nothing about whether the link is right.
+if [ "$LINKS" -eq 1 ]; then
+  echo "      checking external links (this needs the network)..."
+  # Patch files are excluded: a diff records the line it removes, and a URL we
+  # removed because it was dead is supposed to stay dead.
+  badurls=$(files | grep -vE 'uv\.lock|requirements.*\.txt|environment\.lock\.yml|\.diff$' \
+    | tr '\n' '\0' | xargs -0 grep -ohE 'https?://[A-Za-z0-9._~:/?#@!$&()*+,;=%-]+' 2>/dev/null \
+    | sed 's/[.,)`]*$//' | sort -u \
+    | grep -v 'github.com/riku359/ReconAwarePick' \
+    | while read -r u; do
+        code=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 15 "$u" 2>/dev/null || echo 000)
+        case "$code" in (2*|3*) ;; (*) echo "$code  $u" ;; esac
+      done)
+  report "every external link resolves" "$badurls"
+fi
 
 echo
 echo "== licence and attribution =="

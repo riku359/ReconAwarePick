@@ -1,5 +1,5 @@
---- a/predict.py	(upstream a56f133f3f499562c32a6bc512eec5f115095b3b)
-+++ b/predict.py	(this repository, src/rapick/picker/overlay)
+--- upstream/predict.py (CryoTransformer @ a56f133)
++++ overlay/predict.py
 @@ -1,3 +1,8 @@
 +# Modified copy of CryoTransformer's predict.py.
 +# Upstream: https://github.com/jianlin-cheng/CryoTransformer

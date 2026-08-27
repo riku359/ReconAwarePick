@@ -107,6 +107,30 @@ if [ -z "$DRY_RUN" ]; then
   done
 fi
 
+# --- the picker's released weights -------------------------------------------
+# Needed to redo the head repair, which starts from them, and as the fallback if
+# you would rather not download theta_0. The archive also carries the COCO DETR
+# checkpoint the picker was initialised from; both are kept.
+CKPT_DIR="$DATA/checkpoints"
+mkdir -p "$CKPT_DIR"
+if [ -f "$CKPT_DIR/CryoTransformer_pretrained_model.pth" ]; then
+  echo "==> CryoTransformer's released weights already present"
+elif [ -n "$DRY_RUN" ]; then
+  echo "==> Would fetch CryoTransformer's released weights (about 3 GB)"
+else
+  echo "==> CryoTransformer's released weights"
+  TARBALL="$CKPT_DIR/pretrained_model.tar.gz"
+  curl -fSL --retry 5 --retry-delay 10 -C - \
+      https://calla.rnet.missouri.edu/CryoTransformer/pretrained_model.tar.gz \
+      -o "$TARBALL"
+  # gzip -t first: a truncated transfer otherwise unpacks into a plausible-looking
+  # tree and only fails when torch tries to load the checkpoint.
+  gzip -t "$TARBALL"
+  tar -xzf "$TARBALL" -C "$CKPT_DIR" --strip-components=1
+  rm -f "$TARBALL"
+  echo "  -> $CKPT_DIR/CryoTransformer_pretrained_model.pth"
+fi
+
 # --- published artifacts -----------------------------------------------------
 if [ "$INTERMEDIATES" -eq 1 ]; then
   echo "==> Published artifacts from Hugging Face"

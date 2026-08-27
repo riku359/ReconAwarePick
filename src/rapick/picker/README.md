@@ -37,7 +37,7 @@ upstream blob and applies to a clean clone with `patch -p1`:
 | --- | --- | --- |
 | `predict.py` | `patches/predict.py.diff` | an `indices` argument threaded through `nms()`, so a surviving box can be traced back to the decoder query slot it came from; a `--gt-format` output mode; and the `--debug_dump` / `--dump_hs` diagnostic dumps. `--dump_hs` is what feeds the head repair. |
 | `train.py` | `patches/train.py.diff` | `class_embed` and `query_embed` are reinitialised only when the checkpoint's shapes disagree with the model's, so resuming the project's own run no longer resets the trained head; and optimizer / lr\_scheduler / epoch are restored only on such a relay. |
-| `datasets/micrograph.py` | `patches/datasets_micrograph.py.diff` | `category_id` is remapped to 0. |
+| `datasets/micrograph.py` | `patches/datasets_micrograph.py.diff` | `category_id` is remapped to 0. Also a one-word fix to the file's own provenance comment, which pointed at `references/detection/micrograph_utils.py` in torchvision: upstream renamed `coco` to `micrograph` throughout and caught the URL as well, so the link 404s. It is `coco_utils.py` there. |
 
 Applying them by hand, if you are not using `scripts/00_setup.sh`:
 

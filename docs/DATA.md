@@ -43,11 +43,14 @@ not enough for a stable reconstruction.
 
 ### From EMPIAR and CryoPPP
 
-| Asset | Path under `$RAPICK_DATA` | Size |
-| --- | --- | --- |
-| Annotated micrographs | `cryoppp/<id>/micrographs/*.mrc` | ~75 GB |
-| Expert annotations | `cryoppp/<id>/ground_truth/empiar-<id>_particles_selected.star` | small |
-| Full depositions | `cryoppp_fullset/<id>/micrographs/*.mrc` | ~1.5 TB |
+| Asset | Path under `$RAPICK_DATA` | Size | From |
+| --- | --- | --- | --- |
+| Annotated micrographs | `cryoppp/<id>/micrographs/*.mrc` | ~75 GB | [EMPIAR](https://www.ebi.ac.uk/empiar/), listed by the [CryoPPP](https://github.com/BioinfoMachineLearning/cryoppp) catalogue |
+| Expert annotations | `cryoppp/<id>/ground_truth/empiar-<id>_particles_selected.star` | small | the `cryoppp_lite` archives at <https://calla.rnet.missouri.edu/cryoppp_lite/> |
+| Full depositions | `cryoppp_fullset/<id>/micrographs/*.mrc` | ~1.5 TB | [EMPIAR](https://ftp.ebi.ac.uk/empiar/world_availability/) |
+| CryoTransformer's released weights | `checkpoints/CryoTransformer_pretrained_model.pth` | ~3 GB | <https://calla.rnet.missouri.edu/CryoTransformer/pretrained_model.tar.gz> |
+| MicrographCleaner's released weights | `checkpoints/micrograph_cleaner_defaultModel.h5` | 15 MB | [Zenodo](https://zenodo.org/records/17093439), fetched by `src/rapick/cleaner/download_model.sh` |
+| CryoSift's weights | inside the Magellon checkout | 33 MB | bundled in the upstream clone; no separate download |
 
 The full-set source directory differs per entry, and two of them need a filter.
 The table is in the `DATASETS` block at the top of

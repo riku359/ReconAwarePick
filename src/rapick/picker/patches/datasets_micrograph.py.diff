@@ -1,5 +1,14 @@
---- a/datasets/micrograph.py	(upstream a56f133f3f499562c32a6bc512eec5f115095b3b)
-+++ b/datasets/micrograph.py	(this repository, src/rapick/picker/overlay)
+--- upstream/datasets/micrograph.py (CryoTransformer @ a56f133)
++++ overlay/datasets/micrograph.py
+@@ -4,7 +4,7 @@
+ """
+ micrograph dataset which returns image_id for evaluation.
+ 
+-Mostly copy-paste from https://github.com/pytorch/vision/blob/13b35ff/references/detection/micrograph_utils.py
++Mostly copy-paste from https://github.com/pytorch/vision/blob/13b35ff/references/detection/coco_utils.py
+ """
+ from pathlib import Path
+ 
 @@ -74,7 +74,14 @@
          boxes[:, 0::2].clamp_(min=0, max=w)
          boxes[:, 1::2].clamp_(min=0, max=h)

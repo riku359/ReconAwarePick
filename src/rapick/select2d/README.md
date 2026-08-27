@@ -3,7 +3,7 @@
 Sec. 3.4 of the paper, with the full procedure in Sec. S4.
 
 CryoSPARC 2D-classifies the picks that survived the earlier stages at K = 50. This
-stage scores each class average with [CryoSift](https://www.cryosift.org)'s pretrained
+stage scores each class average with [CryoSift](https://cryosift.org)'s pretrained
 CNN — a continuous score from 1.0 (a clean particle class) to 5.0 (a non-particle
 class) — and then either applies a single cutoff, or runs CryoSift's iterative
 workflow, which is what the paper reports.
