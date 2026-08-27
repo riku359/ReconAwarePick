@@ -225,7 +225,10 @@ def _add_common(p: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="rapick-recon", description=__doc__)
+    # The module docstring is the usage text, and its worked examples only read as
+    # commands if argparse leaves the line breaks alone.
+    p = argparse.ArgumentParser(prog="rapick-recon", description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("-v", "--verbose", action="store_true")
     sub = p.add_subparsers(dest="command", required=True)
 
