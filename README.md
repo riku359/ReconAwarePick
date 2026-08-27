@@ -293,3 +293,7 @@ Pending for the public release:
       and has not been run in this form
 - [ ] Generate and commit `envs/figures/uv.lock`, the one environment assembled for
       the release rather than during the experiments
+
+[docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) has the full list, in the
+order it makes sense to do it, along with what this repository deliberately does
+not contain and why.
