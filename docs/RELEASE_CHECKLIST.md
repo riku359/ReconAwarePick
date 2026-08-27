@@ -6,27 +6,41 @@ public. This page is what is left, in the order it makes sense to do it.
 Delete this file when the repository goes public: by then it is either done or it
 belongs in the README's TODO.
 
-## Before the repository leaves this machine
+## Where it stands
 
-- [ ] `bash scripts/check_release.sh` passes. It is the gate: paths and account
-      names from the experiment machines, credentials, files over 1 MB, leftover
-      Japanese prose, dead links, and the private repository's condition names
-      appearing outside the translation table.
-- [ ] The paper is still under review. The abstract says code will be available
-      upon acceptance, and publishing a repository under the authors' own GitHub
-      account would break the anonymity of the submission. **Create it private.**
+The repository exists **private** on GitHub. It stays private: the paper is under
+review, the abstract says the code will be available upon acceptance, and a public
+repository under the authors' own account would break the anonymity of the
+submission.
 
-```bash
-gh repo create ReconAwarePick --private --source . --remote origin --push
-```
+`bash scripts/check_release.sh` is the gate and passes. It checks paths and account
+names from the experiment machines, credentials, files over 1 MB, leftover Japanese
+prose, dead links, documented paths that do not exist, and the private
+repository's condition names appearing outside the translation table.
+`--links` additionally fetches every external URL.
 
 ## Before it goes public
 
-- [ ] **Run one condition end to end on a machine that has never run this code.**
-      Nothing else on this list matters as much. Everything here was ported and
-      checked by reading; none of it has been executed against a live CryoSPARC
-      instance. Suggested smallest useful test: EMPIAR-10081, condition `mask`,
-      from the published intermediates.
+- [x] **Check the repository on a machine that has never run this code.** Done on
+      a fresh clone on the lab's GPU host. What was verified:
+      - the hygiene gate passes on Linux (it did not at first: see below)
+      - `00_setup.sh` clones all three upstreams at their pins and applies the
+        CryoTransformer overlay, and the result matches the shipped overlay file
+        for file
+      - the `figures` and `recon` environments build from their lockfiles
+      - `08_tables_figures.sh` rebuilds Fig. 4, Fig. 5 and the loop-rounds figure,
+        and **Fig. 4 comes out identical to the one in the paper**
+      - `rapick-recon check-setup` passes against the live CryoSPARC instance:
+        connection, project, 300 healthy micrographs, distinct STARs
+      - `--dry-run` works for both kinds of condition, and a condition whose parent
+        has not run yet refuses with the command that would fix it
+      - `01_download_data.sh --dry-run` resolves the real remote data and counts
+        **997 micrographs for EMPIAR-10081, matching Table 1**
+      - the 2D scorer on real picks reproduces **Table S2's CryoTransformer row for
+        EMPIAR-10081 exactly**: macro P 0.469, R 0.954, F1 0.610
+- [ ] **Run one condition through to a reconstruction.** The above stops short of
+      creating CryoSPARC jobs. The smallest useful test is EMPIAR-10081, condition
+      `mask`, at `annot` scale, from the published intermediates.
 - [ ] Publish the four round-1 fine-tuned checkpoints to
       `rikrikrik/recon-aware-pick-weights`. Without them the `fb` condition, which
       is the paper's headline row, can only be reproduced by re-running the loop.
@@ -34,9 +48,6 @@ gh repo create ReconAwarePick --private --source . --remote origin --push
       `rikrikrik/recon-aware-pick-data`, so Table 2 and Table S2 can be reproduced
       without installing crYOLO, Topaz and CryoSegNet. `--picks` in
       `scripts/01_download_data.sh` already expects them and currently says so.
-- [ ] `uv lock` in `envs/figures/` and commit the result. It is the one
-      environment assembled for the release rather than during the experiments,
-      so it is the one without a lockfile.
 - [ ] Run the `fb_gt` path once, or mark Table 7's lower row as not reproducible
       here. The scripts that produced it were never committed; `--teacher gt`
       reimplements their documented procedure and has not been run in this form.
@@ -44,6 +55,21 @@ gh repo create ReconAwarePick --private --source . --remote origin --push
       proceedings citation.
 - [ ] Decide whether to archive a release on Zenodo for a DOI, as is usual for a
       paper's code.
+
+## What running it caught
+
+Every one of these was invisible to reading and only appeared when the repository
+was cloned somewhere else and used. They are fixed; the list is here because it is
+the argument for doing the same again before going public.
+
+| What | Why it was invisible |
+| --- | --- |
+| The hygiene gate failed on Linux, flagging every emoji as Japanese prose | GNU grep under `LC_CTYPE=POSIX` compares a character range byte by byte; macOS's grep does not |
+| Setup cloned Magellon whole, 2.2 GB instead of 166 MB | `repos.lock.yaml` recorded the subdirectory and the clone helper ignored it |
+| Two of the five environments were never built | they are not uv projects, and setup skipped them with a message no one reads |
+| The 2D selection environment would not build at all | upstream pins `pysqlite3`, which has no wheel and needs a system header nothing here imports |
+| `--dry-run` died on an argparse error for six of the eleven conditions | `rapick-recon run` has no such flag, and only the from-selection driver was tested by hand |
+| The released picker weights were referenced everywhere and downloadable from nowhere | every machine that ran the experiments already had them |
 
 ## Two things to settle in the manuscript, not here
 
