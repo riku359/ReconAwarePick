@@ -21,8 +21,14 @@ upstream source, expensive enough to regenerate that they are worth publishing.
                STAR file needs only numpy and opencv. About 6,070 small .npz files, so
                whole per-entry folders move at once rather than file by file.
 
-Not published yet, and listed in the repository's TODO: the four round-1 fine-tuned
-checkpoints (the `fb` condition's weights) and the four pickers' raw full-set picks.
+  loop         The round-1 fine-tuned checkpoints, one per entry and per arm. `fb` is
+               the paper's method, so those are what the Ours row picks with; without
+               them that row can only be reproduced by re-running the loop, at about
+               two hours per round per entry. `fb_gt` is the perfect-teacher upper
+               bound of Table 7's lower row.
+
+Not published yet, and listed in the repository's TODO: the four pickers' raw full-set
+picks.
 
 The remote repo layout (the HF-side paths below) is independent of local layout and
 does not change when a site moves things around locally: --data-root / --experiments-root
@@ -60,6 +66,13 @@ from pathlib import Path
 CHECKPOINT_REL = Path("cryotransformer/eos_coef=0.1(default)")
 CHECKPOINT_FILES = ["CryoTransformer_head_repaired.pth", "CryoTransformer_head_repaired.json"]
 
+# The fine-tuned checkpoints one round of the loop delivers, per entry and per arm.
+# `fb` is the paper's method (Table 2's Ours row, Table 4's fb row); `fb_gt` is the
+# perfect-teacher upper bound of Table 7's lower row. Round 1 is what the paper
+# reports, so that is what is published.
+LOOP_ARMS = ("fb", "fb_gt")
+LOOP_REL = "weights/loop/{arm}/round1/empiar_{eid}.pth"
+
 # The 4 IDs experiments 1-4 run on, and the 3 files filter_star_triangular.py writes
 # per ID (decisions_tri.jsonl is a resume checkpoint, not needed downstream -- skipped).
 CLEANER_IDS = ["10081", "10093", "10345", "10532"]
@@ -92,6 +105,33 @@ def cmd_upload_checkpoint(args):
     for f in CHECKPOINT_FILES:
         src = root / f
         dest = f"weights/{CHECKPOINT_REL}/{f}"
+        print(f"[upload] {src} -> {args.repo}:{dest} ({src.stat().st_size / 1e6:.0f} MB)")
+        api.upload_file(path_or_fileobj=str(src), path_in_repo=dest,
+                        repo_id=args.repo, repo_type="model")
+    print(f"[done] https://huggingface.co/{args.repo}")
+
+
+def cmd_upload_loop_checkpoints(args):
+    """Publish the round-1 checkpoints of one loop arm, one file per entry.
+
+    They are what the `fb` condition picks with, so without them the paper's headline
+    row can only be reproduced by re-running the loop, which is about two hours per
+    round per entry.
+    """
+    api = _hub()
+    root = Path(args.models_root).expanduser()
+    ids = args.ids.split(",") if args.ids else list(CLEANER_IDS)
+
+    found = []
+    for eid in ids:
+        src = Path(str(root).replace("{eid}", eid))
+        if not src.is_file():
+            sys.exit(f"error: no checkpoint for {eid} at {src}")
+        found.append((eid, src))
+
+    api.create_repo(args.repo, repo_type="model", private=args.private, exist_ok=True)
+    for eid, src in found:
+        dest = LOOP_REL.format(arm=args.arm, eid=eid)
         print(f"[upload] {src} -> {args.repo}:{dest} ({src.stat().st_size / 1e6:.0f} MB)")
         api.upload_file(path_or_fileobj=str(src), path_in_repo=dest,
                         repo_id=args.repo, repo_type="model")
@@ -149,6 +189,18 @@ def cmd_download(args):
             dest.write_bytes(Path(got).read_bytes())
             print(f"[got] {dest}")
 
+        # The loop's round-1 checkpoints land next to theta_0, under a name that says
+        # which arm and which entry, so the picker can be pointed at one directly.
+        arm = getattr(args, "with_loop_checkpoints", None)
+        if arm:
+            ids = args.ids.split(",") if args.ids else CLEANER_IDS
+            for eid in ids:
+                dest = dest_root / f"loop_{arm}_round1_empiar_{eid}.pth"
+                got = hf_hub_download(args.repo_weights,
+                                      LOOP_REL.format(arm=arm, eid=eid), repo_type="model")
+                dest.write_bytes(Path(got).read_bytes())
+                print(f"[got] {dest}")
+
     if args.repo_data:
         experiments_root = Path(args.experiments_root).expanduser()
         ids = args.ids.split(",") if args.ids else CLEANER_IDS
@@ -203,6 +255,18 @@ def main():
     up_ckpt.add_argument("--private", action="store_true")
     up_ckpt.set_defaults(func=cmd_upload_checkpoint)
 
+    up_loop = sub.add_parser("upload-loop-checkpoints",
+                             help="upload one loop arm's round-1 checkpoints, one per entry")
+    up_loop.add_argument("--repo", required=True, help="e.g. <user>/recon-aware-pick-weights")
+    up_loop.add_argument("--arm", required=True, choices=list(LOOP_ARMS),
+                         help="fb is the paper's method; fb_gt is Table 7's upper bound")
+    up_loop.add_argument("--models-root", required=True,
+                         help="path to one checkpoint with {eid} standing in for the entry, "
+                              "e.g. /data/loop/empiar_{eid}/models/model_1.pth")
+    up_loop.add_argument("--ids", help=f"comma-separated, default {','.join(CLEANER_IDS)}")
+    up_loop.add_argument("--private", action="store_true")
+    up_loop.set_defaults(func=cmd_upload_loop_checkpoints)
+
     up_data = sub.add_parser("upload-cleaner-data", help="upload the 4 IDs' cleaner stars")
     up_data.add_argument("--repo", required=True, help="e.g. <user>/recon-aware-pick-data")
     up_data.add_argument("--experiments-root", required=True,
@@ -228,6 +292,10 @@ def main():
     dl.add_argument("--ids", help=f"comma-separated, default {','.join(CLEANER_IDS)}")
     dl.add_argument("--with-masks", action="store_true",
                     help="also fetch the contamination masks from --repo-data")
+    dl.add_argument("--with-loop-checkpoints", metavar="ARM", nargs="?", const="fb",
+                    choices=list(LOOP_ARMS),
+                    help="also fetch that arm's round-1 checkpoints (default arm: fb, "
+                         "which is what the paper's Ours row picks with)")
     dl.set_defaults(func=cmd_download)
 
     args = ap.parse_args()
