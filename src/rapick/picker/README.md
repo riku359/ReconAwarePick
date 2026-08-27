@@ -4,7 +4,7 @@ The picker is [CryoTransformer](https://github.com/jianlin-cheng/CryoTransformer
 (Dhakal et al.), MIT licensed, Copyright (c) 2023 Jianlin Cheng, pinned at commit
 `a56f133f3f499562c32a6bc512eec5f115095b3b`.
 
-This repository does **not** vendor a copy of it. `scripts/00_setup.sh` clones upstream
+This repository does **not** vendor a copy of it. `scripts/setup.sh` clones upstream
 at that commit into `$RAPICK_THIRD_PARTY/cryotransformer/`, then copies everything under
 [`overlay/`](overlay) over the clean checkout. What ships here is therefore only the
 authors' own files plus the three upstream files they had to change.
@@ -39,7 +39,7 @@ upstream blob and applies to a clean clone with `patch -p1`:
 | `train.py` | `patches/train.py.diff` | `class_embed` and `query_embed` are reinitialised only when the checkpoint's shapes disagree with the model's, so resuming the project's own run no longer resets the trained head; and optimizer / lr\_scheduler / epoch are restored only on such a relay. |
 | `datasets/micrograph.py` | `patches/datasets_micrograph.py.diff` | `category_id` is remapped to 0. Also a one-word fix to the file's own provenance comment, which pointed at `references/detection/micrograph_utils.py` in torchvision: upstream renamed `coco` to `micrograph` throughout and caught the URL as well, so the link 404s. It is `coco_utils.py` there. |
 
-Applying them by hand, if you are not using `scripts/00_setup.sh`:
+Applying them by hand, if you are not using `scripts/setup.sh`:
 
 ```bash
 cd $RAPICK_THIRD_PARTY/cryotransformer

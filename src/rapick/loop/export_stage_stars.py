@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Export each round's extracted, accepted and surviving particles as GT-aligned STAR.
 
-The loop already leaves the picker's own two stages on disk (`picks.star` and the
-contamination filter's `cryotransformer_clean_tri.star` / `_removed_tri.star`), but what
+The loop already leaves the picker's own two stages on disk (`cryotransformer.star`
+and `cryotransformer_mask.star`), but what
 the 2D selection discarded lives only inside CryoSPARC. `teacher.star` is not a
 substitute: it covers the 50 sampled micrographs, not the 300 the round actually picked.
 
@@ -33,7 +33,8 @@ Run it with the interpreter that has cryosparc-tools (the `recon` environment):
   python -m rapick.loop.export_stage_stars --id 10081
   python -m rapick.loop.export_stage_stars --id 10532 --rounds 1-2
 
-Writes into each round dir: extracted.star, class2d_accepted.star, survivors.star,
+Writes into each round dir: extracted.star, class2d_accepted.star,
+cryotransformer_mask_select.star,
 stage_counts.json
 """
 from __future__ import annotations
@@ -46,7 +47,7 @@ import numpy as np
 
 from . import entries, paths, star
 from .common import connect_cryosparc, parse_rounds
-from .run_loop import CLEAN_STAR
+from .run_loop import MASKED_STAR, PICKS_STAR, SELECTED_STAR
 
 
 def load_particle_rows(job, output_name: str, slots=("location",)):
@@ -100,7 +101,7 @@ def export_round(project, empiar: str, arm: str, n: int, force: bool) -> None:
 
     out_paths = {"extracted": round_dir / "extracted.star",
                  "class2d_accepted": round_dir / "class2d_accepted.star",
-                 "survivors": round_dir / "survivors.star"}
+                 "survivors": round_dir / SELECTED_STAR}
     if not force and all(p.is_file() for p in out_paths.values()):
         print(f"  round {n}: already exported, skipped (--force to redo)")
         return
@@ -113,8 +114,8 @@ def export_round(project, empiar: str, arm: str, n: int, force: bool) -> None:
     extract = find_job_uid(empiar, arm, n, "extract")
     class2d = state.get("class2d", {}).get("uid") or find_job_uid(empiar, arm, n, "class2d")
 
-    picks = star.star_keys(round_dir / "picks.star")
-    cleaned = star.star_keys(round_dir / CLEAN_STAR)
+    picks = star.star_keys(round_dir / PICKS_STAR)
+    cleaned = star.star_keys(round_dir / MASKED_STAR)
     extracted = load_particle_keys(project.find_job(extract), "particles")
     accepted = load_particle_keys(project.find_job(class2d), "particles")
     survivors = load_particle_keys(project.find_job(select2d), "particles_selected")

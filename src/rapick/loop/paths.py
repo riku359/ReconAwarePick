@@ -138,7 +138,7 @@ def base_checkpoint() -> Path:
     path = data_root() / "checkpoints" / "CryoTransformer_head_repaired.pth"
     if not path.is_file():
         raise ConfigError(f"theta_0 checkpoint missing: {path} "
-                          f"(scripts/01_download_data.sh fetches it)")
+                          f"(scripts/download.sh fetches it)")
     return path
 
 
@@ -204,7 +204,7 @@ class Tool:
     pythonpath: Optional[str] = None  # "src" or "eval": what it has to be able to import
 
 
-# Two roots. `third_party` is the upstream picker checkout that `scripts/00_setup.sh`
+# Two roots. `third_party` is the upstream picker checkout that `scripts/setup.sh`
 # clones and copies src/rapick/picker/overlay/ over -- so `predict.py` and `finetune.py`
 # are found there, not in this repository. `repo` is a sibling stage of this repository
 # that this package drives but does not own.
@@ -253,7 +253,7 @@ def venv_python(name: str) -> Path:
     path = envs_root() / "envs" / name / ".venv" / "bin" / "python"
     if not path.is_file():
         raise ConfigError(f"no interpreter for the {name!r} environment at {path}; "
-                          f"build it with scripts/00_setup.sh, or set RAPICK_ENVS")
+                          f"build it with scripts/setup.sh, or set RAPICK_ENVS")
     return path
 
 
@@ -270,7 +270,7 @@ def tool_script(name: str) -> Path:
     root = third_party_root() if spec.root == "third_party" else REPO_ROOT
     path = root / spec.default
     if not path.is_file():
-        raise ConfigError(f"{spec.what} not found at {path}; run scripts/00_setup.sh, "
+        raise ConfigError(f"{spec.what} not found at {path}; run scripts/setup.sh, "
                           f"or set {spec.env_var} to where it lives")
     return path
 
@@ -363,16 +363,16 @@ def recon_profile() -> Path:
     return path
 
 
-def condition(name: str) -> Path:
-    """One of the loop's condition configs under configs/conditions/.
+def recon_config() -> Path:
+    """configs/recon.yaml: the class_2D and reconstruction parameters, shared by every
+    arm so that two arms can never differ in what the chain does to their particles.
 
-    `RAPICK_CONDITION_<NAME>` overrides, so a site that lays configs/ out differently
-    does not have to edit this package. See README.md for what each file must declare.
+    `RAPICK_RECON_CONFIG` overrides, so a site that lays configs/ out differently does
+    not have to edit this package.
     """
-    var = f"RAPICK_CONDITION_{name.upper()}"
-    path = Path(os.environ.get(var) or
-                (REPO_ROOT / "configs" / "conditions" / f"{name}.yaml"))
+    path = Path(os.environ.get("RAPICK_RECON_CONFIG") or
+                (REPO_ROOT / "configs" / "recon.yaml"))
     if not path.is_file():
-        raise ConfigError(f"no condition config at {path} (set {var} to override); "
-                          f"src/rapick/loop/README.md lists what it must declare")
+        raise ConfigError(f"no reconstruction config at {path} "
+                          f"(set RAPICK_RECON_CONFIG to override)")
     return path

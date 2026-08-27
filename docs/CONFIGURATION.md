@@ -8,11 +8,11 @@ machine: a script that cannot resolve one fails immediately, naming the variable
 | Variable | Holds | Example |
 | --- | --- | --- |
 | `RAPICK_DATA` | Downloaded inputs: micrographs, annotations, pretrained weights. Read-mostly, and large (~1.6 TB for all four entries at full-set scale). | `/mnt/data/rapick-data` |
-| `RAPICK_WORK` | Everything the pipeline produces: masks, filtered STAR, per-condition manifests, `metrics.json`. Grows during a run. | `/mnt/data/rapick-work` |
-| `RAPICK_THIRD_PARTY` | Upstream checkouts fetched by `scripts/00_setup.sh`. | `<repo>/third_party` (default) |
+| `RAPICK_WORK` | Everything the pipeline produces: masks, filtered STAR, per-arm manifests, `metrics.json`. Grows during a run. | `/mnt/data/rapick-work` |
+| `RAPICK_THIRD_PARTY` | Upstream checkouts fetched by `scripts/setup.sh`. | `<repo>/third_party` (default) |
 | `RAPICK_ENVS` | Where the per-tool virtual environments are built. Point it at a local SSD: `uv` file locks hang on NFS. | `<repo>` (default, one `.venv` per env dir) |
 | `RAPICK_GPU` | Default GPU index for the stages that take one. Every driver also accepts `--gpu`. | `0` |
-| `RAPICK_TEST_DATA` | Root of the per-entry micrograph directories the picker reads, as `<id>/images/` — upstream CryoTransformer's contract, which we kept. `scripts/03_pick.sh` creates the links. | `$RAPICK_WORK/test_data` |
+| `RAPICK_TEST_DATA` | Root of the per-entry micrograph directories the picker reads, as `<id>/images/` — upstream CryoTransformer's contract, which we kept. `scripts/pick.sh` creates the links. | `$RAPICK_WORK/test_data` |
 
 Set the main ones once, for example in `~/.rapick.env`, and source it before running
 anything:
@@ -32,25 +32,29 @@ reason to be overridable.
 | --- | --- | --- |
 | `RAPICK_TOOL_*` | The path to one stage's entry point, when it is not where setup put it: `PREDICT`, `PREDICT_FULLSET`, `FINETUNE`, `MASK_FILTER`, `SCORER`, `SELECT_*`. | under `third_party/` or `src/` |
 | `RAPICK_RECON_PROFILE` | A different CryoSPARC job-DAG profile. | `configs/cryosparc_v47.yaml` |
-| `RAPICK_CONDITION_<NAME>` | The config file for one condition, when `configs/` is laid out differently. `RAPICK_CONDITION_FB` points at `fb`'s. | `configs/conditions/<name>.yaml` |
+| `RAPICK_RECON_CONFIG` | The class_2D and reconstruction parameters, when `configs/` is laid out differently. One file, shared by every arm. | `configs/recon.yaml` |
 | `RAPICK_RECON_MAX_INCOMPLETE_MICS`, `RAPICK_RECON_MAX_INCOMPLETE_CTF_MICS` | How many micrographs an import or a Patch CTF may silently drop before the preflight refuses to continue. **Raising this is how a run ends up reconstructing fewer micrographs than it reports**, which happened once here; raise it only with a reason. | `0` |
 | `RAPICK_FT_MIN_FREE_MB`, `RAPICK_FT_MAX_WAIT_S` | How much free GPU memory a fine-tune waits for, and how long it waits before giving up. | 20000 MB, 7200 s |
 | `RAPICK_LOCK_DIR` | Where the loop keeps its per-entry lock, so two rounds of the same entry cannot run at once. | `/tmp` |
+| `RAPICK_ENTRIES` | Which entries `scripts/download.sh` and the scripts under `scripts/download/` fetch. Set it to one entry to avoid the 1.6 TB the four full depositions come to. | `10081 10093 10345 10532` |
 
 ## Layout under `RAPICK_DATA`
 
-Created by `scripts/01_download_data.sh`. The four EMPIAR entries are 10081, 10093,
+Created by `scripts/download.sh`. The four EMPIAR entries are 10081, 10093,
 10345 and 10532.
 
 ```
 $RAPICK_DATA/
+├── cryoppp_tools/cryoppp/              the CryoPPP catalogue
 ├── cryoppp/<id>/
 │   ├── micrographs/                    300 annotated .mrc
 │   └── ground_truth/empiar-<id>_particles_selected.star
 ├── cryoppp_fullset/<id>/micrographs/   the full deposition, 997-1,873 .mrc
 └── checkpoints/
     ├── CryoTransformer_pretrained_model.pth    released upstream weights
-    └── CryoTransformer_head_repaired.pth       theta_0 (Sec. S2)
+    ├── CryoTransformer_head_repaired.pth       theta_0 (Sec. S2)
+    ├── micrograph_cleaner_defaultModel.h5      the contamination network
+    └── loop_fb_round1_empiar_<id>.pth          the fb arm's checkpoint
 ```
 
 ## Layout under `RAPICK_WORK`
@@ -58,17 +62,19 @@ $RAPICK_DATA/
 ```
 $RAPICK_WORK/
 ├── masks/<id>/                         triangular-blend contamination masks (.npz)
-├── picks/<id>/<condition>.star         GT-aligned picks, one per condition
+├── picks/<id>/<name>.star              GT-aligned picks, one file per stage they
+│                                       have been through: cryotransformer.star,
+│                                       cryotransformer_mask.star, fb.star, fb_mask.star
 ├── select2d/<project>_<job>_iter/      CryoSift cycle state and scores
-├── loop/<id>/round<n>/                 teacher labels, checkpoints, metrics
-└── empiar_<id>/<setting>/<condition>/
+├── loop/<id>/round<n>/                 a round's stars, teacher labels, checkpoint
+└── empiar_<id>/<setting>/<name>/
     ├── manifest.json                   which CryoSPARC jobs were run
     └── metrics.json                    resolution, particle counts, job uids
 ```
 
 `<setting>` is `annot` (the 300 annotated micrographs) or `full` (the whole
-deposition). `<condition>` is one of the names in
-[CONDITIONS.md](CONDITIONS.md).
+deposition). `<name>` is whatever a driver was told to record the run as; the ones the
+paper reports are in [CONDITIONS.md](CONDITIONS.md).
 
 ## CryoSPARC connection: `.env`
 

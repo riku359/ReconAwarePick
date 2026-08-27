@@ -81,7 +81,9 @@ def check_against_input_star(mic_keys, x_gt, y_gt, star_path: Path, tol: float):
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--project", required=True)
+    ap.add_argument("--project", default=None,
+                    help="project UID (default: CRYOSPARC_PROJECT from the "
+                         "repository-root .env)")
     ap.add_argument("--select2d", required=True,
                     help="completed select_2D job whose kept particles become the labels")
     ap.add_argument("--extract", default=None,
@@ -120,7 +122,7 @@ def main(argv=None) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     cs = connect_cryosparc(paths.load_env())
-    project = cs.find_project(args.project)
+    project = cs.find_project(args.project or paths.cryosparc_project())
 
     # Prove the coordinate convention on the full extracted set before trusting the
     # subset. A wrong inverse would still produce a plausible-looking STAR.

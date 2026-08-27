@@ -2,7 +2,7 @@
 """Upload and download the artifacts this project hosts on Hugging Face.
 
 Everything else the pipeline needs is either public upstream (CryoTransformer,
-MicrographCleaner, CryoSift, all fetched by scripts/00_setup.sh) or downloadable from
+MicrographCleaner, CryoSift, all fetched by scripts/setup.sh) or downloadable from
 EMPIAR and CryoPPP. These are the exceptions: artifacts this project produced, with no
 upstream source, expensive enough to regenerate that they are worth publishing.
 
@@ -86,7 +86,12 @@ PICKS_REL = "picks/full/{eid}/{picker}.star"
 # The 4 IDs experiments 1-4 run on, and the 3 files filter_star_triangular.py writes
 # per ID (decisions_tri.jsonl is a resume checkpoint, not needed downstream -- skipped).
 CLEANER_IDS = ["10081", "10093", "10345", "10532"]
-CLEANER_FILES = ["cryotransformer_clean_tri.star", "summary_tri.json", "filter_stats_tri.csv"]
+CLEANER_STAR = "cryotransformer_clean_tri.star"      # the filter's own output name
+CLEANER_FILES = [CLEANER_STAR, "summary_tri.json", "filter_stats_tri.csv"]
+
+# What the filter's output is published as locally: the picker's name plus the stage it
+# has been through, which is how every driver and every dataset config addresses it.
+MASKED_PICKS = "cryotransformer_mask.star"
 
 # All 4 IDs and which half of MicrographCleaner's own in/out-of-distribution split
 # their masks sit under. MicrographCleaner's training set includes 10081 and 10093
@@ -94,7 +99,7 @@ CLEANER_FILES = ["cryotransformer_clean_tri.star", "summary_tri.json", "filter_s
 # 10532 to domain shift rather than to the pipeline.
 MASK_IDS = {"10081": "in_distribution", "10093": "in_distribution",
             "10345": "out_of_distribution", "10532": "out_of_distribution"}
-MASK_SUBDIR = "triangle_mask_overlay/anomaly_mask_npy"   # remote-only; local is flat cleaner_masks/
+MASK_SUBDIR = "triangle_mask_overlay/anomaly_mask_npy"   # remote only; local is masks/<id>/
 
 
 def _hub():
@@ -181,13 +186,14 @@ def cmd_upload_cleaner_data(args):
     ids = args.ids.split(",") if args.ids else CLEANER_IDS
     api.create_repo(args.repo, repo_type="dataset", private=args.private, exist_ok=True)
     for eid in ids:
-        id_dir = root / f"empiar_{eid}" / "fullset" / "cleaner_star"
-        missing = [f for f in CLEANER_FILES if not (id_dir / f).is_file()]
+        id_dir = root / "picks" / eid
+        local_of = {f: (MASKED_PICKS if f == CLEANER_STAR else f) for f in CLEANER_FILES}
+        missing = [f for f in CLEANER_FILES if not (id_dir / local_of[f]).is_file()]
         if missing:
-            print(f"[skip] {eid}: missing {missing} under {id_dir}")
+            print(f"[skip] {eid}: missing {[local_of[f] for f in missing]} under {id_dir}")
             continue
         for f in CLEANER_FILES:
-            src = id_dir / f
+            src = id_dir / local_of[f]
             dest = f"fullset_filter/{eid}/cryotransformer/{f}"
             print(f"[upload] {src} -> {args.repo}:{dest} ({src.stat().st_size / 1e3:.0f} KB)")
             api.upload_file(path_or_fileobj=str(src), path_in_repo=dest,
@@ -197,10 +203,10 @@ def cmd_upload_cleaner_data(args):
 
 def cmd_upload_masks(args):
     api = _hub()
-    root = Path(args.experiments_root).expanduser() / "cleaner_masks"
+    root = Path(args.experiments_root).expanduser() / "masks"
     api.create_repo(args.repo, repo_type="dataset", private=args.private, exist_ok=True)
     for eid, dist in MASK_IDS.items():
-        mask_dir = root / dist / eid
+        mask_dir = root / eid
         n = len(list(mask_dir.glob("*.npz"))) if mask_dir.is_dir() else 0
         if not n:
             print(f"[skip] {eid}: no .npz under {mask_dir}")
@@ -250,19 +256,24 @@ def cmd_download(args):
                     got = hf_hub_download(args.repo_data,
                                           PICKS_REL.format(eid=eid, picker=picker),
                                           repo_type="dataset")
-                    # `cryotransformer` is the release condition `baseline`: the same
-                    # candidates the ablation's first row reconstructs.
-                    name = "baseline" if picker == "cryotransformer" else picker
-                    (picks_dir / f"{name}.star").write_bytes(Path(got).read_bytes())
-                print(f"[got] {picks_dir}/{{baseline,cryolo,topaz,cryosegnet}}.star")
+                    (picks_dir / f"{picker}.star").write_bytes(Path(got).read_bytes())
+                print(f"[got] {picks_dir}/{{{','.join(PICKERS)}}}.star")
+        # The masked picks go where scripts/contamination_removal.sh would have written
+        # them, under the name that says which stages they have been through. Landing
+        # them anywhere else is the same as not fetching them: nothing downstream looks
+        # for a STAR outside picks/<id>/.
         for eid in ids:
-            id_dir = experiments_root / f"empiar_{eid}" / "fullset" / "cleaner_star"
-            id_dir.mkdir(parents=True, exist_ok=True)
+            picks_dir = experiments_root / "picks" / eid
+            picks_dir.mkdir(parents=True, exist_ok=True)
             for f in CLEANER_FILES:
                 got = hf_hub_download(args.repo_data, f"fullset_filter/{eid}/cryotransformer/{f}",
                                       repo_type="dataset")
-                (id_dir / f).write_bytes(Path(got).read_bytes())
-            print(f"[got] {id_dir}/{{{','.join(CLEANER_FILES)}}}")
+                # The STAR is published remotely under the filter's own output name and
+                # lands here under the name the pipeline reads; the other two are
+                # diagnostics and keep theirs.
+                local = MASKED_PICKS if f == CLEANER_STAR else f
+                (picks_dir / local).write_bytes(Path(got).read_bytes())
+            print(f"[got] {picks_dir}/{MASKED_PICKS} and its two diagnostics files")
 
     if args.with_masks:
         from huggingface_hub import snapshot_download
@@ -270,18 +281,21 @@ def cmd_download(args):
             sys.exit("--with-masks needs --repo-data")
         experiments_root = Path(args.experiments_root).expanduser()
         experiments_root.mkdir(parents=True, exist_ok=True)
-        # Remote layout is MASK_SUBDIR/<dist>/<id>/*.npz; snapshot_download mirrors that
-        # under a staging dir, then each <dist>/<id> is moved into the flat local
-        # cleaner_masks/ that mask_dir_for() in run_fb_loop.py reads.
+        # Remote layout is MASK_SUBDIR/<dist>/<id>/*.npz, where <dist> records which half
+        # of MicrographCleaner's own in/out-of-distribution split an entry falls in.
+        # snapshot_download mirrors that under a staging dir; the <dist> level is then
+        # dropped, because every stage that reads a mask reads $RAPICK_WORK/masks/<id>
+        # (rapick.loop.paths.mask_dir, scripts/contamination_removal.sh --masks) and a
+        # store one level deeper is a store nothing finds.
         staging = experiments_root / "_hf_masks_staging"
         snapshot_download(args.repo_data, repo_type="dataset",
                           allow_patterns=[f"{MASK_SUBDIR}/*"], local_dir=str(staging))
-        cleaner_masks = experiments_root / "cleaner_masks"
+        masks_root = experiments_root / "masks"
         for eid, dist in MASK_IDS.items():
             src = staging / MASK_SUBDIR / dist / eid
             if not src.is_dir():
                 continue
-            dst = cleaner_masks / dist / eid
+            dst = masks_root / eid
             dst.parent.mkdir(parents=True, exist_ok=True)
             if dst.exists():
                 shutil.rmtree(dst)

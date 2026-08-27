@@ -16,7 +16,7 @@ Run it with the interpreter that has cryosparc-tools (the `recon` environment):
 
   PYTHONPATH=src envs/recon/.venv/bin/python -m rapick.loop.run_to_class2d \\
       --env .env --profile configs/cryosparc_v47.yaml \\
-      --condition configs/conditions/loop.yaml \\
+      --condition configs/recon.yaml \\
       --dataset $RAPICK_WORK/loop/10081/round0/dataset.yaml \\
       --setting annot --source fb_r0 --gpus 0
 """
@@ -41,8 +41,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help="repository-root .env holding CRYOSPARC_* (default: .env)")
     ap.add_argument("--profile", default="configs/cryosparc_v47.yaml")
     ap.add_argument("--condition", required=True,
-                    help="the condition config carrying the class_2D parameters "
-                         "(configs/conditions/loop.yaml)")
+                    help="the config carrying the class_2D parameters "
+                         "(configs/recon.yaml)")
     ap.add_argument("--dataset", required=True)
     ap.add_argument("--setting", default="annot",
                     help="which micrograph set of the dataset config to use: 'annot' "
@@ -50,6 +50,10 @@ def build_parser() -> argparse.ArgumentParser:
                          "deposition). Default: annot")
     ap.add_argument("--source", required=True,
                     help="which picks to run, keyed in the dataset config")
+    ap.add_argument("--star",
+                    help="the STAR to classify, when the dataset config does not name it "
+                         "(or to override the one it does). The source key above then "
+                         "only names the manifest and the output directory.")
     ap.add_argument("--project", help="project UID (default: CRYOSPARC_PROJECT from .env)")
     ap.add_argument("--workspace", help="workspace UID; else resolved by title")
     ap.add_argument("--workspace-title",
@@ -71,6 +75,9 @@ def main(argv: Optional[list] = None) -> int:
     args = build_parser().parse_args(argv)
 
     cfg = resolve(args.env, args.profile, args.condition, args.dataset)
+    # Declare the picks before the preflight: it hashes every star the config names,
+    # so a star supplied here has to be in the config by the time it runs.
+    cfg.dataset.ensure_source(args.setting, args.source, args.star)
 
     preflight = setup_check.data_preflight(cfg, args.setting)
     for r in preflight:

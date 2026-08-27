@@ -26,15 +26,16 @@ import + CTF and the condition's `import_particles` / `extract` / `class_2D` gen
 are the same physical jobs -- only the particle subset differs. That also lets
 `rapick-recon collect` report particle counts for the arm without a special case.
 
-THIS DRIVER DOES NOT COLLECT. Run `rapick-recon collect` afterwards with the same
-`--condition` / `--dataset` / `--setting`, or the arm ends up with a manifest and no
-`metrics.json`.
+THIS DRIVER DOES NOT COLLECT. Run `rapick-recon collect` afterwards with the same name
+as `--source`, or the arm ends up with a manifest and no `metrics.json`.
+scripts/reconstruct.sh does both.
 
   rapick-recon reconstruct-from-selection --entry 10081 --select2d J212 \
-      --condition select --parent baseline --setting full --seeds 0,1,2
+      --condition cryotransformer_mask_select --parent cryotransformer_mask \
+      --setting full --seeds 0,1,2
 
-  rapick-recon collect --condition configs/conditions/select.yaml \
-      --dataset configs/datasets/empiar_10081.yaml --setting full
+  rapick-recon collect --dataset configs/datasets/empiar_10081.yaml --setting full \
+      --source cryotransformer_mask_select
 
 Every run re-verifies that the named `select_2D` descends from the `class_2D` the
 parent's manifest recorded, walking up through 2D jobs only. A mismatch aborts:
@@ -52,7 +53,7 @@ from pathlib import Path
 # Same defaults as `rapick-recon run`; both are relative to the repository root.
 DEFAULT_ENV = ".env"
 DEFAULT_PROFILE = "configs/cryosparc_v47.yaml"
-CONDITIONS_DIR = Path("configs/conditions")
+RECON_CONFIG = Path("configs/recon.yaml")
 DATASETS_DIR = Path("configs/datasets")
 
 # The `select_2D` output that carries the kept classes. `particles_excluded` is the
@@ -201,10 +202,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                              "state.json (see src/rapick/select2d/README.md). Never "
                              "guessed and never defaulted")
     parser.add_argument("--condition", required=True, metavar="NAME",
-                        help="condition this run is recorded as: select, both, "
-                             "cryosegnet_both or fb. Also names the manifest directory "
-                             "and, unless --condition-config says otherwise, the config "
-                             f"read from {CONDITIONS_DIR}/<NAME>.yaml")
+                        help="the name this run is recorded under. It names the "
+                             "manifest directory under $RAPICK_WORK/empiar_<id>/"
+                             "<setting>/, and nothing else -- the parameters come from "
+                             f"{RECON_CONFIG}, shared by every arm")
     parser.add_argument("--parent", metavar="NAME", default=None,
                         help="condition whose class_2D this selection sits on: baseline "
                              "for select, mask for both, cryosegnet for cryosegnet_both, "
@@ -218,11 +219,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                              "every reconstruction-level result of the paper uses")
     parser.add_argument("--dataset", default=None, metavar="PATH",
                         help=f"dataset config (default {DATASETS_DIR}/empiar_<entry>.yaml)")
+    parser.add_argument("--no-local-res", action="store_true", dest="no_local_res",
+                        help="skip the local-resolution estimate on the best-of-3 winner")
     parser.add_argument("--condition-config", default=None, metavar="PATH",
                         dest="condition_config",
-                        help=f"condition config (default {CONDITIONS_DIR}/"
-                             "<condition>.yaml). Pass it only for an ad-hoc arm whose "
-                             "name is not one of the repository's conditions")
+                        help=f"the class_2D and reconstruction parameters "
+                             f"(default {RECON_CONFIG})")
     parser.add_argument("--seeds", default="0",
                         help="comma-separated seeds to fork ab-initio and refinement "
                              "over. PASS 0,1,2: a single-seed resolution is not "
@@ -258,10 +260,11 @@ def run(args) -> int:
     from .jobs import local_resolution
     from .jobs._base import JobResult
 
-    condition_path = (args.condition_config
-                      or str(CONDITIONS_DIR / f"{args.condition}.yaml"))
+    condition_path = args.condition_config or str(RECON_CONFIG)
     dataset_path = args.dataset or str(DATASETS_DIR / f"empiar_{args.entry}.yaml")
     cfg = config.resolve(args.env, args.profile, condition_path, dataset_path)
+    if args.no_local_res:
+        cfg.condition.local_res_enabled = False
 
     # Every path and credential is named when it is missing, rather than defaulted to
     # something that happens to exist here (docs/CONFIGURATION.md).
@@ -294,7 +297,7 @@ def run(args) -> int:
     parent_manifest = mf.load(parent_path)
     if parent_manifest is None:
         sys.exit(f"no manifest for parent condition {parent!r} at {parent_path}: run "
-                 f"`rapick-recon run --condition {CONDITIONS_DIR}/{parent}.yaml "
+                 f"`rapick-recon run --source {parent} "
                  f"--dataset {dataset_path} --setting {args.setting}` first")
     expected_class2d = (parent_manifest.jobs.get("class2d") or {}).get("uid")
     if not expected_class2d:

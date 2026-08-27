@@ -3,26 +3,29 @@
 Commands parse args, load config, and dispatch. No CryoSPARC / STAR / FSC logic
 lives here.
 
-  rapick-recon check-setup --condition configs/conditions/baseline.yaml \
-                           --dataset configs/datasets/empiar_10081.yaml --setting full
-  rapick-recon prepare     --condition ... --dataset ... --setting full
-  rapick-recon run         --condition ... --dataset ... --setting full --seeds 0,1,2
-  rapick-recon collect     --condition ... --dataset ... --setting full
+  rapick-recon check-setup --dataset configs/datasets/empiar_10081.yaml --setting full
+  rapick-recon prepare     --dataset ... --setting full
+  rapick-recon run         --dataset ... --setting full --source cryotransformer_mask \
+                           --star $RAPICK_WORK/picks/10081/cryotransformer_mask.star \
+                           --seeds 0,1,2
+  rapick-recon collect     --dataset ... --setting full --source cryotransformer_mask
 
-A condition whose particles come from a 2D class selection has no chain for `run` to
-start -- `run` wires class_2D's accepted particles straight into ab-initio. Those start
-one step lower, from the Select 2D Classes job that src/rapick/select2d/ produced:
+An arm whose particles come from a 2D class selection has no chain for `run` to start --
+`run` wires class_2D's accepted particles straight into ab-initio. Those start one step
+lower, from the Select 2D Classes job that src/rapick/select2d/ produced:
 
   rapick-recon reconstruct-from-selection --entry 10081 --select2d J212 \
-                           --condition select --parent baseline --setting full --seeds 0,1,2
+      --condition cryotransformer_mask_select --parent cryotransformer_mask \
+      --setting full --seeds 0,1,2
+
+--condition is the class_2D and reconstruction parameters, one file shared by every arm
+(configs/recon.yaml); what distinguishes an arm is the STAR handed to it and the
+--source it is recorded under. --star declares that STAR whether or not the dataset
+config names it. scripts/ drives all of this; these are what it runs.
 
 The CryoSPARC project uid comes from CRYOSPARC_PROJECT in the repository-root .env
 (--project overrides it for a one-off); the worker lane comes from CRYOSPARC_WORKER
 (--worker overrides it). Neither is ever baked into a config file.
-
---source names the picks inside the dataset config and defaults to the condition's own
-name, which is how they are keyed; pass it only for an ad-hoc run of picks that are not
-a named condition.
 """
 from __future__ import annotations
 
@@ -31,11 +34,15 @@ import sys
 
 DEFAULT_ENV = ".env"
 DEFAULT_PROFILE = "configs/cryosparc_v47.yaml"
+DEFAULT_RECON_CONFIG = "configs/recon.yaml"
 
 
 def _resolve(args):
     from .config import resolve
-    return resolve(args.env, args.profile, args.condition, args.dataset)
+    cfg = resolve(args.env, args.profile, args.condition, args.dataset)
+    if getattr(args, "no_local_res", False):
+        cfg.condition.local_res_enabled = False
+    return cfg
 
 
 def _project_uid(args, cfg) -> str:
@@ -87,6 +94,10 @@ def _cmd_check_setup(args) -> int:
     from . import setup_check
 
     cfg = _resolve(args)
+    # Declare the arm about to run, so the preflight checks its STAR and not only the
+    # ones the dataset config happens to name.
+    if args.source or args.star:
+        cfg.dataset.ensure_source(args.setting, _source(args, cfg), args.star)
     if args.project:
         cfg.project_uid = args.project
     api = CryoSPARCApi(cfg.connection)
@@ -129,8 +140,9 @@ def _cmd_run(args) -> int:
     if args.micrographs:                      # optional subset glob for a fast smoke
         cfg.dataset.setting(args.setting).micrograph_glob = args.micrographs
     source = _source(args, cfg)
-    if args.star:                             # override the source star (smoke / ad-hoc)
-        cfg.dataset.source(args.setting, source).star = args.star
+    # Declares the source when the config does not name it, so a re-pick or a smoke can
+    # be run from a STAR path without editing a committed dataset config.
+    cfg.dataset.ensure_source(args.setting, source, args.star)
 
     # Preflight the inputs before creating any job (data integrity, no server needed).
     # Checks run against the overrides applied above, so a smoke sees its own inputs.
@@ -214,7 +226,9 @@ def _add_common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--env", default=DEFAULT_ENV,
                    help="repository-root .env holding CRYOSPARC_* (default: .env)")
     p.add_argument("--profile", default=DEFAULT_PROFILE)
-    p.add_argument("--condition", required=True, help="configs/conditions/<name>.yaml")
+    p.add_argument("--condition", default=DEFAULT_RECON_CONFIG, metavar="PATH",
+                   help="the class_2D and reconstruction parameters, shared by every "
+                        f"arm (default: {DEFAULT_RECON_CONFIG})")
     p.add_argument("--dataset", required=True, help="configs/datasets/empiar_<id>.yaml")
     p.add_argument("--setting", default="annot", metavar="SETTING",
                    help="which micrograph set of the dataset config to use: "
@@ -234,6 +248,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     pc = sub.add_parser("check-setup", help="preflight checks (read-only)")
     _add_common(pc)
+    pc.add_argument("--source", default=None,
+                    help="the arm about to run, so its STAR is checked too")
+    pc.add_argument("--star", help="that arm's STAR, when the dataset config does not "
+                                   "name it")
     pc.set_defaults(func=_cmd_check_setup)
 
     pp = sub.add_parser("prepare", help="get/create the dataset workspace")
@@ -254,7 +272,10 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument("--worker", help="CryoSPARC worker lane name "
                                      "(default: CRYOSPARC_WORKER from .env)")
     pr.add_argument("--micrographs", help="override the micrograph glob (subset smoke)")
-    pr.add_argument("--star", help="override the source star (subset smoke / ad-hoc)")
+    pr.add_argument("--star", help="the STAR to run, when the dataset config does not "
+                                   "name this source (or to override the one it does)")
+    pr.add_argument("--no-local-res", action="store_true", dest="no_local_res",
+                    help="skip the local-resolution estimate on the best-of-3 winner")
     pr.add_argument("--force", action="store_true",
                     help="run even if preflight (micrograph health / star distinctness) fails")
     pr.set_defaults(func=_cmd_run)

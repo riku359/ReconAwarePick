@@ -9,11 +9,11 @@ Repair CryoTransformer's classification head and write theta_0 (Sec. S2).
 Every condition in the paper starts from the checkpoint this writes, and every
 round of the feedback loop restarts from it.
 
-  bash scripts/02_repair_head.sh                    do the repair
-  bash scripts/02_repair_head.sh --train-dir DIR    CryoPPP training split
+  bash scripts/repair_head.sh                    do the repair
+  bash scripts/repair_head.sh --train-dir DIR    CryoPPP training split
 
 SKIP THIS unless you want to redo it: theta_0 is published, and
-`scripts/01_download_data.sh --intermediates` fetches it. Redoing it needs the
+`scripts/download.sh` fetches it. Redoing it needs the
 22-entry CryoPPP training split, which is far more data than the four test
 entries this repository otherwise uses.
 
@@ -49,7 +49,7 @@ fi
 BASE="$DATA/checkpoints/CryoTransformer_pretrained_model.pth"
 if [ ! -f "$BASE" ]; then
   echo "error: the released checkpoint is missing at $BASE." >&2
-  echo "       Run: bash scripts/01_download_data.sh" >&2
+  echo "       Run: bash scripts/download.sh" >&2
   exit 1
 fi
 if [ -z "$TRAIN_DIR" ]; then

@@ -203,12 +203,6 @@ def arm_for(name: str, teacher: str = None) -> "Arm":
         f"counterpart; --teacher {teacher} is available for "
         f"{', '.join(sorted(GT_ARM_OF))}")
 
-# The condition config each round's 2D classification is parameterised by. The rounds are
-# the `fb` condition's own class_2D at `annot` scale -- same K, same iterations -- so they
-# read the same file the full-deposition reconstruction does rather than a copy of it.
-# Only `pipeline.class2d` is read here; nothing below class_2D runs inside the loop.
-LOOP_CONDITION = "fb"
-
 
 def loop_root(empiar: str, arm: str = DEFAULT_ARM) -> Path:
     """$RAPICK_WORK/loop/<id> for the paper's arm, /loop/<id>_<arm> for any other."""

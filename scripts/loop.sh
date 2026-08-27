@@ -6,23 +6,28 @@ usage() {
   cat <<'HELP'
 Run the reconstruction-aware feedback loop (Sec. 3.5).
 
-One round: pick with the current checkpoint, discard the picks that fall on
-contamination, select 2D classes on what survives, take the surviving particles
-on 50 micrographs as pseudo-labels, and fine-tune. Every round restarts from
-theta_0 rather than from the previous round's weights, following TranSPHIRE:
+One round is the other drivers in this directory, in order:
+
+    pick -> contamination_removal -> 2d_classification -> select2d -> finetune
+
+and the checkpoint that comes out is what the next round picks with. Every round
+restarts from theta_0 rather than from the previous round's weights, following
+TranSPHIRE:
 
     theta_{n+1} = FineTune(theta_0; S_n),   S_n = sigma(f_theta_n(M))
 
-How the teacher set is sampled and which weights the fine-tune trains:
-src/rapick/loop/README.md.
+What this adds over running those five by hand is the bookkeeping: a per-round
+directory, a resumable step record, a lock so two rounds of one entry cannot run
+at once, and the per-round diagnostics. How the teacher set is sampled and which
+weights the fine-tune trains: src/rapick/loop/README.md.
 
 The loop runs no reconstruction. At the 300-micrograph scale a reconstruction
 does not resolve one round from the next, so rounds are followed by the 2D
 metrics and the pick counts instead.
 
-  bash scripts/06_loop.sh --entry 10081                 rounds 0 to 2
-  bash scripts/06_loop.sh --entry 10081 --rounds 0-3
-  bash scripts/06_loop.sh --entry 10081 --metrics-only  just rebuild Table 6
+  bash scripts/loop.sh --entry 10081                 rounds 0 to 2
+  bash scripts/loop.sh --entry 10081 --rounds 0-3
+  bash scripts/loop.sh --entry 10081 --metrics-only  just rebuild Table 6
 
 The paper runs three rounds and reports round 1: on every entry except
 EMPIAR-10345 both the particle counts and the macro F1 settle there, and rounds
@@ -72,7 +77,7 @@ if [ "$METRICS_ONLY" -eq 0 ]; then
   CKPT="$DATA/checkpoints/CryoTransformer_head_repaired.pth"
   if [ ! -f "$CKPT" ]; then
     echo "error: theta_0 is missing at $CKPT." >&2
-    echo "       Run scripts/01_download_data.sh --intermediates, or scripts/02_repair_head.sh." >&2
+    echo "       Run scripts/download.sh, or scripts/repair_head.sh." >&2
     exit 1
   fi
 
@@ -96,5 +101,7 @@ echo
 echo "Rounds:      $WORK/loop/$ENTRY/"
 echo "Table 6 row: $WORK/loop/$ENTRY/rounds.csv"
 echo
-echo "The round-1 checkpoint is what the fb condition picks with:"
-echo "  bash scripts/03_pick.sh --entry $ENTRY --checkpoint $WORK/loop/$ENTRY/round1/model.pth"
+echo "The round-1 checkpoint is what the fb arm picks with:"
+echo "  bash scripts/pick.sh --entry $ENTRY \\"
+echo "      --checkpoint $WORK/loop/$ENTRY/models/model_1.pth \\"
+echo "      --out $(picks_dir "$ENTRY")/fb.star"

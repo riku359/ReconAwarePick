@@ -11,13 +11,18 @@ the background it accepts, and neither can recover a particle it never proposed.
 The operating point is the original implementation's, unchanged at every round
 and for every entry; the settings are in src/rapick/picker/README.md.
 
-  bash scripts/03_pick.sh --entry 10081                  full deposition
-  bash scripts/03_pick.sh --entry 10081 --setting annot  the 300 annotated
-  bash scripts/03_pick.sh --entry 10081 --checkpoint PATH --out-name fb
+  bash scripts/pick.sh --entry 10081                     full deposition
+  bash scripts/pick.sh --entry 10081 --setting annot     the 300 annotated
+  bash scripts/pick.sh --entry 10081 --checkpoint PATH --out $RAPICK_WORK/picks/10081/fb.star
 
-Writes a GT-aligned STAR to $RAPICK_WORK/picks/<entry>/<out-name>.star, which
-defaults to baseline.star. Re-picking with a fine-tuned checkpoint needs a
-different --out-name, or it overwrites the base checkpoint's candidates.
+  --checkpoint  which weights pick (default: theta_0, the repaired head)
+  --out         where the STAR lands (default: <picks dir>/cryotransformer.star)
+
+The STAR is GT-aligned, and its name is what the rest of the pipeline reads it by:
+a name records which stages the picks have been through, so this stage writes the
+bare picker name and the contamination stage appends _mask to it. Re-picking with
+a fine-tuned checkpoint needs its own --out, or it overwrites the base
+checkpoint's candidates.
 HELP
 }
 
@@ -26,42 +31,47 @@ source "$(dirname "$0")/_common.sh"
 ENTRY=""
 SETTING="full"
 CKPT=""
-OUT_NAME="baseline"
+OUT=""
 GPU="${RAPICK_GPU:-0}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --entry)      ENTRY="$2"; shift 2 ;;
     --setting)    SETTING="$2"; shift 2 ;;
     --checkpoint) CKPT="$2"; shift 2 ;;
-    --out-name)   OUT_NAME="$2"; shift 2 ;;
+    --out)        OUT="$2"; shift 2 ;;
     --gpu)        GPU="$2"; shift 2 ;;
     -h|--help)    usage; exit 0 ;;
     *) echo "unknown flag: $1" >&2; exit 2 ;;
   esac
 done
-if [ -z "$ENTRY" ]; then
-  echo "error: --entry is required" >&2
-  exit 2
-fi
-valid_entry "$ENTRY"
+require_entry "$ENTRY"
 require_setting "$SETTING"
 
 # --help must work with nothing configured, so the roots are demanded only
 # once the arguments are known to be valid.
 require_roots
 
+PICKS_DIR="$(picks_dir "$ENTRY")"
+if [ -z "$OUT" ]; then
+  OUT="$PICKS_DIR/cryotransformer.star"
+fi
+case "$OUT" in
+  *.star) ;;
+  *) echo "error: --out must name a .star file, not $OUT" >&2; exit 2 ;;
+esac
+
 if [ -z "$CKPT" ]; then
   CKPT="$DATA/checkpoints/CryoTransformer_head_repaired.pth"
 fi
 if [ ! -f "$CKPT" ]; then
   echo "error: no checkpoint at $CKPT." >&2
-  echo "       Run scripts/01_download_data.sh --intermediates, or scripts/02_repair_head.sh." >&2
+  echo "       Run scripts/download.sh, or scripts/repair_head.sh." >&2
   exit 1
 fi
 
 MICS="$(micrograph_root "$SETTING")/$ENTRY/micrographs"
 if [ ! -d "$MICS" ]; then
-  echo "error: no micrographs at $MICS. Run scripts/01_download_data.sh." >&2
+  echo "error: no micrographs at $MICS. Run scripts/download.sh." >&2
   exit 1
 fi
 
@@ -75,8 +85,8 @@ TEST_DATA="${RAPICK_TEST_DATA:-$WORK/test_data}"
 mkdir -p "$TEST_DATA/$ENTRY"
 ln -sfn "$MICS" "$TEST_DATA/$ENTRY/images"
 
-OUT_DIR="$WORK/picks/$ENTRY"
-mkdir -p "$OUT_DIR"
+mkdir -p "$(dirname "$OUT")"
+OUT_NAME="$(basename "$OUT" .star)"
 REMARKS="rapick_${SETTING}_${OUT_NAME}"
 
 banner "Picking $ENTRY ($SETTING) with $(basename "$CKPT")"
@@ -101,19 +111,10 @@ if [ -z "$STAR" ]; then
   echo "error: no combined STAR in $PRED_DIR." >&2
   exit 1
 fi
-cp "$STAR" "$OUT_DIR/$OUT_NAME.star"
+cp "$STAR" "$OUT"
 
 echo
 # grep -c . counts the lines that are not empty, which is what a STAR reader sees.
-echo "Picks:  $OUT_DIR/$OUT_NAME.star  ($(grep -c . "$OUT_DIR/$OUT_NAME.star") lines)"
+echo "Picks:  $OUT  ($(grep -c . "$OUT") lines)"
 echo "Source: $PRED_DIR"
-# The masking stage names its output after the condition that consumes it, which
-# is `mask` for the base checkpoint's picks and `fb` for the round-1 one's.
-if [ "$OUT_NAME" = "baseline" ]; then
-  echo "Next:   bash scripts/04_mask.sh --entry $ENTRY"
-else
-  # Its convention is <name>_raw in, <name> out, so drop a trailing _raw.
-  NEXT_NAME="$(echo "$OUT_NAME" | sed 's/_raw$//')"
-  echo "Next:   bash scripts/04_mask.sh --entry $ENTRY \\"
-  echo "          --star $OUT_DIR/$OUT_NAME.star --out-name $NEXT_NAME"
-fi
+echo "Next:   bash scripts/contamination_removal.sh --entry $ENTRY --star $OUT"

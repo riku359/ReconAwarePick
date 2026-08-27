@@ -53,7 +53,7 @@ run it from any environment that has numpy and matplotlib.
 
 `envs/micrograph_cleaner/{pyproject.toml,uv.lock}` install the upstream package
 editable from `../../third_party/micrograph_cleaner_em`, which is where
-`scripts/00_setup.sh` puts it. That path is relative to the lockfile, so if you
+`scripts/setup.sh` puts it. That path is relative to the lockfile, so if you
 point `RAPICK_THIRD_PARTY` somewhere else, symlink `third_party/` back at it
 before syncing.
 
@@ -99,7 +99,7 @@ Outputs, under `$RAPICK_WORK`:
 
 ```
 $RAPICK_WORK/masks/<id>/<mic>_tri.npz          triangular masks (float16, model scale) + meta
-$RAPICK_WORK/picks/<id>/<prefix>_clean_tri.star   the filtered picks the reconstruction reads
+$RAPICK_WORK/picks/<id>/<prefix>_clean_tri.star   the filtered picks, under the filter's own name
 $RAPICK_WORK/picks/<id>/<prefix>_removed_tri.star the discarded candidates
 $RAPICK_WORK/picks/<id>/filter_stats_tri.csv      per-micrograph counts
 $RAPICK_WORK/picks/<id>/summary_tri.json          totals
@@ -110,10 +110,13 @@ $RAPICK_WORK/figures/                             the rendered figures
 
 `<prefix>` defaults to `cryotransformer`, which is also the name the published
 Hugging Face artifacts carry, so a downloaded mask arm and a locally derived one
-land under the same filename. That is the **artifact** name; the **condition** is
-called `mask` (`docs/CONDITIONS.md`). `scripts/04_mask.sh` copies the filtered
-STAR to `$RAPICK_WORK/picks/<id>/mask.star`, which is what the reconstruction
-configs read, so the two names meet there and nowhere else.
+land under the same filename. That is the filter's **own** name for its output.
+`scripts/contamination_removal.sh` renames it to the name the rest of the pipeline
+addresses picks by, which records the stages they have been through:
+`$RAPICK_WORK/picks/<id>/cryotransformer_mask.star`, or `<name>_mask.star` for any
+other `--star` it is handed. The rename is what makes the two names meet, and it
+happens there and nowhere else. The `_removed_tri.star` and the two counts files
+keep the filter's names: they are diagnostics, not pipeline inputs.
 
 The stored mask is exactly what the filter would compute at run time
 (`extract_blended(extractor, preprocessMic(image, box), 2, 1)`); the only

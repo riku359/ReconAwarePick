@@ -89,8 +89,8 @@ project**, never one holding results.
 
 ## The job chain (Fig. S1)
 
-One chain per condition. Steps 1–2 run once per (entry, scale) and are shared by every
-condition of that entry, so all conditions are compared over identical CTF estimates.
+One chain per arm. Steps 1–2 run once per (entry, scale) and are shared by every
+arm of that entry, so all arms are compared over identical CTF estimates.
 
 The manuscript draws Fig. S1 as TikZ over panels CryoSPARC renders for these jobs, and
 those panels are not committed — see
@@ -104,12 +104,12 @@ flowchart TD
     J2["2 · Patch CTF Estimation (Multi)<br/>patch_ctf_estimation_multi · GPU"]
     J1 --> J2
   end
-  subgraph cond["Per condition"]
+  subgraph cond["Per arm"]
     J3["3 · Import Particle Stack<br/>import_particles · CPU<br/>coordinates only"]
     J4["4 · Extract From Micrographs (Multi)<br/>extract_micrographs_multi · GPU"]
     J5["5 · 2D Classification<br/>class_2D · GPU · 50 classes"]
     IT["CryoSift's iterative workflow<br/>several Select 2D / 2D Classification hops<br/>src/rapick/select2d/"]
-    J6["6 · Select 2D Classes<br/>select_2D<br/>selecting conditions only"]
+    J6["6 · Select 2D Classes<br/>select_2D<br/>selecting arms only"]
     J7["7 · Ab-Initio Reconstruction ×3<br/>homo_abinit · GPU · seeds 0, 1, 2"]
     J8["8 · Homogeneous Refinement ×3<br/>homo_refine · GPU"]
     J9["9 · Best of three<br/>lowest GSFSC 0.143<br/>read by the pipeline, not a job"]
@@ -129,9 +129,9 @@ flowchart TD
 | 1 | Import Micrographs | `import_micrographs` | shared; micrograph glob + the entry's optics (pixel size, voltage, Cs, dose) | CPU |
 | 2 | Patch CTF Estimation (Multi) | `patch_ctf_estimation_multi` | shared | GPU |
 | 3 | Import Particle Stack | `import_particles` | "Ignore raw data" — coordinates only, connected to step 1 | CPU |
-| 4 | Extract From Micrographs (Multi) | `extract_micrographs_multi` | this condition's boxes, out of the CTF-estimated micrographs | GPU |
+| 4 | Extract From Micrographs (Multi) | `extract_micrographs_multi` | this arm's boxes, out of the CTF-estimated micrographs | GPU |
 | 5 | 2D Classification | `class_2D` | 50 classes, 20 full iterations, one seed shared by all three trials | GPU |
-| 6 | Select 2D Classes | `select_2D` | selecting conditions only (`select`, `both`, `fb`, `cryosegnet_both`) | — |
+| 6 | Select 2D Classes | `select_2D` | arms that select 2D classes only (`docs/CONDITIONS.md`) | — |
 | 7 | Ab-Initio Reconstruction × 3 | `homo_abinit` | one class, forked over seeds 0, 1, 2 | GPU |
 | 8 | Homogeneous Refinement × 3 | `homo_refine` | one per ab-initio, same seed | GPU |
 | 9 | Best of three | — | lowest gold-standard FSC at 0.143; read by the pipeline, not a job | — |
@@ -146,7 +146,7 @@ chosen refinement by `src/rapick/recon/scripts/run_orientation_diagnostics.py`. 
 CPU job, so it is pinned to a worker without reserving a GPU.
 
 Figures S6 and S7 are the FSC and viewing-direction panels CryoSPARC renders for step 8's
-refinements; `collect` downloads them into each condition's `derived/`. No script here
+refinements; `collect` downloads them into each arm's `derived/`. No script here
 draws them.
 
 ## What to watch for

@@ -1,60 +1,61 @@
-# Reconstruction-Aware Cryo-EM Particle Picking
+# ReconAwarePick
 
-Official implementation of *"Reconstruction-Aware Cryo-EM Particle Picking"*.
+<p align="center">
+  <a href="https://huggingface.co/rikrikrik/recon-aware-pick-weights"><img src="https://img.shields.io/badge/Hugging%20Face-weights-yellow.svg" alt="Weights"></a>
+  <a href="https://huggingface.co/datasets/rikrikrik/recon-aware-pick-data"><img src="https://img.shields.io/badge/Hugging%20Face-data-yellow.svg" alt="Data"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+</p>
+
+<div align="center">
+
+**Reconstruction-Aware Cryo-EM Particle Picking**
+
+Riku Itsuji<sup>1</sup> · Yuanhao Wang<sup>2</sup> · Xingjian Li<sup>2</sup> · Seonghui Min<sup>2</sup> · Hideo Saito<sup>1</sup> · Min Xu<sup>2</sup>
+
+<sub>
+<sup>1</sup> Keio University &nbsp;
+<sup>2</sup> Carnegie Mellon University
+</sub>
+
+</div>
 
 Extracting a clean particle stack from cryo-EM micrographs is usually split into
-three sub-tasks — particle picking, contamination removal, and 2D class
-selection — each trained and evaluated on its own, none optimized for the 3D
-reconstruction that consumes their output. We treat them as one selection problem
-posed against reconstruction quality: CryoTransformer picks permissively, a
-MicrographCleaner mask discards the candidates that fall on contamination,
-CryoSift selects 2D classes by a continuous quality score, and the surviving
-particles fine-tune the picker.
+three sub-tasks — particle picking, contamination removal, and 2D class selection —
+each trained and evaluated on its own, none optimized for the 3D reconstruction that
+consumes their output. We treat them as one selection problem posed against
+reconstruction quality.
+
+## Overview
 
 ![pipeline](assets/pipeline.png)
 
-The pipeline reaches a better resolution than every picker we compare, on all
-four EMPIAR entries of CryoTransformer's independent test set.
-
----
-
-## Table of Contents
-
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Data download](#data-download)
-- [Quick Start](#quick-start)
-- [Full Step-by-Step Guide](#full-step-by-step-guide)
-- [What the numbers mean](#what-the-numbers-mean)
-- [Repository Structure](#repository-structure)
-- [Citation](#citation)
-- [Acknowledgements and Licensing](#acknowledgements-and-licensing)
-- [TODO](#todo)
-
----
+CryoTransformer picks permissively, a MicrographCleaner mask discards the candidates
+that fall on contamination, CryoSift selects 2D classes by a continuous quality score,
+and the surviving particles fine-tune the picker. The pipeline reaches a better
+resolution than every picker we compare, on all four EMPIAR entries of
+CryoTransformer's independent test set: EMPIAR-10081, 10093, 10345 and 10532.
 
 ## Requirements
 
 - **CryoSPARC v4.7.x** — not installed by this repository. See
-  [docs/CRYOSPARC.md](docs/CRYOSPARC.md) for the installation instructions.
-- **GPU** — one is enough; every stage occupies a single GPU. The paper's runs
-  used NVIDIA RTX A5000 cards with 24 GB each.
-
----
+  [docs/CRYOSPARC.md](docs/CRYOSPARC.md).
+- **One GPU** — every stage occupies a single GPU. The paper's runs used NVIDIA
+  RTX A5000 cards with 24 GB each.
+- `git`, `curl`, and [`uv`](https://docs.astral.sh/uv/).
 
 ## Installation
 
-The stages need mutually incompatible Python environments, so there is one per
-stage rather than one for the repository. `scripts/00_setup.sh` clones the pinned
-upstream code and builds them all from the committed lockfiles under `envs/`.
+The stages need mutually incompatible Python environments, so there is one per stage
+rather than one for the repository. `scripts/setup.sh` clones the pinned upstream
+code and builds them all from the committed lockfiles under `envs/`.
 
 ```bash
 git clone https://github.com/riku359/ReconAwarePick.git
 cd ReconAwarePick
-cp .env.example .env          # fill in your CryoSPARC licence id, e-mail, password
+cp .env.example .env                  # CryoSPARC licence id, e-mail, password
 export RAPICK_DATA=/path/to/data      # inputs
 export RAPICK_WORK=/path/to/work      # outputs
-bash scripts/00_setup.sh
+bash scripts/setup.sh
 ```
 
 | Stage | Environment | Python | Framework |
@@ -63,96 +64,199 @@ bash scripts/00_setup.sh
 | contamination masking | `envs/micrograph_cleaner` | 3.10 | TensorFlow 2.16 + Keras 3 |
 | 2D class selection | `envs/cryosift` | 3.12 | torch 2.6 (CPU) |
 | reconstruction | `envs/recon` | 3.10 | cryosparc-tools 4.7 |
-| downloads, stage plots | `envs/figures` | 3.11 | matplotlib |
 
-`uv` builds everything except crYOLO, which needs conda and is only required to
-run that comparison picker; [docs/BASELINES.md](docs/BASELINES.md) explains how
-to avoid it. Keep the `uv` cache on a local SSD: its file locks hang on NFS.
+Every path comes from an environment variable, and a script that cannot resolve one
+fails naming it rather than falling back to a default; the contract is in
+[docs/CONFIGURATION.md](docs/CONFIGURATION.md). Keep the `uv` cache on a local SSD:
+its file locks hang on NFS.
 
-Every path comes from an environment variable, and a script that cannot resolve
-one fails naming it rather than falling back to a default. The contract is in
-[docs/CONFIGURATION.md](docs/CONFIGURATION.md).
-
----
-
-## Data download
+## Data
 
 ```bash
-bash scripts/01_download_data.sh
+bash scripts/download.sh
 ```
 
-| Asset | Contents | Source |
-| --- | --- | --- |
-| CryoPPP annotated subset | 300 micrographs and expert particle annotations per entry | [CryoPPP](https://github.com/BioinfoMachineLearning/cryoppp) |
-| Full depositions | every micrograph of each entry: 997 / 1,873 / 1,644 / 1,556 | EMPIAR |
-| CryoTransformer weights | the released checkpoint the head repair starts from | [calla.rnet.missouri.edu](https://calla.rnet.missouri.edu/CryoTransformer/pretrained_model.tar.gz) |
-| MicrographCleaner weights | the released contamination network | [Zenodo](https://zenodo.org/records/17093439) |
-| Repaired head, theta_0 | the base checkpoint of every condition (Sec. S2) | [🤗 rikrikrik/recon-aware-pick-weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) |
-| Contamination masks | triangular-blend masks for all four entries at full-set scale | [🤗 rikrikrik/recon-aware-pick-data](https://huggingface.co/datasets/rikrikrik/recon-aware-pick-data) |
-| Picks | the STAR files each condition starts from | same dataset |
-| Round-1 checkpoints | the weights the `fb` condition (Ours) picks with, one per entry | [🤗 rikrikrik/recon-aware-pick-weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) |
+It takes no arguments and fetches everything. One script per source lives under
+[scripts/download/](scripts/download/), and `download.sh` runs them in name order;
+run one directly to re-fetch just that source. All four entries at full-set scale
+come to about 1.6 TB — `export RAPICK_ENTRIES=10081` restricts every step to one
+entry.
 
-The four entries are EMPIAR-10081, 10093, 10345 and 10532.
-[docs/DATA.md](docs/DATA.md) has the details, including the two ways a downloaded
-`.mrc` can be silently corrupt and how to check.
+```
+$RAPICK_DATA/
+├── cryoppp_tools/cryoppp/                  the CryoPPP catalogue
+├── cryoppp/<id>/
+│   ├── micrographs/                        300 annotated .mrc
+│   └── ground_truth/
+│       └── empiar-<id>_particles_selected.star
+├── cryoppp_fullset/<id>/
+│   └── micrographs/                        the full deposition, 997-1,873 .mrc
+└── checkpoints/
+    ├── CryoTransformer_pretrained_model.pth        released upstream weights
+    ├── CryoTransformer_head_repaired.pth           theta_0 (Sec. S2)
+    ├── micrograph_cleaner_defaultModel.h5          contamination network
+    └── loop_fb_round1_empiar_<id>.pth              the fb arm's checkpoint
 
----
+$RAPICK_WORK/
+├── masks/<id>/                             contamination masks, one .npz per micrograph
+└── picks/<id>/
+    ├── cryotransformer.star                theta_0's candidates
+    ├── cryotransformer_mask.star           the same, after contamination removal
+    └── {cryolo,topaz,cryosegnet}.star      the comparison pickers' candidates
+```
+
+`<id>` is one of 10081, 10093, 10345 and 10532. A run fills in the rest of
+`$RAPICK_WORK` as it goes ([docs/CONFIGURATION.md](docs/CONFIGURATION.md)).
+[docs/DATA.md](docs/DATA.md) has where each file comes from, including the two ways a
+downloaded `.mrc` can be silently corrupt and how to check.
 
 ## Quick Start
 
-Running the whole pipeline takes weeks. To see one condition end to end without
-re-deriving its inputs, download the published picks and masks and start from the
-2D classification:
+Each driver is one transform, with its input and its output named on the command line, so
+the order they run in is the order the arguments imply:
 
-```bash
-bash scripts/01_download_data.sh --entry 10081 --intermediates
-bash scripts/07_reconstruct.sh  --entry 10081 --condition mask   # extract, 2D classify
-bash scripts/05_select2d.sh     --entry 10081 --condition both   # CryoSift's cycles
-bash scripts/07_reconstruct.sh  --entry 10081 --condition both   # ab-initio to local res
+```
+pick -> contamination_removal -> 2d_classification -> select2d -> reconstruct
+-> finetune -> pick -> ...
 ```
 
-The last step writes `$RAPICK_WORK/empiar_10081/full/both/metrics.json`, which
-holds the condition's resolution, its particle counts, and the CryoSPARC job uids
-behind them.
+### Ours: the full deposition, picked with the round-1 fine-tuned checkpoint
 
-To derive the picks and masks yourself instead, follow the step-by-step guide.
-
----
-
-## Full Step-by-Step Guide
-
-Each script covers one stage and takes `--entry` and `--condition`.
+997 micrographs of EMPIAR-10081. `download.sh` supplied the checkpoint the feedback
+loop produced, and the contamination masks.
 
 ```bash
-# Once per entry: the base checkpoint, its candidates, and the mask applied to them.
-bash scripts/02_repair_head.sh                            # theta_0    (Sec. S2)
-bash scripts/03_pick.sh  --entry 10081                    # candidates (Sec. 3.2)
-bash scripts/04_mask.sh  --entry 10081                    # contamination (Sec. 3.3)
+P=$RAPICK_WORK/picks/10081
+CKPT=$RAPICK_DATA/checkpoints/loop_fb_round1_empiar_10081.pth
 
-# The ablation conditions. `both` selects on the class_2D that `mask` built,
-# so `mask` runs first.
-bash scripts/07_reconstruct.sh --entry 10081 --condition baseline
-bash scripts/07_reconstruct.sh --entry 10081 --condition mask
-bash scripts/05_select2d.sh    --entry 10081 --condition both      # (Sec. 3.4)
-bash scripts/07_reconstruct.sh --entry 10081 --condition both
+# re-pick the deposition with the fine-tuned checkpoint (Sec. 3.2)
+bash scripts/pick.sh --entry 10081 --checkpoint $CKPT --out $P/fb.star
 
-# The feedback loop, on the 300 annotated micrographs (Sec. 3.5).
-bash scripts/06_loop.sh --entry 10081 --rounds 3
+# drop the picks that land on contamination, against the downloaded masks (Sec. 3.3)
+bash scripts/contamination_removal.sh --entry 10081 --star $P/fb.star  # -> $P/fb_mask.star
 
-# Ours: re-pick everything with the round-1 checkpoint, then the same two stages.
-bash scripts/03_pick.sh --entry 10081 --out-name fb_raw \
-    --checkpoint $RAPICK_WORK/loop/10081/round1/model.pth
-bash scripts/04_mask.sh --entry 10081 --star $RAPICK_WORK/picks/10081/fb_raw.star --out-name fb
-bash scripts/07_reconstruct.sh --entry 10081 --condition fb        # its own stack, to class_2D
-bash scripts/05_select2d.sh    --entry 10081 --condition fb
-bash scripts/07_reconstruct.sh --entry 10081 --condition fb        # ab-initio to local resolution
+# import -> patch CTF -> extract -> class_2D (K=50). Prints class_2D J<n>.
+bash scripts/2d_classification.sh --entry 10081 --star $P/fb_mask.star
+
+# CryoSift's three cycles over those classes. Prints the final select_2D J<m>. Resumable.
+bash scripts/select2d.sh --entry 10081 --class2d J<n>
+
+# ab-initio x3 -> refine x3 -> best by GSFSC 0.143 -> local resolution -> metrics.json
+bash scripts/reconstruct.sh --entry 10081 --parent fb_mask --name fb
 ```
 
-`scripts/01_download_data.sh --intermediates` fetches theta_0 and the masks,
-which skips `02` and `04`. `05` is resumable: each cycle's re-classification runs
-for hours, and its job uid is recorded in `state.json` before it is queued.
+Result: `$RAPICK_WORK/empiar_10081/full/fb/metrics.json` — resolution, particle counts,
+and the CryoSPARC job uids behind them.
 
-Each stage's README has the details, the exact flags, and the traps:
+## Training the checkpoint yourself: the feedback loop
+
+On the 300 annotated micrographs (`--setting annot`), no reconstruction — at that scale
+one does not resolve a round from the next (Sec. 4.3). One round is the five drivers in
+order, and the checkpoint that comes out is what the next round picks with:
+
+    theta_{n+1} = FineTune(theta_0; S_n)
+
+theta_0 every round, never the checkpoint that just picked.
+
+```bash
+R=$RAPICK_WORK/loop/10081/round0
+
+# 1. pick the 300 with the current checkpoint (round 0: theta_0)
+bash scripts/pick.sh --entry 10081 --setting annot --out $R/cryotransformer.star
+
+# 2. drop the picks that land on contamination
+bash scripts/contamination_removal.sh --entry 10081 --setting annot \
+    --star $R/cryotransformer.star                          # -> $R/cryotransformer_mask.star
+
+# 3. classify what survives
+bash scripts/2d_classification.sh --entry 10081 --setting annot \
+    --star $R/cryotransformer_mask.star --name fb_r0
+
+# 4. select 2D classes
+bash scripts/select2d.sh --entry 10081 --setting annot --class2d J<n>
+
+# 5. 50 micrographs of survivors become the labels; fine-tune theta_0 on them
+bash scripts/finetune.sh --entry 10081 --select2d J<m> --parent fb_r0 \
+    --round-dir $R --out $RAPICK_WORK/loop/10081/models/model_1.pth
+```
+
+Repeat from step 1 with `--checkpoint .../models/model_1.pth` and `R=.../round1`. The
+paper runs three rounds and reports round 1.
+
+`scripts/loop.sh` runs the same five steps with the bookkeeping around them — a per-round
+directory, a resumable step record, a lock, and the per-round diagnostics of Table 6:
+
+```bash
+bash scripts/loop.sh --entry 10081 --rounds 0-2   # -> loop/10081/models/model_1.pth
+```
+
+Either way, re-pick the full deposition with the resulting checkpoint and follow the
+**Ours** flow above.
+
+## Optional
+
+### Starting from the picker itself
+
+`download.sh` supplies theta_0, the masks and the candidates. Redo them only if you
+mean to.
+
+```bash
+# theta_0: refit CryoTransformer's degenerate classification head (Sec. S2).
+# Needs the 22-entry CryoPPP training split, which this repository does not download.
+bash scripts/repair_head.sh --train-dir <extracted>/train_val_test_data/train
+
+# inference with theta_0 over the whole deposition (Sec. 3.2)
+bash scripts/pick.sh --entry 10081                     # -> $P/cryotransformer.star
+
+# predict the masks if $RAPICK_WORK/masks/10081/ is empty, then filter (Sec. 3.3)
+bash scripts/contamination_removal.sh --entry 10081    # -> $P/cryotransformer_mask.star
+```
+
+### The ablation arms
+
+The same picks as Ours, but from theta_0 instead of the fine-tuned checkpoint.
+`download.sh` already fetched `cryotransformer_mask.star`, so the two masked rows need
+no picking at all.
+
+```bash
+# +mask: the classified stack as it stands, no 2D class selection
+bash scripts/2d_classification.sh --entry 10081 --star $P/cryotransformer_mask.star
+bash scripts/reconstruct.sh       --entry 10081 --name cryotransformer_mask
+
+# +both: the selection over that same class_2D
+bash scripts/select2d.sh          --entry 10081 --class2d J<n>
+bash scripts/reconstruct.sh       --entry 10081 --parent cryotransformer_mask
+
+# the two unmasked rows start from cryotransformer.star (downloaded, or pick.sh above)
+bash scripts/2d_classification.sh --entry 10081 --star $P/cryotransformer.star
+bash scripts/reconstruct.sh       --entry 10081 --name cryotransformer
+```
+
+A run over all four entries and every arm takes weeks. The name of a STAR, and of the
+directory a result lands in, says which stages the particles have been through:
+`cryotransformer.star` → `cryotransformer_mask.star` → `cryotransformer_mask_select`.
+The paper's own arms, and the three caveats that bound what a resolution here means, are
+in [docs/CONDITIONS.md](docs/CONDITIONS.md).
+
+### Comparison pickers
+
+crYOLO, Topaz and CryoSegNet are built only by `bash scripts/setup.sh --baselines`, and
+crYOLO needs conda. `download.sh` fetches their published candidates instead, so
+Table 2 and Table S2 can be checked without installing any of them. See
+[docs/BASELINES.md](docs/BASELINES.md).
+
+## Documentation
+
+| Document | Covers |
+| --- | --- |
+| [docs/CRYOSPARC.md](docs/CRYOSPARC.md) | installing CryoSPARC v4.7 and the job chain this repository drives |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | every environment variable, and the layout under `RAPICK_DATA` and `RAPICK_WORK` |
+| [docs/DATA.md](docs/DATA.md) | what is downloaded, and how a `.mrc` can be silently corrupt |
+| [docs/CONDITIONS.md](docs/CONDITIONS.md) | the arm names, what a resolution here means, and the renames if you ran this before |
+| [docs/BASELINES.md](docs/BASELINES.md) | the three comparison pickers |
+| [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | what is still pending, and what this repository deliberately does not contain |
+
+Each stage's own README has the exact flags and the traps:
 [picker](src/rapick/picker/README.md) ·
 [cleaner](src/rapick/cleaner/README.md) ·
 [select2d](src/rapick/select2d/README.md) ·
@@ -160,107 +264,33 @@ Each stage's README has the details, the exact flags, and the traps:
 [recon](src/rapick/recon/README.md) ·
 [eval](src/rapick/eval/README.md)
 
----
-
-## What the numbers mean
-
-The five condition names this repository uses — `baseline`, `mask`, `select`,
-`both` and `fb` — and the four comparison conditions are defined in
-[docs/CONDITIONS.md](docs/CONDITIONS.md).
-
-Three caveats bound what a resolution produced here means:
-
-- Resolutions on EMPIAR-10345 follow CryoPPP's declared pixel size, which is the
-  super-resolution movie value, so they are about half the physical figure and
-  compare conditions within that entry only.
-- Resolution is best-of-three-seeds: the reconstruction runs three times with
-  different random seeds and the best of the three by GSFSC 0.143 is reported.
-- The 2D scores against the CryoPPP annotations are not held out: 50 of the 300
-  annotated micrographs also train the picker in each round.
-
----
-
-## Repository Structure
-
-```
-ReconAwarePick/
-├── src/rapick/              one package per pipeline stage
-│   ├── picker/              CryoTransformer: head repair, picking, fine-tuning
-│   ├── cleaner/             contamination masking, triangular window blending
-│   ├── select2d/            CryoSift scoring and the iterative class selection
-│   ├── loop/                the reconstruction-aware feedback loop
-│   ├── recon/               the CryoSPARC v4.7 job chain
-│   └── eval/                2D detection metrics and STAR conversion
-├── configs/
-│   ├── datasets/            one file per EMPIAR entry, both scales
-│   ├── conditions/          baseline / mask / select / both / fb and the comparisons
-│   └── cryosparc_v47.yaml   the job DAG contract
-├── scripts/                 numbered drivers, 00 to 07
-├── envs/                    per-stage lockfiles
-├── docs/
-├── third_party/             upstream checkouts, fetched by scripts/00_setup.sh
-└── repos.lock.yaml          upstream URLs, pinned commits and licences
-```
-
----
-
-## Citation
-
-To be updated once the proceedings citation is assigned.
-
----
-
-## Acknowledgements and Licensing
+## License
 
 Our own code is released under the [MIT License](LICENSE).
 
-**Included in this repository.** Three files of
-[CryoTransformer](https://github.com/jianlin-cheng/CryoTransformer) (MIT, (c) 2023
-Jianlin Cheng) ship in modified form under `src/rapick/picker/overlay/`, because
-the paper depends on those modifications. The changes are readable as diffs in
-`src/rapick/picker/patches/`, and the upstream copyright notice is retained.
+Three files of [CryoTransformer](https://github.com/jianlin-cheng/CryoTransformer)
+(MIT, © 2023 Jianlin Cheng) ship in modified form under `src/rapick/picker/overlay/`,
+because the paper depends on those modifications; the changes are readable as diffs in
+`src/rapick/picker/patches/`. Everything else is cloned at a pinned commit by
+`scripts/setup.sh` and is not redistributed here — see `repos.lock.yaml`:
+[MicrographCleaner](https://github.com/rsanchezgarc/micrograph_cleaner_em)
+(Apache-2.0), [CryoSift](https://cryosift.org) (Apache-2.0),
+[Topaz](https://github.com/tbepler/topaz) (**GPL-3.0**),
+[CryoSegNet](https://github.com/jianlin-cheng/CryoSegNet) (MIT), and
+[crYOLO](https://cryolo.readthedocs.io/) (MPI Dortmund Complimentary Science Software
+License, non-commercial, not redistributable).
 
-**Fetched, not redistributed.** Everything else is cloned at a pinned commit by
-`scripts/00_setup.sh`; see `repos.lock.yaml`.
+Micrographs and annotations come from
+[CryoPPP](https://github.com/BioinfoMachineLearning/cryoppp) (CC-BY-4.0) and from
+[EMPIAR](https://www.ebi.ac.uk/empiar/). The STAR files and masks we publish on Hugging
+Face are derived from them and are redistributed under CC-BY-4.0 with attribution.
 
-- [MicrographCleaner](https://github.com/rsanchezgarc/micrograph_cleaner_em)
-  (Apache-2.0) — contamination masking. We call the released network unchanged and
-  replace only its post-processing.
-- [CryoSift](https://cryosift.org), upstream
-  [Magellon](https://github.com/sstagg/Magellon) (Apache-2.0) — 2D class scoring.
-  We call the released model unchanged and supply the iterative workflow around it.
-- [Topaz](https://github.com/tbepler/topaz) (**GPL-3.0**) and
-  [CryoSegNet](https://github.com/jianlin-cheng/CryoSegNet) (MIT) — comparison
-  pickers.
-- [crYOLO](https://cryolo.readthedocs.io/) — comparison picker, distributed under
-  the MPI Dortmund Complimentary Science Software License (non-commercial). Not
-  redistributable; install it yourself, or use the published picks instead.
+## Citation
 
-**Data.** Micrographs and annotations come from
-[CryoPPP](https://github.com/BioinfoMachineLearning/cryoppp) (data CC-BY-4.0) and
-from [EMPIAR](https://www.ebi.ac.uk/empiar/). The STAR files and masks we publish
-on Hugging Face are derived from them and are redistributed under **CC-BY-4.0**
-with attribution.
+To be updated once the proceedings citation is assigned. If you use this code, please
+also cite **CryoTransformer**, **MicrographCleaner**, **CryoSift**, **CryoPPP** and
+**CryoSPARC**.
 
-If you use this code, please also cite **CryoTransformer**, **MicrographCleaner**,
-**CryoSift**, **CryoPPP** and **CryoSPARC** alongside our paper.
+## Contact
 
----
-
-## TODO
-
-Pending for the public release:
-
-- [ ] Replace the citation block with the proceedings citation
-- [x] Publish the four round-1 fine-tuned checkpoints (the `fb` condition's
-      weights), and the four of the perfect-teacher arm
-- [x] Publish the four pickers' full-set picks, so the comparison numbers can be
-      checked without installing crYOLO, Topaz and CryoSegNet
-- [ ] End-to-end check of one condition on a machine that has never run this code
-- [ ] Run the `fb_gt` path once. The perfect-teacher arm was produced by scripts
-      that were never committed; `--teacher gt` reimplements their documented
-      procedure and has not been run in this form
-
-[docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) has the full list, in the
-order it makes sense to do it, along with what this repository deliberately does
-not contain and why.
+For questions, open an issue on this repository.

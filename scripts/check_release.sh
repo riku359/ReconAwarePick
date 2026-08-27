@@ -11,7 +11,7 @@ repository is made public.
 It checks the things that are cheap to check and expensive to get wrong: paths
 and account names from the machines the experiments ran on, credentials, large
 binaries, leftover Japanese prose, code that no longer compiles, and the
-condition names from the private research repository leaking into the public
+arm names from the private research repository leaking into the public
 vocabulary.
 
   bash scripts/check_release.sh          check the working tree
@@ -102,22 +102,21 @@ scan "no venue name"            'WACV|wacv'
 
 echo
 echo "== the private repository's vocabulary must not leak =="
-# The research repo names conditions differently. One place may still carry the
-# old names: docs/CONDITIONS.md, which is the translation table. Everywhere else
+# The research repo names arms differently. One place may still carry the old
+# names: docs/CONDITIONS.md, which is the translation table. Everywhere else
 # they are a leak.
 #
 # Two strings are deliberately NOT in this pattern. `cryotransformer_clean_tri` is
-# the file the contamination filter writes, not a condition name, and it is the
-# name the published Hugging Face artifacts carry; src/rapick/cleaner/README.md
-# explains the difference between it and the condition name `mask`. And `fbgt_r`
-# is the loop's source prefix for the `fb_gt` arm, formed the same way as `fb_r`
-# and `fbnm_r` from the release's own condition names.
+# the file the contamination filter writes, not an arm name; the drivers rename it
+# to `cryotransformer_mask.star`, and src/rapick/cleaner/README.md explains why the
+# two names both exist. And `fbgt_r` is the loop's source prefix for the `fb_gt`
+# arm, formed the same way as `fb_r` and `fbnm_r` from the release's own names.
 legacy=$(files \
   | grep -v -e '^docs/CONDITIONS.md$' \
   | tr '\n' '\0' \
   | xargs -0 grep -HInE 'fbf_r[0-9]|fbc_r[0-9]|general_full|lora_general|lora_chained' 2>/dev/null \
   | grep -v '^scripts/check_release.sh:')
-report "no legacy condition names" "$legacy"
+report "no legacy arm names" "$legacy"
 
 echo
 echo "== credentials =="

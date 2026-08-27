@@ -99,17 +99,17 @@ Export the per-round metrics:
 PYTHONPATH=src python3 -m rapick.loop.round_metrics --csv $RAPICK_WORK/loop/rounds.csv
 ```
 
-Re-pick the full deposition with the round-1 checkpoint, and publish it as the `fb`
-condition's picks:
+Re-pick the full deposition with the round-1 checkpoint, and publish the result as
+the `fb` arm's masked picks:
 
 ```bash
 PYTHONPATH=src envs/recon/.venv/bin/python -m rapick.loop.repick_fullset \
     --id 10081 --model "$RAPICK_WORK/loop/10081/models/model_1.pth"
 ```
 
-That writes `$RAPICK_WORK/picks/10081/fb.star` and prints the `rapick.recon` command that
-reconstructs it. Everything past that point is ordinary `configs/conditions/fb.yaml`
-business and knows nothing about a checkpoint.
+That writes `$RAPICK_WORK/picks/10081/fb_mask.star` and prints the three commands that
+classify, select on and reconstruct it. Everything past that point is what any other
+STAR goes through, and knows nothing about a checkpoint.
 
 Useful while a run is in flight, both read-only and safe against a live loop:
 
@@ -129,7 +129,7 @@ fine-tune that is not.
 The round-1 checkpoints this loop produces are **not yet released**. They are intended for
 the Hugging Face model repository `rikrikrik/recon-aware-pick-weights`. Until they are
 there, reproducing any round-1 number means re-running the loop from theta_0, which
-`scripts/01_download_data.sh` fetches.
+`scripts/download.sh` fetches.
 
 ## What runs where
 
@@ -146,7 +146,7 @@ raises an error naming the variable rather than guessing a path.
 | contamination filter | `RAPICK_TOOL_MASK_FILTER` | `src/rapick/cleaner/filter_star_from_masks.py` |
 | 2D class selection | `RAPICK_TOOL_SELECT_2D` | `src/rapick/select2d/iterate_class2d.py` |
 
-The first three live in the upstream picker checkout that `scripts/00_setup.sh` clones
+The first three live in the upstream picker checkout that `scripts/setup.sh` clones
 and copies `src/rapick/picker/overlay/` over; the last three are sibling stages of this
 repository. Each runs under its own environment (`envs/cryotransformer`,
 `envs/micrograph_cleaner`, `envs/cryosift`); the scorer is standard-library-only and runs
@@ -157,11 +157,12 @@ are run by path. The picking and fine-tuning steps take their micrographs by exp
 on which set that variable happens to point at.
 
 The reconstruction is not this package's job. `rapick.recon` runs it from the picks this
-package publishes, under `configs/conditions/fb.yaml`. The only config this package reads
-is that same file, for its `pipeline.class2d` block (K = 50, 20 full iterations): a round
-of the loop *is* the `fb` condition's 2D classification at `annot` scale, so it reads the
-one file rather than a copy. `RAPICK_CONDITION_FB` overrides its location, and
-`RAPICK_RECON_PROFILE` overrides `configs/cryosparc_v47.yaml`.
+package publishes. The only config this package reads is
+[`configs/recon.yaml`](../../../configs/recon.yaml), for its `pipeline.class2d` block
+(K = 50, 20 full iterations): a round of the loop *is* the `fb` arm's 2D classification
+at `annot` scale, so it reads the one file every arm reads rather than a copy.
+`RAPICK_RECON_CONFIG` overrides its location, and `RAPICK_RECON_PROFILE` overrides
+`configs/cryosparc_v47.yaml`.
 
 ## Paths
 
@@ -176,10 +177,24 @@ $RAPICK_DATA/checkpoints/CryoTransformer_head_repaired.pth      theta_0
 $RAPICK_WORK/masks/<id>/                        stored contamination masks
 $RAPICK_WORK/loop/<id>/round<n>/                one round: state, stars, labels, logs
 $RAPICK_WORK/loop/<id>/models/model_<n>.pth     the checkpoints the loop produces
-$RAPICK_WORK/loop/<id>/fullset/<condition>/     one full-deposition re-pick
-$RAPICK_WORK/picks/<id>/<condition>.star        where the re-pick is published
+$RAPICK_WORK/loop/<id>/fullset/<name>/          one full-deposition re-pick
+$RAPICK_WORK/picks/<id>/<name>.star             where the re-pick is published
 $RAPICK_WORK/select2d/<project>_<job>_iter/     the 2D selection's cycle state
 $RAPICK_WORK/empiar_<id>/<setting>/<source>/    manifests and metrics.json
+```
+
+A round directory names its STARs the way `picks/<id>/` does, by the stages the picks
+in it have been through:
+
+```
+$RAPICK_WORK/loop/<id>/round<n>/
+├── cryotransformer.star               what the round's checkpoint picked
+├── cryotransformer_mask.star          minus the picks that land on contamination
+├── cryotransformer_mask_select.star   minus what the 2D class selection discarded
+├── extracted.star, class2d_accepted.star   the two losses in between (export_stage_stars)
+├── teacher.star, train_mics.txt       the 50 micrographs the fine-tune trains on
+├── finetune/checkpoint.pth            what this round produced
+└── state.json, logs/                  which steps are done, and their output
 ```
 
 The picker appends `<id>/images` to the data root it is given, so each entry needs an
@@ -200,7 +215,8 @@ workspace, so two arms of one entry never share state.
 | `run_loop.py` | the driver: one entry, one arm, N rounds |
 | `run_to_class2d.py` | import_particles -> extract -> class_2D, stopping before any 3D |
 | `export_teacher_star.py` | a select_2D job -> `teacher.star` + `train_mics.txt` |
-| `repick_fullset.py` | one checkpoint -> full-deposition picks -> `picks/<id>/<condition>.star` |
+| `finetune.py` | teacher labels -> the next checkpoint (Eq. 1); `scripts/finetune.sh` drives it |
+| `repick_fullset.py` | one checkpoint -> full-deposition picks -> `picks/<id>/<name>.star` |
 | `round_metrics.py` | Table 6: P/R/F1 and the pick-count funnel, per round |
 | `status.py` | how far each arm has got, and what step is next |
 | `export_stage_stars.py` | per-stage STARs, to attribute each discarded pick to a stage |

@@ -1,17 +1,40 @@
 # Data
 
-Everything downloads into `$RAPICK_DATA`, which is never inside this repository; the
-layout is in [CONFIGURATION.md](CONFIGURATION.md).
+Inputs download into `$RAPICK_DATA` and the published artifacts of earlier stages into
+`$RAPICK_WORK`, neither of which is ever inside this repository; both layouts are in
+[CONFIGURATION.md](CONFIGURATION.md).
 
 ```bash
-bash scripts/01_download_data.sh                       # all four entries
-bash scripts/01_download_data.sh --entry 10081         # one entry
-bash scripts/01_download_data.sh --intermediates       # add the published artifacts
-bash scripts/01_download_data.sh --dry-run             # enumerate and check free space
+bash scripts/download.sh                              # everything, all four entries
+RAPICK_ENTRIES=10081 bash scripts/download.sh         # everything, one entry
+bash scripts/download/04_full_depositions.sh          # one source on its own
 ```
 
+`download.sh` takes no arguments. Each source has its own script under
+[`scripts/download/`](../scripts/download/), and `download.sh` runs them in name order,
+so what to fetch is chosen by which script you run rather than by a flag:
+
+| Script | Fetches |
+| --- | --- |
+| `01_cryoppp_catalog.sh` | the CryoPPP catalogue every downloader after it reads |
+| `02_annotated_micrographs.sh` | the annotated 300 per entry (~75 GB) |
+| `03_expert_annotations.sh` | CryoPPP's expert particle annotations |
+| `04_full_depositions.sh` | the whole EMPIAR deposition of each entry (~1.5 TB) |
+| `05_verify_micrographs.sh` | recovers failed transfers, checks integrity, prints the counts |
+| `06_cryotransformer_weights.sh` | CryoTransformer's released weights (~3 GB) |
+| `07_micrograph_cleaner_weights.sh` | MicrographCleaner's contamination network (~127 MiB) |
+| `08_published_artifacts.sh` | θ₀, the contamination masks, the masked picks |
+| `09_picker_candidates.sh` | the four pickers' full-set candidates |
+| `10_finetuned_checkpoints.sh` | the round-1 fine-tuned checkpoints (~870 MB each) |
+
+The last three come from Hugging Face and are what makes a stage enterable without
+re-deriving its input: `08` replaces `repair_head.sh` and `contamination_removal.sh`,
+`09` replaces `pick.sh`, and `10` replaces `loop.sh`.
+
 Resumable and idempotent: already-placed files are skipped, partial transfers resume
-with `curl --continue-at -`, nothing is overwritten, and `sudo` is never used.
+with `curl --continue-at -`, nothing is overwritten, and `sudo` is never used. So a run
+interrupted anywhere is restarted by running `download.sh` again, and it costs only what
+did not finish.
 
 ## The four entries
 
@@ -45,7 +68,7 @@ uses the full deposition: 300 micrographs are not enough for a stable reconstruc
 | Expert annotations | `cryoppp/<id>/ground_truth/empiar-<id>_particles_selected.star` | small | the `cryoppp_lite` archives at <https://calla.rnet.missouri.edu/cryoppp_lite/>, unpacked keeping only the `.star` files |
 | Full depositions | `cryoppp_fullset/<id>/micrographs/*.mrc` | ~1.5 TB | [EMPIAR](https://ftp.ebi.ac.uk/empiar/world_availability/) |
 | CryoTransformer's released weights | `checkpoints/CryoTransformer_pretrained_model.pth` | ~3 GB | <https://calla.rnet.missouri.edu/CryoTransformer/pretrained_model.tar.gz> |
-| MicrographCleaner's released weights | `checkpoints/micrograph_cleaner_defaultModel.h5` | 15 MB | [Zenodo](https://zenodo.org/records/17093439), fetched by `src/rapick/cleaner/download_model.sh` |
+| MicrographCleaner's released weights | `checkpoints/micrograph_cleaner_defaultModel.h5` | 15 MB | [Zenodo](https://zenodo.org/records/17093439), through `src/rapick/cleaner/download_model.sh` |
 | CryoSift's weights | inside the Magellon checkout | 33 MB | bundled in the upstream clone; no separate download |
 
 The full-set source directory differs per entry, and two need a filter. The table lives
@@ -60,21 +83,19 @@ in the `DATASETS` block of `src/rapick/data/download_empiar_fullset.py`:
 
 ### From Hugging Face
 
-`--intermediates` adds the artifacts this project produced, so a stage can be entered
-without re-deriving its input. `--picks` and `--fb-weights` are separate because of
-their size (the checkpoints are about 870 MB each).
+The artifacts this project produced.
 
-| Asset | Flag | Repository | Path under `$RAPICK_DATA` / `$RAPICK_WORK` |
+| Asset | Script | Repository | Path under `$RAPICK_DATA` / `$RAPICK_WORK` |
 | --- | --- | --- | --- |
-| θ₀, the repaired base checkpoint | `--intermediates` | [weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) | `$RAPICK_DATA/checkpoints/CryoTransformer_head_repaired.pth` |
-| Triangular-blend contamination masks, all four entries at full-set scale (6,070 `.npz`) | `--intermediates` | [data](https://huggingface.co/datasets/rikrikrik/recon-aware-pick-data) | `$RAPICK_WORK/masks/<id>/` |
-| Picks after contamination masking, all four entries | `--intermediates` | data | `$RAPICK_WORK/picks/<id>/mask.star` |
-| Round-1 fine-tuned checkpoints, one per entry | `--fb-weights` | weights | `$RAPICK_DATA/checkpoints/loop_fb_round1_empiar_<id>.pth` |
-| The four pickers' full-set candidates | `--picks` | data | `$RAPICK_WORK/picks/<id>/{baseline,cryolo,topaz,cryosegnet}.star` |
+| θ₀, the repaired base checkpoint | `08` | [weights](https://huggingface.co/rikrikrik/recon-aware-pick-weights) | `$RAPICK_DATA/checkpoints/CryoTransformer_head_repaired.pth` |
+| Triangular-blend contamination masks, all four entries at full-set scale (6,070 `.npz`) | `08` | [data](https://huggingface.co/datasets/rikrikrik/recon-aware-pick-data) | `$RAPICK_WORK/masks/<id>/` |
+| Picks after contamination masking, all four entries | `08` | data | `$RAPICK_WORK/picks/<id>/cryotransformer_mask.star` |
+| The four pickers' full-set candidates | `09` | data | `$RAPICK_WORK/picks/<id>/{cryotransformer,cryolo,topaz,cryosegnet}.star` |
+| Round-1 fine-tuned checkpoints, one per entry | `10` | weights | `$RAPICK_DATA/checkpoints/loop_fb_round1_empiar_<id>.pth` |
 
-The round-1 checkpoints are what the `fb` condition picks with, so with them the paper's
+The round-1 checkpoints are what the `fb` arm picks with, so with them the paper's
 headline row needs no loop run at all. The perfect-teacher arm of Table 7's lower row is
-not reachable from this script; fetch it directly:
+not reachable from these scripts; fetch it directly:
 
 ```bash
 uv run --with huggingface_hub python3 src/rapick/data/hf_assets.py download \
@@ -83,8 +104,11 @@ uv run --with huggingface_hub python3 src/rapick/data/hf_assets.py download \
 ```
 
 The picks are what Table 2 and Table S2 need, so having them means not installing
-crYOLO, Topaz or CryoSegNet ([BASELINES.md](BASELINES.md)). CryoTransformer's land as
-`baseline.star`, the condition's name here.
+crYOLO, Topaz or CryoSegNet ([BASELINES.md](BASELINES.md)). Each lands under its
+picker's name, and the masked CryoTransformer picks under
+`cryotransformer_mask.star` — the same names
+[`scripts/contamination_removal.sh`](../scripts/contamination_removal.sh) would have
+written, so a downloaded stage and a locally derived one are interchangeable.
 
 ## Verifying a download
 
@@ -103,8 +127,9 @@ signature check reports valid files as broken; the verifier accounts for this.
 
 Confirm the expected count before starting a run: `import_particles` dies on the first
 missing micrograph, and a `*.mrc` glob happily imports a partial download.
-`scripts/01_download_data.sh` checks this at the end against each dataset config's
-expected count.
+`scripts/download/05_verify_micrographs.sh` does all of this, and `download.sh` runs it
+after the micrographs are in: it recovers what failed, verifies the files, and prints
+each entry's count against the expected one.
 
 ## Licensing
 

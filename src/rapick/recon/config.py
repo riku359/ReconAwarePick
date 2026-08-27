@@ -1,9 +1,12 @@
 """Load and merge the four config layers into one resolved runtime config.
 
     profile   (configs/cryosparc_v47.yaml)     -> job-type / port contract
-  + condition (configs/conditions/<name>.yaml) -> seeds, 2D params, pipeline flags
-  + dataset   (configs/datasets/empiar_<id>.yaml) -> micrographs, optics, per-condition picks
+  + condition (configs/recon.yaml)             -> seeds, 2D params, pipeline flags
+  + dataset   (configs/datasets/empiar_<id>.yaml) -> micrographs, optics, the arms' picks
   + .env                                       -> credentials + machine paths
+
+There is one condition file, not one per arm: the arms differ in which particles reach
+the chain, never in what the chain does to them.
 
 `${VAR}` in any string is expanded from the merged env (.env layered under the
 process environment). Secrets never live in a tracked file.
@@ -175,10 +178,35 @@ class DatasetConfig:
             return sources[name]
         except KeyError:
             raise KeyError(
-                f"{self.name}/{setting} declares no picks for condition {name!r}; it has "
-                f"{sorted(sources)}. Conditions whose chain starts at an existing "
-                f"select_2D job (select / both / cryosegnet_both) carry no STAR of their "
-                f"own -- reconstruct them from their parent condition's 2D selection.")
+                f"{self.name}/{setting} declares no picks for {name!r}; it has "
+                f"{sorted(sources)}. An arm whose chain starts at an existing select_2D "
+                f"job carries no STAR of its own -- reconstruct it from the 2D selection "
+                f"instead. To run a STAR the config does not name, pass it explicitly "
+                f"(the drivers' --star).")
+
+    def ensure_source(self, setting: str, name: str, star: Optional[str] = None,
+                      y_flip: bool = True,
+                      import_params: Optional[dict] = None) -> SourceConfig:
+        """Resolve a source, declaring it in memory if the config does not name it.
+
+        The dataset configs list the STARs the paper's own arms read. A driver handed a
+        `--star` is running something else -- a re-pick, a smoke, one round of the loop --
+        and must not have to edit a committed config to do it. Nothing is written back:
+        the declaration lives for the length of the process, and the manifest records the
+        path and sha256 of whatever was actually imported.
+        """
+        sources = self.sources(setting)
+        existing = sources.get(name)
+        if existing is not None:
+            if star:
+                existing.star = star
+            return existing
+        if not star:
+            return self.source(setting, name)      # raises, naming what is declared
+        sources[name] = SourceConfig(name=name, star=star,
+                                     import_params=dict(import_params or {}),
+                                     y_flip=y_flip)
+        return sources[name]
 
     def import_params(self, setting: str) -> dict:
         """Params for the Import Micrographs job (blob_paths + optics)."""

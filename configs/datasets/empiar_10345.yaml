@@ -69,35 +69,37 @@ settings:
     # micrograph its STAR names but cannot find, and a `*.mrc` glob happily imports a
     # partial download.
     expected_micrograph_count: 1644
-    # One entry per condition whose chain starts from a STAR. The picker STARs use raw
-    # micrograph basenames, so no query_cut_prefix; all carry the top-left Y origin.
+    # The STARs the paper's own arms read, named by the stages their picks have been
+    # through. The picker STARs use raw micrograph basenames, so no query_cut_prefix;
+    # all carry the top-left Y origin.
     #
-    # `select`, `both` and `cryosegnet_both` are NOT listed: their chain starts at an
-    # existing Select 2D Classes job, so they carry no picks of their own and reuse the
-    # class_2D of `baseline`, `mask` and `cryosegnet` respectively. See
-    # configs/conditions/ for which parent each one selects on.
+    # An arm that selects 2D classes is NOT listed: it carries no picks of its own and
+    # reconstructs the selection over another arm's class_2D. Nor is a STAR this file
+    # does not name unrunnable -- every driver takes a --star, and declares it for the
+    # length of the run (docs/CONDITIONS.md).
     sources:
       # CryoTransformer's candidates from the base checkpoint (Sec. S2's theta_0).
-      baseline:
-        star: "${RAPICK_WORK}/picks/10345/baseline.star"
+      cryotransformer:
+        star: "${RAPICK_WORK}/picks/10345/cryotransformer.star"
         import_params: {}
         y_flip: true
       # The same candidates, minus those whose centre lands on contamination under the
       # triangular-blend MicrographCleaner mask (src/rapick/cleaner/).
-      mask:
-        star: "${RAPICK_WORK}/picks/10345/mask.star"
+      cryotransformer_mask:
+        star: "${RAPICK_WORK}/picks/10345/cryotransformer_mask.star"
         import_params: {}
         y_flip: true
       # The round-1 fine-tuned checkpoint's candidates, through the same mask. This is
-      # the stack the paper's method (Ours) classifies and then selects on.
-      fb:
-        star: "${RAPICK_WORK}/picks/10345/fb.star"
+      # the stack the paper's method (Ours) classifies and then selects on; the
+      # selection over it is the arm recorded as `fb`.
+      fb_mask:
+        star: "${RAPICK_WORK}/picks/10345/fb_mask.star"
         import_params: {}
         y_flip: true
       # The same, but from the checkpoint fine-tuned on the CryoPPP annotations instead
       # of on the surviving picks. The perfect-teacher upper bound of Table 7's lower row.
-      fb_gt:
-        star: "${RAPICK_WORK}/picks/10345/fb_gt.star"
+      fb_gt_mask:
+        star: "${RAPICK_WORK}/picks/10345/fb_gt_mask.star"
         import_params: {}
         y_flip: true
       # The three comparison pickers, raw picks, no purification (Table 2).

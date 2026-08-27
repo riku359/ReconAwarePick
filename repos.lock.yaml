@@ -1,6 +1,6 @@
 # Upstream repositories this project depends on.
 #
-# None of them is redistributed here. `scripts/00_setup.sh` clones each one at the
+# None of them is redistributed here. `scripts/setup.sh` clones each one at the
 # commit pinned below into $RAPICK_THIRD_PARTY (default `third_party/`). The single
 # exception is CryoTransformer, three of whose files carry our modifications and ship
 # in `src/rapick/picker/overlay/`; the modifications themselves are readable as diffs
@@ -26,7 +26,7 @@ pipeline:
     license: MIT
     modified: true          # see src/rapick/picker/patches/
     weights: >-
-      The released checkpoint is downloaded by scripts/01_download_data.sh. The
+      The released checkpoint is downloaded by scripts/download.sh. The
       repaired head of Sec. S2 is a separate checkpoint, on Hugging Face at
       rikrikrik/recon-aware-pick-weights.
 

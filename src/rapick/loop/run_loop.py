@@ -51,16 +51,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from . import entries, make_gt_teacher, paths, star
-from .common import (LOCK_DIR, State, acquire_lock, log, parse_rounds, run,
-                     wait_for_free_gpu)
+from . import entries, finetune, make_gt_teacher, paths, star
+from .common import LOCK_DIR, State, acquire_lock, log, parse_rounds, run
 
 # The operating point every round and every entry picks at: the top 75% of 600 queries
 # per micrograph, NMS 0.7. It is relative on purpose. An absolute score threshold cannot
@@ -75,8 +73,16 @@ PICK_ARGS = ["--backbone", "resnet152", "--num_queries", "600",
 # the filter's default, so that renaming it there cannot silently break the wiring.
 STAR_PREFIX = "cryotransformer"
 MASK_SUFFIX = "_tri"
-CLEAN_STAR = f"{STAR_PREFIX}_clean{MASK_SUFFIX}.star"
+FILTER_STAR = f"{STAR_PREFIX}_clean{MASK_SUFFIX}.star"
 FILTER_SUMMARY = f"summary{MASK_SUFFIX}.json"
+
+# What a round leaves on disk, named by the stages the picks in it have been through --
+# the same rule $RAPICK_WORK/picks/<id>/ follows, so a round directory and a pick
+# directory read the same way. FILTER_STAR above is renamed to MASKED_STAR as soon as
+# the filter has written it; nothing downstream refers to the filter's own name.
+PICKS_STAR = f"{STAR_PREFIX}.star"
+MASKED_STAR = f"{STAR_PREFIX}_mask.star"
+SELECTED_STAR = f"{STAR_PREFIX}_mask_select.star"
 
 # Round 0 has to land this close to theta_0's recorded row before the loop continues.
 GATE_METRIC_TOL = 0.02    # absolute, on P/R/F1
@@ -84,15 +90,6 @@ GATE_COUNT_TOL = 0.03     # relative, on the pick count
 
 STEPS = ("pick", "score", "filter", "class2d", "select2d", "teacher", "finetune",
          "promote")
-
-# The 40/10 split of the 50 teacher micrographs, as a fraction handed to finetune.py.
-# The 10 validation micrographs monitor the loss; they select nothing.
-VAL_FRACTION = "0.2"
-
-# A fine-tune started on a card somebody else has filled OOMs minutes in, and the round
-# has to be redone from its `pick` step, so the driver waits for the card instead.
-FT_MIN_FREE_MB = int(os.environ.get("RAPICK_FT_MIN_FREE_MB", "20000"))
-FT_MAX_WAIT_S = int(os.environ.get("RAPICK_FT_MAX_WAIT_S", "7200"))
 
 
 @dataclass
@@ -137,7 +134,7 @@ def write_round_dataset(n: int, ctx: Run, round_dir: Path) -> Path:
     entry = ctx.entry
     sources = "\n".join(
         f'      {ctx.source(i)}:\n'
-        f'        star: "{entries.round_dir(ctx.empiar, i, ctx.arm.name) / CLEAN_STAR}"\n'
+        f'        star: "{entries.round_dir(ctx.empiar, i, ctx.arm.name) / MASKED_STAR}"\n'
         f'        import_params: {{}}\n'
         f'        y_flip: true'
         for i in range(n + 1))
@@ -194,9 +191,9 @@ def step_pick(n, st, rd, ctx: Run):
     produced = candidates[-1] / f"EMPIAR_{ctx.empiar}_remarks_{remarks}_star_file.star"
     if not produced.is_file():
         raise RuntimeError(f"combined star missing: {produced}")
-    shutil.copyfile(produced, rd / "picks.star")
+    shutil.copyfile(produced, rd / PICKS_STAR)
     st.mark("pick", checkpoint=str(ckpt), prediction_dir=str(candidates[-1]),
-            picks_star=str(rd / "picks.star"))
+            picks_star=str(rd / PICKS_STAR))
 
 
 def step_score(n, st, rd, ctx: Run):
@@ -210,7 +207,7 @@ def step_score(n, st, rd, ctx: Run):
     """
     scorer = paths.tool_script("scorer")
     out = run(paths.tool_cmd("scorer") +
-              ["--id", ctx.empiar, "--pred", str(rd / "picks.star"),
+              ["--id", ctx.empiar, "--pred", str(rd / PICKS_STAR),
                "--gt", str(ctx.entry.gt_star), "--json"],
               cwd=scorer.parent, log_path=rd / "logs" / "score.log")
     payload = json.loads(next(l for l in out.splitlines() if l.startswith("JSON "))[5:])
@@ -248,8 +245,8 @@ def step_filter(n, st, rd, ctx: Run):
         # Copy rather than delete the stage: everything downstream is wired to the
         # cleaned star's name, so passing the picks through unchanged keeps both the
         # wiring and the shape of state.json identical between the arms.
-        source = rd / "picks.star"
-        shutil.copyfile(source, rd / CLEAN_STAR)
+        source = rd / PICKS_STAR
+        shutil.copyfile(source, rd / MASKED_STAR)
         total = star.count_star_particles(source)
         log(f"round {n} contamination filter SKIPPED ({ctx.arm.name}): "
             f"{total} picks pass through")
@@ -261,10 +258,13 @@ def step_filter(n, st, rd, ctx: Run):
     if not mask_dir.is_dir():
         raise RuntimeError(f"no stored masks for {ctx.empiar} at {mask_dir}")
     run(paths.tool_cmd("mask_filter") +
-        ["--star", str(rd / "picks.star"), "--empiar-id", ctx.empiar,
+        ["--star", str(rd / PICKS_STAR), "--empiar-id", ctx.empiar,
          "--mask-dir", str(mask_dir), "--out-dir", str(rd),
          "--star-prefix", STAR_PREFIX, "--suffix", MASK_SUFFIX, "--overwrite"],
         cwd=paths.tool_cwd("mask_filter"), log_path=rd / "logs" / "filter.log")
+    # The filter names its output after itself; publish it under the name that says
+    # which stages the picks have been through, and leave no second copy to go stale.
+    (rd / FILTER_STAR).replace(rd / MASKED_STAR)
     summary = json.loads((rd / FILTER_SUMMARY).read_text())
     log(f"round {n} contamination filter kept {summary['picks_kept']} of "
         f"{summary['picks_total']} ({summary['removed_fraction']:.2%} removed)")
@@ -282,7 +282,7 @@ def step_class2d(n, st, rd, ctx: Run):
     out = run([paths.recon_python(), "-m", "rapick.loop.run_to_class2d",
                "--env", str(paths.env_file()),
                "--profile", str(paths.recon_profile()),
-               "--condition", str(paths.condition(entries.LOOP_CONDITION)),
+               "--condition", str(paths.recon_config()),
                "--dataset", str(dataset), "--setting", entries.SETTING_ANNOT,
                "--project", ctx.project, "--source", ctx.source(n),
                "--gpus", str(ctx.gpu), "--worker", ctx.worker,
@@ -354,7 +354,7 @@ def step_teacher(n, st, rd, ctx: Run):
     run([paths.recon_python(), "-m", "rapick.loop.export_teacher_star",
          "--project", ctx.project, "--select2d", st.get("select2d", "select2d"),
          "--extract", manifest["jobs"]["extract"]["uid"], "--empiar", ctx.empiar,
-         "--input-star", str(rd / CLEAN_STAR),
+         "--input-star", str(rd / MASKED_STAR),
          "--seed", str(n + 1), *mics_args, "--out-dir", str(rd)],
         cwd=paths.REPO_ROOT, log_path=rd / "logs" / "teacher.log",
         env_extra=paths.recon_env())
@@ -394,38 +394,14 @@ def step_finetune(n, st, rd, ctx: Run):
     # alone takes 10-25 minutes per epoch against 1-2 minutes of computation, so point
     # RAPICK_WORK at a local disk for this stage, or run it against one and copy the
     # round directory back afterwards.
-    out_dir = rd / "finetune"
-    # theta_0 every round, never the checkpoint that just picked. Resuming from the
-    # picking model instead would let the picker's own bias accumulate: it would be
-    # trained on the particles it chose, having chosen them because it was trained on
-    # them.
-    resume = paths.base_checkpoint()
-    wait_for_free_gpu(ctx.gpu, FT_MIN_FREE_MB, FT_MAX_WAIT_S)
-    # --resume must be theta_0 and is always passed: the fine-tuner loads every weight
-    # as-is and reinitialises nothing, and its own default points at the released
-    # checkpoint, whose head is the degenerate one theta_0 exists to repair.
-    run(paths.tool_cmd("finetune") +
-        ["--images_dir", str(paths.annotated_micrographs(ctx.empiar)),
-         "--star", str(ctx.teacher_star(rd)),
-         "--box_size", str(ctx.entry.diameter_px),
-         "--val_fraction", VAL_FRACTION,
-         "--finetune_mode", ctx.arm.finetune_mode,
-         "--resume", str(resume),
-         "--device", f"cuda:{ctx.gpu}",
-         "--output_dir", str(out_dir)],
-        cwd=paths.tool_cwd("finetune"), log_path=rd / "logs" / "finetune.log",
-        env_extra=paths.tool_env("finetune"))
-    checkpoint = out_dir / "checkpoint.pth"
-    if not checkpoint.is_file():
-        raise RuntimeError(f"fine-tuning produced no checkpoint at {checkpoint}")
-    stats = [json.loads(l) for l in (out_dir / "log.txt").read_text().splitlines()
-             if l.strip()]
-    st.mark("finetune", checkpoint=str(checkpoint), init=str(resume), arm=ctx.arm.name,
-            teacher=ctx.arm.teacher, star=str(ctx.teacher_star(rd)),
-            finetune_mode=ctx.arm.finetune_mode, epochs=len(stats),
-            first_train_loss=stats[0].get("train_loss") if stats else None,
-            last_train_loss=stats[-1].get("train_loss") if stats else None,
-            last_val_loss=stats[-1].get("val_loss") if stats else None)
+    # theta_0 every round, never the checkpoint that just picked -- rapick.loop.finetune
+    # holds that rule, and scripts/finetune.sh drives the same function for a one-off.
+    result = finetune.finetune(
+        ctx.empiar, ctx.teacher_star(rd), rd / "finetune", ctx.gpu,
+        finetune_mode=ctx.arm.finetune_mode,
+        log_path=rd / "logs" / "finetune.log", runner=run)
+    st.mark("finetune", arm=ctx.arm.name, teacher=ctx.arm.teacher,
+            star=str(ctx.teacher_star(rd)), **result)
 
 
 def step_promote(n, st, rd, ctx: Run):

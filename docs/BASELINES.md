@@ -8,8 +8,9 @@ measured against the CryoPPP annotations.
 STAR files, so a comparison run needs the picks alone:
 
 ```bash
-bash scripts/01_download_data.sh --intermediates --picks
-bash scripts/07_reconstruct.sh --entry 10081 --condition cryolo
+bash scripts/download.sh   # scripts/download/09_picker_candidates.sh is the picks
+bash scripts/2d_classification.sh --entry 10081 --star $RAPICK_WORK/picks/10081/cryolo.star
+bash scripts/reconstruct.sh       --entry 10081 --name cryolo
 ```
 
 Install them only to re-derive the picks.
@@ -38,7 +39,7 @@ That is why the paper builds on it.
 
 ## Installing them anyway
 
-`scripts/00_setup.sh --baselines` clones each upstream at the commit `repos.lock.yaml`
+`scripts/setup.sh --baselines` clones each upstream at the commit `repos.lock.yaml`
 pins; the environments build from the lockfiles in `envs/`. No upstream code is
 redistributed here.
 

@@ -7,9 +7,9 @@ usage() {
 Fetch the pinned upstream code and build the per-stage environments.
 
 Usage:
-  bash scripts/00_setup.sh                 pipeline only
-  bash scripts/00_setup.sh --baselines     also crYOLO, Topaz and CryoSegNet
-  bash scripts/00_setup.sh --skip-envs     clone and overlay, build nothing
+  bash scripts/setup.sh                 pipeline only
+  bash scripts/setup.sh --baselines     also crYOLO, Topaz and CryoSegNet
+  bash scripts/setup.sh --skip-envs     clone and overlay, build nothing
 
 Every pin comes from repos.lock.yaml, which is the single source of truth.
 HELP
@@ -200,7 +200,7 @@ build_env() {  # build_env <name>
 }
 
 echo "==> Building environments"
-for env_name in cryotransformer micrograph_cleaner cryosift recon figures; do
+for env_name in cryotransformer micrograph_cleaner cryosift recon; do
   build_env "$env_name"
 done
 
@@ -214,4 +214,4 @@ fi
 echo
 echo "Done. Next:"
 echo "  cp .env.example .env      and fill in your CryoSPARC credentials"
-echo "  bash scripts/01_download_data.sh --dry-run"
+echo "  bash scripts/download.sh"

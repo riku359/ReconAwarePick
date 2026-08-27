@@ -79,7 +79,7 @@ difference is visible in one place:
 ### Setup
 
 The **pretrained weights ship inside the Magellon checkout**, so there is no separate
-weights download — the sparse clone is the whole of it. `scripts/00_setup.sh` fetches
+weights download — the sparse clone is the whole of it. `scripts/setup.sh` fetches
 the repository's upstream checkouts; by hand it is:
 
 ```bash

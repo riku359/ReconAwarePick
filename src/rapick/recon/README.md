@@ -1,6 +1,6 @@
 # `rapick.recon` — the CryoSPARC v4.7 job chain
 
-Section S1 of the paper. A config-driven driver that takes one condition's picks (a
+Section S1 of the paper. A config-driven driver that takes one arm's picks (a
 GT-aligned STAR) plus a micrograph set and runs CryoSPARC job by job, recording what it
 did. It is what turns a set of coordinates into the resolution numbers in Table 2, the
 Table 4 ablation, the particle counts of Table 5, Table 8, and the maps behind Fig. 3,
@@ -8,29 +8,30 @@ Fig. S6 and Fig. S7.
 
 Nothing about *what* runs is in the Python. Job types, port names and default params are
 in [`configs/cryosparc_v47.yaml`](../../../configs/cryosparc_v47.yaml); the micrographs,
-optics and picks are in [`configs/datasets/`](../../../configs/datasets/); the per-condition
-flags are in [`configs/conditions/`](../../../configs/conditions/); credentials and the
-project uid are in the repository-root `.env`.
+optics and picks are in [`configs/datasets/`](../../../configs/datasets/); the class_2D
+and reconstruction parameters are in [`configs/recon.yaml`](../../../configs/recon.yaml),
+one file shared by every arm; credentials and the project uid are in the
+repository-root `.env`.
 
 **CryoSPARC v4.7.x is required and this repository does not install it.** See
 [docs/CRYOSPARC.md](../../../docs/CRYOSPARC.md).
 
 ## The job chain
 
-One chain per condition. Import Micrographs and Patch CTF are created once per
-(entry, scale) and reused by every condition of that entry, so all conditions are
+One chain per arm. Import Micrographs and Patch CTF are created once per
+(entry, scale) and reused by every arm of that entry, so all arms are
 compared over identical CTF estimates.
 
 1. **`import_micrographs`** — the micrograph glob plus the entry's optics
    (`psize_A`, `accel_kv`, `cs_mm`, dose). *Shared.* CPU.
 2. **`patch_ctf_estimation_multi`** — per-micrograph CTF. *Shared.* GPU.
-3. **`import_particles`** — the condition's STAR, coordinates only (`ignore_blob`),
+3. **`import_particles`** — the arm's STAR, coordinates only (`ignore_blob`),
    connected to the imported micrographs. Y is flipped to `ny - Y` first (see
    `coords.py`). CPU.
 4. **`extract_micrographs_multi`** — cut `box_size_pix` boxes out of the CTF'd
    micrographs. GPU.
 5. **`class_2D`** — K = 50, 20 full iterations, one seed. GPU.
-   *Conditions with 2D class selection stop here and hand off to
+   *Arms with 2D class selection stop here and hand off to
    [`src/rapick/select2d/`](../select2d/), then reconstruct from its final Select 2D
    Classes job.*
 6. **`homo_abinit` x 3** — ab-initio, forked over seeds 0, 1, 2. GPU.
@@ -59,47 +60,49 @@ was locked under and declares no packages of its own.
 
 ## CLI
 
-Four subcommands. All take `--condition`, `--dataset` and `--setting`; the CryoSPARC
-project comes from `CRYOSPARC_PROJECT` in `.env` and the worker lane from
-`CRYOSPARC_WORKER`, so neither appears on the command line or in a config file.
+Four subcommands. All take `--dataset` and `--setting`, and `--condition` defaults to
+`configs/recon.yaml`; the CryoSPARC project comes from `CRYOSPARC_PROJECT` in `.env` and
+the worker lane from `CRYOSPARC_WORKER`, so neither appears on the command line or in a
+config file. `scripts/` drives all four; these are what it runs.
 
 | command | what it does |
 | --- | --- |
-| `check-setup` | preflight, read-only: connection, project access, micrograph health, and that no two conditions share a STAR file. Never creates a job. |
+| `check-setup` | preflight, read-only: connection, project access, micrograph health, and that no two arms share a STAR file. Never creates a job. |
 | `prepare` | get or create the workspace for this (entry, scale). Its title is `<empiar id>_<setting>`. |
-| `run` | run one condition's whole chain, from `import_particles` through `local_resolution`. Resumable. |
+| `run` | run one arm's whole chain, from `import_particles` through `local_resolution`. Resumable. |
 | `collect` | rebuild `metrics.json` and the derived CSVs from jobs that already finished. Re-runs nothing. |
 
 ```bash
+STAR=$RAPICK_WORK/picks/10081/cryotransformer_mask.star
+
 rapick-recon check-setup \
-  --condition configs/conditions/both.yaml \
-  --dataset   configs/datasets/empiar_10081.yaml \
-  --setting   full
+  --dataset configs/datasets/empiar_10081.yaml --setting full \
+  --source  cryotransformer_mask --star "$STAR"
 
 rapick-recon run \
-  --condition configs/conditions/both.yaml \
-  --dataset   configs/datasets/empiar_10081.yaml \
-  --setting   full --seeds 0,1,2
+  --dataset configs/datasets/empiar_10081.yaml --setting full \
+  --source  cryotransformer_mask --star "$STAR" --seeds 0,1,2
 
 rapick-recon collect \
-  --condition configs/conditions/both.yaml \
-  --dataset   configs/datasets/empiar_10081.yaml \
-  --setting   full
+  --dataset configs/datasets/empiar_10081.yaml --setting full \
+  --source  cryotransformer_mask
 ```
 
 `--setting` is `annot` (the 300 CryoPPP-annotated micrographs) or `full` (the whole
 deposition). Every reconstruction-level result of the paper uses `full`; `annot` exists
-for the `gt` condition, whose annotations cover only those 300.
+for the `gt` arm, whose annotations cover only those 300.
 
 Other useful flags on `run`:
 
 | flag | |
 | --- | --- |
 | `--seeds 0,1,2` | which seeds to fork ab-initio and refinement over. **Pass it every time** — the default is a single seed, deliberately, so that a one-seed run is never accidental. |
-| `--source NAME` | which picks in the dataset config to run. Defaults to the condition's own name, which is how the dataset configs key them. |
+| `--source NAME` | the name this run is recorded under, and the key the dataset config declares its STAR by. |
+| `--star PATH` | that STAR, when the dataset config does not name it. Declared for the length of the run; nothing is written back to the config. |
+| `--no-local-res` | skip the local-resolution estimate on the best-of-3 winner. |
 | `--gpus 0` | pin GPU jobs to these cards. Without it, each GPU job picks a physically-free card at queue time. |
 | `--extract-gpus N` | fan the I/O-bound extract step over up to N free cards. |
-| `--micrographs` / `--star` | override the dataset config for a fast smoke run. |
+| `--micrographs` | override the micrograph glob for a fast smoke run. |
 | `--force` | proceed past a failed preflight. Read the failure first. |
 | `--project` / `--worker` | override `CRYOSPARC_PROJECT` / `CRYOSPARC_WORKER` for one run. |
 
@@ -109,8 +112,8 @@ Under `$RAPICK_WORK` (see [docs/CONFIGURATION.md](../../../docs/CONFIGURATION.md
 
 ```
 $RAPICK_WORK/empiar_<id>/<setting>/
-├── _shared/manifest.json          import_micrographs + patch_ctf, reused by every condition
-└── <condition>/
+├── _shared/manifest.json          import_micrographs + patch_ctf, reused by every arm
+└── <name>/
     ├── manifest.json              which CryoSPARC jobs ran, per seed, with input hashes
     ├── metrics.json               resolution, particle counts, best seed, map references
     ├── normalized.star            the Y-flipped STAR that was imported
@@ -165,7 +168,7 @@ confounded. `collect` records the used/unused split so the clamp is visible in
 **Run three seeds.** The paper's protocol (Sec. 4.2) runs the reconstruction three
 times with different random seeds and reports the best of the three by GSFSC 0.143, so a
 single-seed run reproduces something the paper does not report. `--seeds` must be passed
-explicitly on every `run` and `collect`; the `reconstruction.seeds` block in a condition
+explicitly on every `run` and `collect`; the `reconstruction.seeds` block in the recon
 YAML is documentation, not enforced config. If an ab-initio dies and you retry, say which seeds
 were actually used — do not report a best-of-2 as a best-of-3.
 
@@ -181,9 +184,9 @@ GPU utilisation.
 
 ```
 cli.py            check-setup / prepare / run / collect
-config.py         profile + condition + dataset + .env -> ResolvedConfig, with ${VAR} expansion
+config.py         profile + recon + dataset + .env -> ResolvedConfig, with ${VAR} expansion
 api.py            the only module that talks to cryosparc-tools
-pipeline.py       condition branching, best-of-N, resume
+pipeline.py       the chain, best-of-N, resume
 manifest.py       the experiment record, and safe reuse
 artifacts.py      collect: job outputs -> metrics.json and derived CSVs
 coords.py         Y flip and micrograph-header reading, before import
@@ -206,7 +209,7 @@ case where a small, independently verified micrograph loss is acceptable:
 unset unless you have checked what was lost.
 
 `jobs/rebalance_orientations.py` wires CryoSPARC's Rebalance Orientations job but is not
-used by any condition of the paper, is not exported from `jobs/__init__.py`, and the
+used by any arm of the paper, is not exported from `jobs/__init__.py`, and the
 shipped profile declares no `rebalance_orient` step — add one before calling it.
 `jobs/junk_detector.py` is likewise unused: contamination removal in this paper is the
 MicrographCleaner mask of [`src/rapick/cleaner/`](../cleaner/), applied to the picks

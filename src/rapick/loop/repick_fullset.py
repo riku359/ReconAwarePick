@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Re-pick a whole deposition with a loop checkpoint, and publish it as a condition's picks.
+"""Re-pick a whole deposition with a loop checkpoint, and publish the result as picks.
 
 The loop trains on 300 micrographs and reconstructs nothing: at that scale a
 reconstruction does not resolve one round from the next (Sec. 4.3). Every
@@ -9,11 +9,11 @@ checkpoint the loop produced.
 
   1. pick the whole deposition with the checkpoint, at the loop's operating point
   2. discard the picks whose centre lands on contamination, per the stored masks
-  3. publish the result as $RAPICK_WORK/picks/<id>/<condition>.star
+  3. publish the result as $RAPICK_WORK/picks/<id>/<name>.star
 
-Step 3 is the handoff. That path is what the dataset configs name, so once it exists the
-reconstruction is `rapick.recon`'s ordinary business under `configs/conditions/fb.yaml` --
-nothing about it is specific to a checkpoint any more. The command is printed at the end.
+Step 3 is the handoff. Past it, the checkpoint does not matter to anything: the STAR goes
+through scripts/2d_classification.sh, scripts/select2d.sh and scripts/reconstruct.sh like
+any other. Those commands are printed at the end.
 
   python -m rapick.loop.repick_fullset --id 10081 \\
       --model "$RAPICK_WORK/loop/10081/models/model_1.pth"
@@ -32,13 +32,15 @@ from typing import Optional
 
 from . import entries, paths, star
 from .common import LOCK_DIR, State, acquire_lock, log, run
-from .run_loop import CLEAN_STAR, FILTER_SUMMARY, MASK_SUFFIX, PICK_ARGS, STAR_PREFIX
+from .run_loop import (FILTER_STAR, FILTER_SUMMARY, MASK_SUFFIX, MASKED_STAR,
+                       PICKS_STAR, PICK_ARGS, STAR_PREFIX)
 
 STEPS = ("pick", "filter", "publish")
 
-# The condition whose picks a loop checkpoint produces. It is the paper's method, and the
-# dataset configs declare its STAR at $RAPICK_WORK/picks/<id>/fb.star.
-DEFAULT_CONDITION = "fb"
+# What a loop checkpoint's picks are published as. The picks have been through the
+# contamination stage by then, so the name says so, and the dataset configs declare that
+# STAR at $RAPICK_WORK/picks/<id>/fb_mask.star.
+DEFAULT_CONDITION = "fb_mask"
 
 
 def work_dir(empiar: str, condition: str) -> Path:
@@ -103,7 +105,7 @@ def step_pick(st, td, args, entry):
                 f"EMPIAR_{entry.empiar}_remarks_{args.condition}_star_file.star")
     if not produced.is_file():
         raise RuntimeError(f"combined star missing: {produced}")
-    picks = td / "picks.star"
+    picks = td / PICKS_STAR
     shutil.copyfile(produced, picks)
 
     # An inference that died partway still leaves a valid STAR of the micrographs it did
@@ -133,10 +135,12 @@ def step_filter(st, td, args, entry):
     if not mask_dir.is_dir():
         raise RuntimeError(f"no stored masks for {entry.empiar} at {mask_dir}")
     run(paths.tool_cmd("mask_filter") +
-        ["--star", str(td / "picks.star"), "--mask-dir", str(mask_dir),
+        ["--star", str(td / PICKS_STAR), "--mask-dir", str(mask_dir),
          "--empiar-id", entry.empiar, "--out-dir", str(td),
          "--star-prefix", STAR_PREFIX, "--suffix", MASK_SUFFIX, "--overwrite"],
         cwd=paths.tool_cwd("mask_filter"), log_path=td / "logs" / "filter.log")
+    # Same rename the loop does: the filter's own output name never leaves this step.
+    (td / FILTER_STAR).replace(td / MASKED_STAR)
     summary = json.loads((td / FILTER_SUMMARY).read_text())
     log(f"filter: kept {summary['picks_kept']:,} of {summary['picks_total']:,} "
         f"({summary['removed_fraction']:.2%} removed)")
@@ -150,25 +154,21 @@ def step_publish(st, td, args, entry):
     """Copy the filtered picks to where the dataset configs say this condition's live."""
     out = paths.picks_star(entry.empiar, args.condition)
     out.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(td / CLEAN_STAR, out)
+    shutil.copyfile(td / MASKED_STAR, out)
     n = star.count_star_particles(out)
     log(f"publish: {n:,} picks -> {out}")
     st.mark("publish", star=str(out), n_picks=n,
             checkpoint=st.get("pick", "checkpoint"))
 
-    dataset = paths.REPO_ROOT / "configs" / "datasets" / f"empiar_{entry.empiar}.yaml"
-    condition = paths.REPO_ROOT / "configs" / "conditions" / f"{args.condition}.yaml"
     log("")
-    log("Reconstruct it with the reconstruction stage; nothing below is specific to the")
-    log("checkpoint any more:")
+    log("Nothing below is specific to the checkpoint any more. Classify it, select on")
+    log("it, and reconstruct what the selection kept:")
     log("")
-    log(f"  PYTHONPATH=src {paths.recon_python()} -m rapick.recon.cli run \\")
-    log(f"      --condition {condition} \\")
-    log(f"      --dataset {dataset} \\")
-    log(f"      --setting {entries.SETTING_FULL} --seeds 0,1,2")
-    log("")
-    log("  # then build the 2D class selection over that class_2D with")
-    log("  # src/rapick/select2d/, reconstruct from its final select_2D, and collect.")
+    log(f"  bash scripts/2d_classification.sh --entry {entry.empiar} \\")
+    log(f"      --setting {entries.SETTING_FULL} --star {out}")
+    log(f"  bash scripts/select2d.sh --entry {entry.empiar} --class2d J<n>")
+    log(f"  bash scripts/reconstruct.sh --entry {entry.empiar} \\")
+    log(f"      --setting {entries.SETTING_FULL} --parent {args.condition} --name fb")
     log("")
     log("Best-of-3, and say which seeds: when an ab-initio job dies with a SIGSEGV, retry")
     log("the same seed at most twice and then advance the seed number (--seeds 0,1,3).")
