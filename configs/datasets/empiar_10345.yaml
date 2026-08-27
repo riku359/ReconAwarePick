@@ -94,6 +94,12 @@ settings:
         star: "${RAPICK_WORK}/picks/10345/fb.star"
         import_params: {}
         y_flip: true
+      # The same, but from the checkpoint fine-tuned on the CryoPPP annotations instead
+      # of on the surviving picks. The perfect-teacher upper bound of Table 7's lower row.
+      fb_gt:
+        star: "${RAPICK_WORK}/picks/10345/fb_gt.star"
+        import_params: {}
+        y_flip: true
       # The three comparison pickers, raw picks, no purification (Table 2).
       cryolo:
         star: "${RAPICK_WORK}/picks/10345/cryolo.star"

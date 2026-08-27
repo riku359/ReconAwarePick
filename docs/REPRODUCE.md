@@ -42,10 +42,18 @@ for c in baseline mask select both fb; do
 done
 ```
 
-`select`, `both` and `fb` need their CryoSift selection built first
-(`scripts/05_select2d.sh`), and `fb` needs the round-1 checkpoint
-(`scripts/06_loop.sh`). Each run writes
-`$RAPICK_WORK/empiar_<id>/full/<condition>/metrics.json`.
+`select`, `both` and `fb` take their particles from a 2D class selection rather
+than from a STAR of their own, so their chain starts one step lower, at an
+existing Select 2D Classes job. Build that selection first with
+`scripts/05_select2d.sh`; `scripts/07_reconstruct.sh` then finds the job in the
+state.json it wrote and hands it to the driver that can start there. `fb` also
+needs the round-1 checkpoint, from `scripts/06_loop.sh`.
+
+Each run writes `$RAPICK_WORK/empiar_<id>/full/<condition>/metrics.json`.
+Collection is not optional and not automatic for the from-selection conditions:
+`scripts/07_reconstruct.sh` runs it, but a hand-driven
+`rapick-recon reconstruct-from-selection` leaves a manifest and no `metrics.json`
+until you call `rapick-recon collect` yourself.
 
 For the three comparison pickers, see [BASELINES.md](BASELINES.md): their picks
 are published, so `--condition cryolo|topaz|cryosegnet` reconstructs without
@@ -87,9 +95,20 @@ The `fb` row is the run above. The second row replaces the teacher with the
 CryoPPP annotations of the same 50 micrographs, holding everything else fixed:
 
 ```bash
-bash scripts/06_loop.sh --entry 10081 --rounds 1 --teacher gt
+bash scripts/06_loop.sh --entry 10081 --rounds 0 --teacher gt
+bash scripts/03_pick.sh --entry 10081 --checkpoint $RAPICK_WORK/loop/10081_fb_gt/round0/model.pth
+bash scripts/04_mask.sh --entry 10081 --out-name fb_gt
+bash scripts/05_select2d.sh --entry 10081 --condition fb_gt
 bash scripts/07_reconstruct.sh --entry 10081 --condition fb_gt
 ```
+
+`--teacher gt` writes into its own arm, so it never overwrites the `fb` run it is
+read against. **This path has not been run end to end in this form.** The scripts
+that produced the published row lived on a lab server and were never committed;
+`src/rapick/loop/make_gt_teacher.py` reimplements the procedure they are documented
+to have followed, which is to restrict the entry's ground-truth STAR to the
+micrographs of that round's training set and hand it to the fine-tune in place of
+the surviving picks.
 
 ### Table 8, the same selection on CryoSegNet
 

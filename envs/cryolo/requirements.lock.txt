@@ -1,0 +1,93 @@
+absl-py==2.3.1
+ansi2html==1.9.2
+astor==0.8.1
+astunparse==1.6.3
+Brotli @ file:///home/conda/feedstock_root/build_artifacts/brotli-split_1695989787169/work
+certifi @ file:///home/conda/feedstock_root/build_artifacts/certifi_1725278078093/work/certifi
+cffi @ file:///home/conda/feedstock_root/build_artifacts/cffi_1723018376978/work
+charset-normalizer @ file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1728479282467/work
+cloudpickle==3.1.2
+colored==1.4.4
+cryolo==1.9.9
+cryoloBM==1.6.1
+cycler==0.12.1
+Cython==3.2.6
+eulerangles==1.0.2
+gast==0.3.3
+GooeyDev==1.0.8b5
+google-pasta==0.2.0
+grpcio==1.70.0
+h2 @ file:///home/conda/feedstock_root/build_artifacts/h2_1634280454336/work
+h5py==2.10.0
+hpack==4.0.0
+hyperframe @ file:///home/conda/feedstock_root/build_artifacts/hyperframe_1619110129307/work
+idna @ file:///home/conda/feedstock_root/build_artifacts/idna_1726459485162/work
+imageio==2.15.0
+janni==0.3.1
+joblib==1.4.2
+Keras==2.3.1
+Keras-Applications==1.0.8
+Keras-Preprocessing==1.1.2
+kiwisolver==1.4.7
+lineenhancer==1.0.9.dev2
+looseversion==1.3.0
+matplotlib==3.4.3
+mrcfile==1.5.4
+networkx==3.1
+numpy @ file:///home/conda/feedstock_root/build_artifacts/numpy_1591485221441/work
+nvidia-cublas-cu116==11.9.2.110
+nvidia-cuda-cupti-cu116==11.6.124
+nvidia-cuda-nvcc-cu116==11.6.124
+nvidia-cuda-runtime-cu116==11.6.55
+nvidia-cudnn-cu115==8.3.3.40
+nvidia-cufft-cu116==10.7.2.124
+nvidia-curand-cu116==10.2.9.124
+nvidia-cusolver-cu116==11.3.4.124
+nvidia-cusparse-cu116==11.7.2.124
+nvidia-dali-cuda110==1.10.0
+nvidia-dali-nvtf-plugin==1.10.0+nv22.2
+nvidia-horovod==0.23.0+nv22.2
+nvidia-nccl-cu116==2.12.12
+nvidia-pyindex==1.0.9
+nvidia-tensorflow==1.15.5+nv22.2
+opt_einsum==3.4.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1777103621/work
+pandas==1.1.4
+pathlib2 @ file:///home/conda/feedstock_root/build_artifacts/pathlib2_1695464064276/work
+Pillow @ file:///home/conda/feedstock_root/build_artifacts/pillow_1675487152289/work
+ply @ file:///home/conda/feedstock_root/build_artifacts/ply_1712242996588/work
+protobuf==3.20.0
+psutil==7.2.2
+pycparser @ file:///home/conda/feedstock_root/build_artifacts/pycparser_1711811537435/work
+pygtrie==2.5.0
+pyparsing==3.1.4
+Pypubsub @ file:///home/conda/feedstock_root/build_artifacts/pypubsub_1730399716160/work
+PyQt5==5.15.7
+PyQt5-sip==12.11.0
+PySocks @ file:///home/conda/feedstock_root/build_artifacts/pysocks_1661604839144/work
+pyStarDB==0.3.1
+python-dateutil==2.9.0.post0
+pytz==2026.2
+PyWavelets==1.4.1
+PyYAML==6.0.3
+requests @ file:///home/conda/feedstock_root/build_artifacts/requests_1717057054362/work
+scikit-image==0.19.3
+scikit-learn==0.23.2
+scipy==1.9.3
+sip @ file:///home/conda/feedstock_root/build_artifacts/sip_1697300436403/work
+six @ file:///home/conda/feedstock_root/build_artifacts/six_1620240208055/work
+tensorboard==1.15.0
+tensorflow-estimator==1.15.1
+termcolor==2.4.0
+terminaltables==3.1.10
+threadpoolctl==3.5.0
+tifffile==2020.9.3
+toml @ file:///home/conda/feedstock_root/build_artifacts/toml_1604308577558/work
+tomli @ file:///home/conda/feedstock_root/build_artifacts/tomli_1727974628237/work
+tqdm==4.68.3
+trackpy==0.7
+urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1726496430923/work
+watchdog==4.0.2
+wrapt==2.0.1
+wxPython==4.1.1
+zstandard @ file:///home/conda/feedstock_root/build_artifacts/zstandard_1667296101734/work

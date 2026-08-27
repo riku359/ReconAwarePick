@@ -1,0 +1,18 @@
+[project]
+name = "rapick-cryolo-env"
+version = "0.0.0"
+description = "Attempted independent uv environment for crYOLO. See README.md: expected BLOCKER (custom NVIDIA TensorFlow 1.15 + conda-only GUI deps)."
+# crYOLO (PyPI 'cryolo' 1.9.9) declares requires_python <3.9,>=3.5.0.
+# Max usable interpreter is 3.8.
+requires-python = ">=3.8,<3.9"
+dependencies = [
+    # CUDA 11 build per readthedocs: pip install 'cryolo[c11]'
+    # This pulls a custom NVIDIA TensorFlow 1.15 (nvidia-tensorflow) reachable
+    # only via the NVIDIA PyPI index (normally added by `pip install nvidia-pyindex`).
+    "cryolo[c11]",
+]
+
+[[tool.uv.index]]
+# Equivalent of `nvidia-pyindex` (adds NVIDIA's package index for nvidia-tensorflow).
+name = "nvidia"
+url = "https://pypi.nvidia.com"

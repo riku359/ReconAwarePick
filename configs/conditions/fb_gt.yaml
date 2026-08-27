@@ -1,0 +1,91 @@
+# Condition `fb_gt` — the perfect-teacher upper bound.
+#
+# Produces: the `CryoPPP annotations` row of Table 7.
+#
+# The same round as `fb`, with one thing changed: the teacher labels are the CryoPPP
+# annotations of the same 50 micrographs instead of the particles that survived
+# purification. Everything else is held fixed, so the comparison against `fb` separates
+# the quality of the pseudo-labels from the design of the loop. It answers what a perfect
+# teacher would buy, which makes it an upper bound rather than a feedback loop, and it is
+# run for round 0 only.
+#
+# The paper's finding is that this changes the final resolution very little, so what
+# bounds the loop is the direction of its decision, not the quality of its labels: both
+# purification stages can only discard, and the loop teaches the picker to stop proposing
+# what they would have removed anyway.
+#
+# NOT VERIFIED IN THIS FORM. The scripts that produced Table 7's lower row lived on a lab
+# server and were never committed. `src/rapick/loop/make_gt_teacher.py` and the
+# `--teacher gt` path are a reimplementation of the procedure those scripts are documented
+# to have followed, and they have not been run end to end here.
+#
+# 1. One round with the ground truth as the teacher. This writes into its own arm, so it
+#    never overwrites the `fb` run it is read against:
+#      bash scripts/06_loop.sh --entry 10081 --rounds 0 --teacher gt
+#
+# 2. Re-pick the full set with the resulting checkpoint, then mask and select as usual:
+#      bash scripts/03_pick.sh --entry 10081 --checkpoint $RAPICK_WORK/loop/10081_fb_gt/round0/model.pth
+#      bash scripts/04_mask.sh --entry 10081 --out-name fb_gt
+#      bash scripts/05_select2d.sh --entry 10081 --condition fb_gt
+#
+# 3. Reconstruct from the selection and collect, exactly as for `fb`:
+#      rapick-recon reconstruct-from-selection --entry 10081 --select2d J<n> \
+#        --condition fb_gt --parent fb_gt --setting full --seeds 0,1,2
+#      rapick-recon collect --condition configs/conditions/fb_gt.yaml \
+#        --dataset configs/datasets/empiar_10081.yaml --setting full
+
+name: fb_gt
+
+# Where the particles come from.
+picks:
+  star: fb_gt                   # key under settings.<setting>.sources in the dataset config:
+                                # the GT-teacher checkpoint's candidates, after the
+                                # contamination mask
+  contamination_mask: true
+  class_selection_2d: true
+  starts_at: select_2D
+  reuses: fb_gt                 # like `fb`, this condition imports, extracts and classifies
+                                # its OWN stack under this same name, and only the
+                                # reconstruction starts at the CryoSift selection of that
+                                # class_2D, so `reuses` points at itself
+  # The teacher is the CryoPPP annotations restricted to the 50 micrographs of the round's
+  # training set, not the surviving picks. The fine-tune itself is identical to `fb`:
+  # every weight except the first residual stage of the backbone, 50 epochs, starting from
+  # theta_0.
+
+pipeline:
+
+  class2d:
+    class2D_K: 50                 # 50 classes, the same K in every condition and in the
+    class2D_num_full_iter: 20     # CryoSift cycles, so the stacks stay comparable
+
+  select2d:
+    # The particles are pre-selected. The chain reconstructs the FINAL Select 2D Classes
+    # job of CryoSift's iterative workflow (src/rapick/select2d/iterate_class2d.py), which
+    # sits several select_2D/class_2D hops above the class_2D named in `picks.reuses` --
+    # not directly off it. `rapick-recon run` cannot create that job; run
+    # src/rapick/select2d/ first, then reconstruct from its select_2D.
+    enabled: true
+
+  reconstruction:
+    # Best-of-3. A SINGLE-SEED RESOLUTION IS NOT TRUSTWORTHY: the seed-to-seed spread can
+    # exceed the effect being measured, and how large it is depends on the entry (measured
+    # spreads in this project range from 0.011 A to 2.073 A). Three seeds is the floor,
+    # not a luxury. `--seeds 0,1,2` must be passed explicitly on every run and collect --
+    # this block is documentation, not enforced config, so a single-seed run is always a
+    # deliberate choice rather than a silent default.
+    #
+    # Table 7 prints this row's best-of-three only. No source records its per-seed values
+    # or its refinement job uids, so results/tables/teacher_quality.json leaves those null
+    # for this row where it fills them in for `fb`.
+    seeds: [0, 1, 2]
+    choose_best_by: res_gsfsc_0143
+
+  local_resolution:
+    enabled: false         # Table 7 needs the GSFSC number only; this row draws no Fig. 3 panel
+
+artifacts:
+  particle_counts: true
+  ctf_summary: true
+  gsfsc: true
+  mirror_final_maps: false        # the CryoSPARC job directory stays the source of truth

@@ -2,13 +2,26 @@
 #
 # Produces: the `cryosegnet_both` column of Table 8.
 #
-# THIS CONDITION IS NOT STARTED BY `rapick-recon run`. Its particles come from an
-# existing Select 2D Classes job, so import / extract / class_2D have nothing to do.
-# Build that selection first with src/rapick/select2d/ over the class_2D of
-# `cryosegnet` (the same mask and the same selection settings as `both`), then reconstruct from it (ab-initio x3 -> refine x3 -> best-of-3 ->
-# local resolution) and collect:
-#   rapick-recon collect --condition configs/conditions/cryosegnet_both.yaml \
-#     --dataset configs/datasets/empiar_10081.yaml --setting full
+# Its particles come from a 2D class selection rather than from a STAR of its own, so
+# `rapick-recon run` cannot start it: that command wires class_2D's accepted particles
+# straight into ab-initio, with nowhere to inject a selection. Use the driver that starts
+# one step lower.
+#
+# 1. Build the selection over `cryosegnet`'s class_2D:
+#      bash scripts/05_select2d.sh --entry 10081 --condition cryosegnet_both
+#    and read the final Select 2D Classes uid out of the state.json it names.
+#
+# 2. Reconstruct from that selection (ab-initio x3 -> refine x3 -> best-of-3 ->
+#    local resolution):
+#      rapick-recon reconstruct-from-selection --entry 10081 --select2d J<n> \
+#        --condition cryosegnet_both --parent cryosegnet --setting full --seeds 0,1,2
+#
+# 3. Collect. The driver does NOT do this for you, and without it the arm ends up
+#    with a manifest and no metrics.json:
+#      rapick-recon collect --condition configs/conditions/cryosegnet_both.yaml \
+#        --dataset configs/datasets/empiar_10081.yaml --setting full
+#
+# `scripts/07_reconstruct.sh --entry 10081 --condition cryosegnet_both` runs all three.
 
 name: cryosegnet_both
 

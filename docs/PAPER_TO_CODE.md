@@ -24,7 +24,7 @@ Three further conditions exist for the comparisons:
 | `cryolo`, `topaz`, `cryosegnet` | the other three pickers, raw picks, no purification (Table 2) |
 | `cryosegnet_both` | CryoSegNet's candidates through the same mask and 2D selection (Table 8) |
 | `gt` | a reconstruction from the CryoPPP annotations of the 300 annotated micrographs (Fig. S6, Fig. S7) |
-| `fb_gt` | one round of the loop with the CryoPPP annotations as the teacher (Table 7, lower row) |
+| `fb_gt` | one round of the loop with the CryoPPP annotations as the teacher (Table 7, lower row). The scripts that produced the published row were never committed, so this path is a reimplementation of their documented procedure and has not been run end to end here. |
 
 `<setting>` is `annot` (the 300 CryoPPP-annotated micrographs, used by the loop
 and by every 2D metric) or `full` (the whole deposition, used by every
@@ -102,3 +102,7 @@ Stated plainly, because a reader will otherwise spend time on it.
 - **Anything requiring the original CryoSPARC projects.** Job uids quoted in the
   manuscript's notes refer to the authors' instance. A fresh run produces the same
   chain with different uids.
+- **The lower row of Table 7.** The two scripts that built its GT teacher and ran
+  its fine-tune lived on a lab server and were never committed. `--teacher gt` and
+  `src/rapick/loop/make_gt_teacher.py` reimplement what those scripts are
+  documented to have done, and have not been run end to end in this form.

@@ -1,0 +1,33 @@
+[project]
+name = "rapick-cryosegnet-env"
+version = "0.0.0"
+description = "Independent uv environment for the CryoSegNet cryo-EM particle picker. Upstream is script-based (run from ../../cryosegnet); this project only provides the dependency closure."
+requires-python = ">=3.8,<3.9"
+dependencies = [
+    # Pinned from upstream environment.yml. torch/torchvision use cu118 wheels
+    # (compatible with host driver 535.230.02 / CUDA 12.2 and RTX 3090 sm_86).
+    "torch==2.0.1",
+    "torchvision==0.15.2",
+    "numpy==1.24.3",
+    "networkx==3.1",
+    "pillow==9.4.0",
+    "scipy==1.9.1",
+    "matplotlib==3.5.2",
+    "opencv-python==4.7.0.72",
+    "mrcfile==1.4.3",
+    "pandas==2.0.3",
+    "tqdm==4.64.1",
+    "segment-anything==1.0",
+    # Training/logging deps from environment.yml (not needed for prediction,
+    # kept for fidelity to upstream env).
+    "wandb==0.13.10",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu118" }
+torchvision = { index = "pytorch-cu118" }
+
+[[tool.uv.index]]
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true

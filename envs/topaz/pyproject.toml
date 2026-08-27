@@ -1,0 +1,29 @@
+[project]
+name = "rapick-topaz-env"
+version = "0.0.0"
+description = "Independent uv environment for the Topaz cryo-EM particle picker (upstream installed editable from ../../topaz)."
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    # Upstream Topaz package, installed editable from the pinned local clone.
+    # Its own dependencies (tqdm, h5py, numpy, pandas, psutil, scikit-learn,
+    # scipy, pillow, future, torch, torchvision) come from requirements.txt.
+    "topaz-em",
+    # torch/torchvision are unpinned upstream (torch>=1.0.0). We pin a CUDA 11.8
+    # build that is compatible with the host driver (535.230.02 / CUDA 12.2) and
+    # the RTX 3090 (Ampere, sm_86). cu118 wheels run fine under a 12.2 driver.
+    "torch==2.0.1",
+    "torchvision==0.15.2",
+    # numpy is unpinned upstream (numpy>=1.11); cap below 2.0 because torch 2.0.1
+    # was built against numpy 1.x (numpy 2.x triggers ABI errors at import).
+    "numpy<2",
+]
+
+[tool.uv.sources]
+topaz-em = { path = "../../topaz", editable = true }
+torch = { index = "pytorch-cu118" }
+torchvision = { index = "pytorch-cu118" }
+
+[[tool.uv.index]]
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true

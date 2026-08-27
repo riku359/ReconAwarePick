@@ -2,13 +2,28 @@
 #
 # Produces: Table 2 (Ours), row 5 of the Table 4 ablation, Table 7 and the `fb` column of Table 8.
 #
-# Two stages. First run this condition's own stack up to 2D classification:
-#   rapick-recon run --condition configs/conditions/fb.yaml \
-#     --dataset configs/datasets/empiar_10081.yaml --setting full --seeds 0,1,2
-# Then build the CryoSift selection over that class_2D with src/rapick/select2d/,
-# reconstruct from the selection, and collect:
-#   rapick-recon collect --condition configs/conditions/fb.yaml \
-#     --dataset configs/datasets/empiar_10081.yaml --setting full
+# Its particles come from a 2D class selection rather than from a STAR of its own, so
+# `rapick-recon run` cannot start it: that command wires class_2D's accepted particles
+# straight into ab-initio, with nowhere to inject a selection. Use the driver that starts
+# one step lower.
+# `fb` is its own parent: it imports, extracts and classifies its own stack under that
+# same name first, so run `rapick-recon run` for it before step 1 below.
+#
+# 1. Build the selection over `fb`'s class_2D:
+#      bash scripts/05_select2d.sh --entry 10081 --condition fb
+#    and read the final Select 2D Classes uid out of the state.json it names.
+#
+# 2. Reconstruct from that selection (ab-initio x3 -> refine x3 -> best-of-3 ->
+#    local resolution):
+#      rapick-recon reconstruct-from-selection --entry 10081 --select2d J<n> \
+#        --condition fb --parent fb --setting full --seeds 0,1,2
+#
+# 3. Collect. The driver does NOT do this for you, and without it the arm ends up
+#    with a manifest and no metrics.json:
+#      rapick-recon collect --condition configs/conditions/fb.yaml \
+#        --dataset configs/datasets/empiar_10081.yaml --setting full
+#
+# `scripts/07_reconstruct.sh --entry 10081 --condition fb` runs all three.
 
 name: fb
 

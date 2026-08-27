@@ -9,6 +9,13 @@ lives here.
   rapick-recon run         --condition ... --dataset ... --setting full --seeds 0,1,2
   rapick-recon collect     --condition ... --dataset ... --setting full
 
+A condition whose particles come from a 2D class selection has no chain for `run` to
+start -- `run` wires class_2D's accepted particles straight into ab-initio. Those start
+one step lower, from the Select 2D Classes job that src/rapick/select2d/ produced:
+
+  rapick-recon reconstruct-from-selection --entry 10081 --select2d J212 \
+                           --condition select --parent baseline --setting full --seeds 0,1,2
+
 The CryoSPARC project uid comes from CRYOSPARC_PROJECT in the repository-root .env
 (--project overrides it for a one-off); the worker lane comes from CRYOSPARC_WORKER
 (--worker overrides it). Neither is ever baked into a config file.
@@ -176,6 +183,11 @@ def _cmd_run(args) -> int:
     return 0
 
 
+def _cmd_reconstruct_from_selection(args) -> int:
+    from . import reconstruct_from_selection
+    return reconstruct_from_selection.run(args)
+
+
 def _cmd_collect(args) -> int:
     from .api import CryoSPARCApi
     from . import artifacts, manifest as mf
@@ -243,6 +255,17 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument("--force", action="store_true",
                     help="run even if preflight (micrograph health / star distinctness) fails")
     pr.set_defaults(func=_cmd_run)
+
+    # Conditions whose particles come from a 2D class selection cannot be started by
+    # `run`, which wires class_2D's accepted particles straight into ab-initio. This
+    # subcommand starts one step lower, from an existing select_2D job; it declares its
+    # own flags (the module documents them) and does not collect afterwards.
+    from .reconstruct_from_selection import add_arguments as _add_from_selection
+    ps = sub.add_parser("reconstruct-from-selection",
+                        help="reconstruct from an existing Select 2D Classes job "
+                             "(conditions select / both / cryosegnet_both / fb)")
+    _add_from_selection(ps)
+    ps.set_defaults(func=_cmd_reconstruct_from_selection)
 
     pl = sub.add_parser("collect", help="rebuild metrics.json from finished jobs, "
                                         "without re-running any of them")

@@ -268,3 +268,8 @@ Pending for the public release:
 - [ ] Publish the four pickers' full-set picks, so Table 2 can be reproduced
       without installing crYOLO, Topaz and CryoSegNet
 - [ ] End-to-end check of one condition on a machine that has never run this code
+- [ ] Run the `fb_gt` path once. Table 7's lower row was produced by scripts that
+      were never committed; `--teacher gt` reimplements their documented procedure
+      and has not been run in this form
+- [ ] Generate and commit `envs/figures/uv.lock`, the one environment assembled for
+      the release rather than during the experiments

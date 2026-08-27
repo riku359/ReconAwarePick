@@ -1,0 +1,39 @@
+# Verbatim upstream dependency sources for crYOLO
+# Repo (docs only): https://github.com/MPI-Dortmund/cryolo
+# Docs: https://cryolo.readthedocs.io/en/latest/
+# Pinned commit: 30039bde34d65c179541568b0c27f09916ac5652 (2024-05-02)
+# PyPI package: cryolo 1.9.9  (requires_python: <3.9,>=3.5.0)
+#
+# The GitHub repo contains ONLY Sphinx documentation. crYOLO itself is on PyPI.
+#
+# --- Official install (verbatim, readthedocs installation.rst) ---
+# crYOLO depends on CUDA Toolkit and the cuDNN library (auto-installed by the
+# custom NVIDIA TensorFlow). Official setup is CONDA-based:
+#
+#   # CUDA 11 (step 1A):
+#   conda create -n cryolo -c conda-forge -c anaconda pyqt=5 python=3 \
+#         numpy=1.18.5 libtiff wxPython=4.1.1 adwaita-icon-theme 'setuptools<66'
+#   conda activate cryolo
+#   pip install nvidia-pyindex
+#   pip install 'cryolo[c11]'
+#
+#   # CUDA 10 (step 1B, NOT for RTX30XX / Ampere):
+#   conda create -n cryolo -c conda-forge -c anaconda pyqt=5 python=3.7 \
+#         cudatoolkit=10.0.130 cudnn=7.6.5 numpy=1.18.5 libtiff wxPython=4.1.1 \
+#         adwaita-icon-theme
+#   pip install 'cryolo[gpu]'   # or 'cryolo[cpu]'
+#
+#   # GUI boxmanager (separate napari env):
+#   conda create -y -n napari-cryolo -c conda-forge python=3.10 napari=0.4.17 pyqt pip
+#   pip install napari-boxmanager
+#
+# Notes:
+#   - 'cryolo[c11]' pulls a CUSTOM NVIDIA TensorFlow 1.15 build (nvidia-tensorflow)
+#     reachable only after `pip install nvidia-pyindex` (adds the NVIDIA PyPI index).
+#   - python must be <3.9 (PyPI requires_python). Max usable interpreter: 3.8.
+#   - pyqt5 / wxPython / libtiff / adwaita-icon-theme come from conda in the
+#     official flow; they are GUI/boxmanager deps, not needed for the
+#     cryolo_predict.py picking CLI.
+#
+# Prediction entry points (data + general model .h5 required, NOT run here):
+#   cryolo_predict.py -c config.json -w gmodel.h5 -i input/ -o output/ -t 0.3

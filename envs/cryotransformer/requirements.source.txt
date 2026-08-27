@@ -1,0 +1,47 @@
+# Verbatim upstream dependency sources for CryoTransformer
+# Repo: https://github.com/jianlin-cheng/CryoTransformer
+# Pinned commit: a56f133f3f499562c32a6bc512eec5f115095b3b (2025-01-12)
+# License: MIT
+#
+# Upstream provides a CONDA environment.yml only (channels: conda-forge, defaults).
+# Key entries (verbatim from environment.yml):
+#
+#   name: CryoTransformer
+#   python=3.7.16
+#   scipy=1.7.3        (conda)
+#   psutil=5.9.0       (conda)
+#
+#   pip:
+#     - torch==1.13.1
+#     - torchvision==0.14.1
+#     - torchaudio==0.13.1
+#     - torchinfo==1.7.2
+#     - nvidia-cublas-cu11==11.10.3.66
+#     - nvidia-cuda-nvrtc-cu11==11.7.99
+#     - nvidia-cuda-runtime-cu11==11.7.99
+#     - nvidia-cudnn-cu11==8.5.0.96
+#     - numpy==1.21.6
+#     - pandas==0.24.2
+#     - opencv-python==4.7.0.72
+#     - matplotlib==3.5.3
+#     - mrcfile==1.4.3
+#     - pycocotools==2.0.6
+#     - scikit-image==0.18.0
+#     - scikit-learn==1.0.2
+#     - starfile==0.4.10
+#     - starparser==1.41
+#     - pillow==9.4.0
+#     - tqdm==4.64.1
+#     - wandb==0.13.10
+#     - imageio==2.26.0 / imageio-ffmpeg==0.4.8 / moviepy==1.0.3
+#     - (plus jupyter stack, sentry-sdk, gitpython, protobuf, etc.)
+#
+# README install (verbatim):
+#   conda env create -f environment.yml
+#   conda activate CryoTransformer
+# Prediction entry point (data + pretrained_model required, NOT run here):
+#   python predict.py --empiar '10081'
+#
+# NOTE: CryoTransformer bundles its own DETR implementation under models/ and
+# datasets/ (backbone.py, detr.py, transformer.py, matcher.py, ...). It does NOT
+# depend on detectron2.
