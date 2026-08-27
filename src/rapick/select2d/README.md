@@ -64,6 +64,17 @@ worker.
 
 `envs/cryosift/requirements_exact.txt` is upstream's own frozen list, vendored
 unchanged. That is why CUDA wheels appear in it: they are installed and never used.
+**Expect the build to download about 6 GB and take ten minutes or more**, almost all
+of it that unused CUDA stack. It is not stuck.
+
+Two deviations from that list, both made by `scripts/build_env.sh` rather than by
+editing the committed copy, so the file stays byte-identical to upstream and the
+difference is visible in one place:
+
+- `pysqlite3` is skipped. It has no wheel, so pip compiles it, and the compile needs
+  `sqlite3.h`, which most machines do not have. Nothing imports it: not upstream's
+  `particle_processor`, not this stage, and Python has carried `sqlite3` in its
+  standard library for far longer than this environment pins.
 
 ### Setup
 
