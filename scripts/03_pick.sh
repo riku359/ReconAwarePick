@@ -13,23 +13,27 @@
 #
 #   bash scripts/03_pick.sh --entry 10081                  full deposition
 #   bash scripts/03_pick.sh --entry 10081 --setting annot  the 300 annotated
-#   bash scripts/03_pick.sh --entry 10081 --checkpoint PATH
+#   bash scripts/03_pick.sh --entry 10081 --checkpoint PATH --out-name fb
 #
-# Writes GT-aligned STAR to $RAPICK_WORK/picks/<entry>/baseline.star.
+# Writes a GT-aligned STAR to $RAPICK_WORK/picks/<entry>/<out-name>.star, which
+# defaults to baseline.star. Re-picking with a fine-tuned checkpoint needs a
+# different --out-name, or it overwrites the base checkpoint's candidates.
 
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 
 ENTRY=""
 SETTING="full"
 CKPT=""
+OUT_NAME="baseline"
 GPU="${RAPICK_GPU:-0}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --entry)      ENTRY="$2"; shift 2 ;;
     --setting)    SETTING="$2"; shift 2 ;;
     --checkpoint) CKPT="$2"; shift 2 ;;
+    --out-name)   OUT_NAME="$2"; shift 2 ;;
     --gpu)        GPU="$2"; shift 2 ;;
-    -h|--help)    sed -n '2,20p' "${BASH_SOURCE[0]}"; exit 0 ;;
+    -h|--help)    sed -n '2,22p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "unknown flag: $1" >&2; exit 2 ;;
   esac
 done
@@ -64,7 +68,7 @@ ln -sfn "$MICS" "$TEST_DATA/$ENTRY/images"
 
 OUT_DIR="$WORK/picks/$ENTRY"
 mkdir -p "$OUT_DIR"
-REMARKS="rapick_${SETTING}"
+REMARKS="rapick_${SETTING}_${OUT_NAME}"
 
 banner "Picking $ENTRY ($SETTING) with $(basename "$CKPT")"
 # Upstream writes into output/predictions/..._timestamp_<ts>/ relative to its own
@@ -79,9 +83,16 @@ PRED_DIR="$(ls -dt "$CT"/output/predictions/predictions_EMPIAR_"$ENTRY"_remarks_
 [ -n "$PRED_DIR" ] || { echo "error: the picker wrote no output directory under $CT/output/predictions/." >&2; exit 1; }
 STAR="$(ls "$PRED_DIR"/*star_file.star 2>/dev/null | head -1)"
 [ -n "$STAR" ] || { echo "error: no combined STAR in $PRED_DIR." >&2; exit 1; }
-cp "$STAR" "$OUT_DIR/baseline.star"
+cp "$STAR" "$OUT_DIR/$OUT_NAME.star"
 
 echo
-echo "Picks:  $OUT_DIR/baseline.star  ($(grep -c . "$OUT_DIR/baseline.star") lines)"
+echo "Picks:  $OUT_DIR/$OUT_NAME.star  ($(grep -c . "$OUT_DIR/$OUT_NAME.star") lines)"
 echo "Source: $PRED_DIR"
-echo "Next:   scripts/04_mask.sh --entry $ENTRY"
+# The masking stage names its output after the condition that consumes it, which
+# is `mask` for the base checkpoint's picks and `fb` for the round-1 one's.
+if [ "$OUT_NAME" = "baseline" ]; then
+  echo "Next:   bash scripts/04_mask.sh --entry $ENTRY"
+else
+  echo "Next:   bash scripts/04_mask.sh --entry $ENTRY \\"
+  echo "          --star $OUT_DIR/$OUT_NAME.star --out-name ${OUT_NAME%_raw}"
+fi

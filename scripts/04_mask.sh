@@ -83,6 +83,14 @@ fi
 [ -f "$SOURCE_STAR" ] || { echo "error: no picks at $SOURCE_STAR." >&2
                            echo "       Run: bash scripts/03_pick.sh --entry $ENTRY --setting $SETTING" >&2
                            exit 1; }
+# Masking only ever removes picks, so writing the result over its own input would
+# quietly destroy the unfiltered set and make the run unrepeatable.
+if [ "$SOURCE_STAR" = "$PICKS_DIR/$OUT_NAME.star" ]; then
+  echo "error: --star and --out-name name the same file, $SOURCE_STAR." >&2
+  echo "       The filtered picks would overwrite the picks they were filtered from." >&2
+  echo "       Pick a different --out-name (the convention is <name>_raw in, <name> out)." >&2
+  exit 2
+fi
 
 banner "Filtering $(basename "$SOURCE_STAR") against the masks"
 # Applying a cached mask needs only numpy and opencv, so this half runs even

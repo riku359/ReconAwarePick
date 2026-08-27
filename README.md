@@ -118,19 +118,21 @@ two ways a downloaded `.mrc` can be silently corrupt and how to check, are in
 ## Quick Start
 
 Running the whole pipeline takes weeks. To see one condition end to end without
-re-deriving its inputs, download the published intermediates and reconstruct:
+re-deriving its inputs, download the published picks and masks and pick up from
+the 2D classification:
 
 ```bash
 bash scripts/01_download_data.sh --entry 10081 --intermediates
-bash scripts/07_reconstruct.sh --entry 10081 --condition both
+bash scripts/07_reconstruct.sh  --entry 10081 --condition mask   # extract, 2D classify
+bash scripts/05_select2d.sh     --entry 10081 --condition both   # CryoSift's cycles
+bash scripts/07_reconstruct.sh  --entry 10081 --condition both   # ab-initio to local res
 ```
 
-This runs extraction, 2D classification, three ab-initio reconstructions, three
-refinements, best-of-three by GSFSC 0.143, and local resolution, and writes
-`$RAPICK_WORK/empiar_10081/full/both/metrics.json`. Compare its resolution
-against `results/tables/ablation.json`.
+The last step writes `$RAPICK_WORK/empiar_10081/full/both/metrics.json`. Compare
+its resolution against `results/tables/ablation.json`, which holds the published
+value, the unrounded one, and the three per-seed resolutions behind it.
 
-To derive the inputs yourself instead, follow the step-by-step guide.
+To derive the picks and masks yourself instead, follow the step-by-step guide.
 
 ---
 
@@ -139,18 +141,36 @@ To derive the inputs yourself instead, follow the step-by-step guide.
 Each script covers one stage and takes `--entry` and `--condition`.
 
 ```bash
-bash scripts/02_repair_head.sh                          # theta_0            (Sec. S2)
-bash scripts/03_pick.sh       --entry 10081             # candidates         (Sec. 3.2)
-bash scripts/04_mask.sh       --entry 10081             # discard on contamination (Sec. 3.3)
-bash scripts/05_select2d.sh   --entry 10081             # 2D class selection (Sec. 3.4)
-bash scripts/06_loop.sh       --entry 10081 --rounds 3  # feedback loop      (Sec. 3.5)
-bash scripts/07_reconstruct.sh --entry 10081 --condition fb
+# Once per entry: the base checkpoint, its candidates, and the mask applied to them.
+bash scripts/02_repair_head.sh                            # theta_0    (Sec. S2)
+bash scripts/03_pick.sh  --entry 10081                    # candidates (Sec. 3.2)
+bash scripts/04_mask.sh  --entry 10081                    # contamination (Sec. 3.3)
+
+# The ablation rows of Table 4. `both` selects on the class_2D that `mask` built,
+# so `mask` runs first.
+bash scripts/07_reconstruct.sh --entry 10081 --condition baseline
+bash scripts/07_reconstruct.sh --entry 10081 --condition mask
+bash scripts/05_select2d.sh    --entry 10081 --condition both      # (Sec. 3.4)
+bash scripts/07_reconstruct.sh --entry 10081 --condition both
+
+# The feedback loop, on the 300 annotated micrographs (Sec. 3.5).
+bash scripts/06_loop.sh --entry 10081 --rounds 3
+
+# Ours: re-pick everything with the round-1 checkpoint, then the same two stages.
+bash scripts/03_pick.sh --entry 10081 --out-name fb_raw \
+    --checkpoint $RAPICK_WORK/loop/10081/round1/model.pth
+bash scripts/04_mask.sh --entry 10081 --star $RAPICK_WORK/picks/10081/fb_raw.star --out-name fb
+bash scripts/07_reconstruct.sh --entry 10081 --condition fb        # its own stack, to class_2D
+bash scripts/05_select2d.sh    --entry 10081 --condition fb
+bash scripts/07_reconstruct.sh --entry 10081 --condition fb        # ab-initio to local resolution
+
 bash scripts/08_tables_figures.sh
 ```
 
-Step 2 can be skipped by downloading theta_0, and step 4 by downloading the
-masks. Step 5 is resumable: each cycle's re-classification runs for hours and its
-state is kept in `state.json`.
+`02` can be skipped by downloading theta_0 and `04` by downloading the masks;
+`scripts/01_download_data.sh --intermediates` fetches both. `05` is resumable:
+each cycle's re-classification runs for hours, and the job uids are recorded in
+`state.json` before they are queued.
 
 Each stage's README carries the details, the exact flags, and the traps:
 [picker](src/rapick/picker/README.md) ·

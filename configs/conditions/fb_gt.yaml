@@ -24,8 +24,10 @@
 #      bash scripts/06_loop.sh --entry 10081 --rounds 0 --teacher gt
 #
 # 2. Re-pick the full set with the resulting checkpoint, then mask and select as usual:
-#      bash scripts/03_pick.sh --entry 10081 --checkpoint $RAPICK_WORK/loop/10081_fb_gt/round0/model.pth
-#      bash scripts/04_mask.sh --entry 10081 --out-name fb_gt
+#      bash scripts/03_pick.sh --entry 10081 --out-name fb_gt_raw \
+#        --checkpoint $RAPICK_WORK/loop/10081_fb_gt/round0/model.pth
+#      bash scripts/04_mask.sh --entry 10081 \
+#        --star $RAPICK_WORK/picks/10081/fb_gt_raw.star --out-name fb_gt
 #      bash scripts/05_select2d.sh --entry 10081 --condition fb_gt
 #
 # 3. Reconstruct from the selection and collect, exactly as for `fb`:

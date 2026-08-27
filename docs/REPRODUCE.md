@@ -15,9 +15,13 @@ rather than derived.
 
 ```bash
 bash scripts/01_download_data.sh --entry 10081 --intermediates
-bash scripts/05_select2d.sh     --entry 10081 --condition both
-bash scripts/07_reconstruct.sh  --entry 10081 --condition both
+bash scripts/07_reconstruct.sh  --entry 10081 --condition mask   # extract, 2D classify
+bash scripts/05_select2d.sh     --entry 10081 --condition both   # CryoSift's cycles
+bash scripts/07_reconstruct.sh  --entry 10081 --condition both   # ab-initio to local res
 ```
+
+The `mask` run is not wasted: it is Table 4's second row, and its `class_2D` is
+what the selection then sits on.
 
 **From scratch.** Steps 02 to 07 in order, per entry. Budget weeks for all four
 entries and all conditions; the per-stage timings are in the README.
@@ -96,8 +100,10 @@ CryoPPP annotations of the same 50 micrographs, holding everything else fixed:
 
 ```bash
 bash scripts/06_loop.sh --entry 10081 --rounds 0 --teacher gt
-bash scripts/03_pick.sh --entry 10081 --checkpoint $RAPICK_WORK/loop/10081_fb_gt/round0/model.pth
-bash scripts/04_mask.sh --entry 10081 --out-name fb_gt
+bash scripts/03_pick.sh --entry 10081 --out-name fb_gt_raw \
+    --checkpoint $RAPICK_WORK/loop/10081_fb_gt/round0/model.pth
+bash scripts/04_mask.sh --entry 10081 \
+    --star $RAPICK_WORK/picks/10081/fb_gt_raw.star --out-name fb_gt
 bash scripts/05_select2d.sh --entry 10081 --condition fb_gt
 bash scripts/07_reconstruct.sh --entry 10081 --condition fb_gt
 ```
