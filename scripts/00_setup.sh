@@ -54,16 +54,33 @@ print(lock[sys.argv[1]][sys.argv[2]].get(sys.argv[3], "") or "")
 
 clone_pinned() {  # clone_pinned <section> <name>
   local section="$1" name="$2"
-  local url path commit branch dest
+  local url path commit branch subdir dest
   url=$(pin "$section" "$name" url)
   path=$(pin "$section" "$name" path)
   commit=$(pin "$section" "$name" commit)
   branch=$(pin "$section" "$name" branch)
+  subdir=$(pin "$section" "$name" subdir)
   [ -n "$path" ] || path="$name"
   dest="$THIRD_PARTY/$path"
 
   if [ -d "$dest/.git" ]; then
     echo "  $name: already at $dest, leaving it alone"
+    return
+  fi
+
+  # A repository that declares a subdir is one we need a corner of. Magellon is
+  # 2.2 GB whole and 164 MB as the one directory CryoSift lives in, so take the
+  # corner: blobless, no checkout, then a sparse checkout of that path.
+  if [ -n "$subdir" ]; then
+    echo "  $name: cloning $url (sparse: $subdir)"
+    git clone --quiet --filter=blob:none --no-checkout "$url" "$dest"
+    git -C "$dest" sparse-checkout set --no-cone "$subdir"
+    if [ -n "$commit" ]; then
+      git -C "$dest" checkout --quiet "$commit"
+    else
+      git -C "$dest" checkout --quiet "$branch"
+    fi
+    echo "  $name: pinned at ${commit:-$branch} ($(du -sh "$dest" | cut -f1))"
     return
   fi
 
