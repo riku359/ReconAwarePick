@@ -96,7 +96,20 @@ report "no .env committed" "$(files | grep -E '^\.env$|/\.env$' || true)"
 
 echo
 echo "== residue =="
-scan "no Japanese prose"        '[ぁ-んァ-ヶ一-龯]'
+# Not `grep -E '[hiragana-katakana-kanji]'`: GNU grep under LC_CTYPE=POSIX compares
+# those ranges byte by byte, so any multi-byte character matches, and BSD grep has no
+# -P to fall back on. Python knows the codepoints wherever it runs.
+jphits=$(files | tr '\n' '\0' | xargs -0 python3 -c '
+import re, sys, pathlib
+PAT = re.compile("[\u3040-\u30ff\u4e00-\u9fff]")
+for f in sys.argv[1:]:
+    try: text = pathlib.Path(f).read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError): continue
+    for n, line in enumerate(text.splitlines(), 1):
+        if PAT.search(line):
+            print(f"{f}:{n}:{line.strip()[:120]}")
+' 2>/dev/null | grep -v '^scripts/check_release.sh:')
+report "no Japanese prose" "$jphits"
 report "no .DS_Store"           "$(files | grep -F '.DS_Store' || true)"
 report "no __pycache__"         "$(files | grep -F '__pycache__' || true)"
 report "no editor swap files"   "$(files | grep -E '\.(swp|swo|orig|rej|bak)$' || true)"
