@@ -128,8 +128,6 @@ CryoSPARC project directory itself is asked of the server, never hardcoded.
 | `score_class2d.py` | Score an existing `class_2D` into `scores.csv`, with an optional montage |
 | `purify_class2d.py` | Single-shot: read `scores.csv` and create one `select_2D` at a cutoff |
 | `iterate_class2d.py` | The paper's iterative workflow: set aside, loop, final classify, final select |
-| `plot_selection_diff.py` | Figure only the classes where a hand-curated `select_2D` and the CNN disagree |
-| `plot_selection_panel.py` | Figure every class twice, once per selector, in a shared score order |
 | `scripts/build_env.sh` | Build `envs/cryosift` from the committed lockfile |
 
 `scores.csv` carries `class_idx, cryosift_score, keep, n_particles, class_frac,

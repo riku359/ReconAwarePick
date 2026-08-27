@@ -23,14 +23,9 @@ __pycache__/
 *.mrc
 *.mrcs
 *.star
-!results/**/*.star
 /data/
 /work/
 
-# Everything under results/ is committed on purpose: it is the paper's numbers
-# and the scripts that turn them into figures. Rendered figures are not.
-/results/figures/**/*.png
-/results/figures/**/*.pdf
 !/assets/**
 
 .DS_Store

@@ -93,10 +93,10 @@ PYTHONPATH=src envs/recon/.venv/bin/python -m rapick.loop.run_loop \
     --id 10081 --rounds 0-2
 ```
 
-Export the per-round metrics of Table 6:
+Export the per-round metrics:
 
 ```bash
-PYTHONPATH=src python3 -m rapick.loop.round_metrics --csv results/tables/table6.csv
+PYTHONPATH=src python3 -m rapick.loop.round_metrics --csv $RAPICK_WORK/loop/rounds.csv
 ```
 
 Re-pick the full deposition with the round-1 checkpoint, and publish it as the `fb`

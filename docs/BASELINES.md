@@ -1,16 +1,15 @@
 # Comparison pickers
 
-crYOLO, Topaz and CryoSegNet appear in exactly two places: Table 2, where their raw
-picks are reconstructed with the same protocol as ours, and Table S2, where their 2D
-detection scores are measured against the CryoPPP annotations.
+crYOLO, Topaz and CryoSegNet are the three comparison pickers: their raw picks are
+reconstructed with the same protocol as ours, and their 2D detection scores are
+measured against the CryoPPP annotations.
 
 **You probably do not need to install them.** Their picks are published as GT-aligned
-STAR files, so both tables reproduce from the picks alone:
+STAR files, so a comparison run needs the picks alone:
 
 ```bash
 bash scripts/01_download_data.sh --intermediates --picks
-bash scripts/07_reconstruct.sh --entry 10081 --condition cryolo   # Table 2
-bash scripts/08_tables_figures.sh --tables                        # Table S2
+bash scripts/07_reconstruct.sh --entry 10081 --condition cryolo
 ```
 
 Install them only to re-derive the picks.

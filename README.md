@@ -25,7 +25,7 @@ four EMPIAR entries of CryoTransformer's independent test set.
 - [Data download](#data-download)
 - [Quick Start](#quick-start)
 - [Full Step-by-Step Guide](#full-step-by-step-guide)
-- [Reproducing the paper](#reproducing-the-paper)
+- [What the numbers mean](#what-the-numbers-mean)
 - [Repository Structure](#repository-structure)
 - [Citation](#citation)
 - [Acknowledgements and Licensing](#acknowledgements-and-licensing)
@@ -63,11 +63,11 @@ bash scripts/00_setup.sh
 | contamination masking | `envs/micrograph_cleaner` | 3.10 | TensorFlow 2.16 + Keras 3 |
 | 2D class selection | `envs/cryosift` | 3.12 | torch 2.6 (CPU) |
 | reconstruction | `envs/recon` | 3.10 | cryosparc-tools 4.7 |
-| figures | `envs/figures` | 3.11 | matplotlib |
+| downloads, stage plots | `envs/figures` | 3.11 | matplotlib |
 
-`uv` builds everything except crYOLO, which needs conda and is only required for
-two tables; [docs/BASELINES.md](docs/BASELINES.md) explains how to avoid it. Keep
-the `uv` cache on a local SSD: its file locks hang on NFS.
+`uv` builds everything except crYOLO, which needs conda and is only required to
+run that comparison picker; [docs/BASELINES.md](docs/BASELINES.md) explains how
+to avoid it. Keep the `uv` cache on a local SSD: its file locks hang on NFS.
 
 Every path comes from an environment variable, and a script that cannot resolve
 one fails naming it rather than falling back to a default. The contract is in
@@ -111,9 +111,9 @@ bash scripts/05_select2d.sh     --entry 10081 --condition both   # CryoSift's cy
 bash scripts/07_reconstruct.sh  --entry 10081 --condition both   # ab-initio to local res
 ```
 
-The last step writes `$RAPICK_WORK/empiar_10081/full/both/metrics.json`. Compare
-its resolution against `results/tables/ablation.json`, which holds the published
-value, the unrounded one, and the three per-seed resolutions behind it.
+The last step writes `$RAPICK_WORK/empiar_10081/full/both/metrics.json`, which
+holds the condition's resolution, its particle counts, and the CryoSPARC job uids
+behind them.
 
 To derive the picks and masks yourself instead, follow the step-by-step guide.
 
@@ -129,7 +129,7 @@ bash scripts/02_repair_head.sh                            # theta_0    (Sec. S2)
 bash scripts/03_pick.sh  --entry 10081                    # candidates (Sec. 3.2)
 bash scripts/04_mask.sh  --entry 10081                    # contamination (Sec. 3.3)
 
-# The ablation rows of Table 4. `both` selects on the class_2D that `mask` built,
+# The ablation conditions. `both` selects on the class_2D that `mask` built,
 # so `mask` runs first.
 bash scripts/07_reconstruct.sh --entry 10081 --condition baseline
 bash scripts/07_reconstruct.sh --entry 10081 --condition mask
@@ -146,8 +146,6 @@ bash scripts/04_mask.sh --entry 10081 --star $RAPICK_WORK/picks/10081/fb_raw.sta
 bash scripts/07_reconstruct.sh --entry 10081 --condition fb        # its own stack, to class_2D
 bash scripts/05_select2d.sh    --entry 10081 --condition fb
 bash scripts/07_reconstruct.sh --entry 10081 --condition fb        # ab-initio to local resolution
-
-bash scripts/08_tables_figures.sh
 ```
 
 `scripts/01_download_data.sh --intermediates` fetches theta_0 and the masks,
@@ -164,23 +162,13 @@ Each stage's README has the details, the exact flags, and the traps:
 
 ---
 
-## Reproducing the paper
+## What the numbers mean
 
-[docs/PAPER_TO_CODE.md](docs/PAPER_TO_CODE.md) maps every table and figure to
-what produces it, and defines the five condition names the whole repository uses.
-[docs/REPRODUCE.md](docs/REPRODUCE.md) gives the commands table by table.
+The five condition names this repository uses — `baseline`, `mask`, `select`,
+`both` and `fb` — and the four comparison conditions are defined in
+[docs/CONDITIONS.md](docs/CONDITIONS.md).
 
-Every number the paper prints is in `results/tables/` as JSON, with the unrounded
-per-seed values and the CryoSPARC job uid behind each one — enough to check the
-paper against without running anything.
-
-Two things do not reproduce exactly: the camera placements behind Fig. 3's
-local-resolution maps were lost, so a re-render gives the same maps at a
-different orientation, and the class-average tiles of Fig. S1 came from CryoSPARC
-jobs whose scratch copies are gone.
-[docs/PAPER_TO_CODE.md](docs/PAPER_TO_CODE.md) says what survives.
-
-Three caveats bound what the numbers mean:
+Three caveats bound what a resolution produced here means:
 
 - Resolutions on EMPIAR-10345 follow CryoPPP's declared pixel size, which is the
   super-resolution movie value, so they are about half the physical figure and
@@ -207,10 +195,8 @@ ReconAwarePick/
 │   ├── datasets/            one file per EMPIAR entry, both scales
 │   ├── conditions/          baseline / mask / select / both / fb and the comparisons
 │   └── cryosparc_v47.yaml   the job DAG contract
-├── scripts/                 numbered drivers, 00 to 08
+├── scripts/                 numbered drivers, 00 to 07
 ├── envs/                    per-stage lockfiles
-├── results/tables/          every number the paper prints, with its provenance
-├── results/figures/         the scripts that draw the paper's figures
 ├── docs/
 ├── third_party/             upstream checkouts, fetched by scripts/00_setup.sh
 └── repos.lock.yaml          upstream URLs, pinned commits and licences
@@ -268,14 +254,12 @@ Pending for the public release:
 - [ ] Replace the citation block with the proceedings citation
 - [x] Publish the four round-1 fine-tuned checkpoints (the `fb` condition's
       weights), and the four of the perfect-teacher arm
-- [x] Publish the four pickers' full-set picks, so Table 2 and Table S2 reproduce
-      without installing crYOLO, Topaz and CryoSegNet
+- [x] Publish the four pickers' full-set picks, so the comparison numbers can be
+      checked without installing crYOLO, Topaz and CryoSegNet
 - [ ] End-to-end check of one condition on a machine that has never run this code
-- [ ] Run the `fb_gt` path once. Table 7's lower row was produced by scripts that
-      were never committed; `--teacher gt` reimplements their documented procedure
-      and has not been run in this form
-- [ ] Generate and commit `envs/figures/uv.lock`, the one environment assembled for
-      the release rather than during the experiments
+- [ ] Run the `fb_gt` path once. The perfect-teacher arm was produced by scripts
+      that were never committed; `--teacher gt` reimplements their documented
+      procedure and has not been run in this form
 
 [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) has the full list, in the
 order it makes sense to do it, along with what this repository deliberately does

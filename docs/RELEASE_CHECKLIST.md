@@ -13,7 +13,7 @@ repository under the authors' account would break the submission's anonymity.
 `bash scripts/check_release.sh` is the gate and passes. It checks paths and account
 names from the experiment machines, credentials, files over 1 MB, leftover Japanese
 prose, dead links, documented paths that do not exist, and the private repository's
-condition names appearing outside the translation table. `--links` also fetches every
+condition names appearing outside `docs/CONDITIONS.md`. `--links` also fetches every
 external URL.
 
 ## Before it goes public
@@ -24,8 +24,6 @@ external URL.
       - `00_setup.sh` clones all three upstreams at their pins and applies the
         CryoTransformer overlay, matching the shipped overlay file for file
       - the `figures` and `recon` environments build from their lockfiles
-      - `08_tables_figures.sh` rebuilds Fig. 4, Fig. 5 and the loop-rounds figure, and
-        **Fig. 4 comes out identical to the one in the paper**
       - `rapick-recon check-setup` passes against the live CryoSPARC instance:
         connection, project, 300 healthy micrographs, distinct STARs
       - `--dry-run` works for both kinds of condition, and a condition whose parent has
@@ -81,17 +79,16 @@ public.
 ## Two things to settle in the manuscript, not here
 
 Both were found while checking the paper's numbers against their sources. Neither
-changes a reported result, and both are recorded in `results/tables/` rather than fixed.
+changes a reported result, and neither is fixed here.
 
 - **The 2D scores cover 295 annotated micrographs on EMPIAR-10093 and 10345, not the 300
   the paper states.** CryoPPP deposits 300 per entry, but only 295 carry annotations on
   those two, and the scorer averages over the ones that do.
-  `results/tables/datasets.json` records the count per entry in `micrographs_scored_2d`.
 - **Table 6's round 0 and Table S2's CryoTransformer row disagree**, although both
   describe the base checkpoint on the annotated micrographs: 0.530 / 0.919 / 0.655
   against 0.469 / 0.954 / 0.610 on EMPIAR-10081, from 65,385 picks against 77,328. The
   difference is not the contamination mask, which the loop applies after the count Table
-  6 prints. `results/tables/loop_rounds.json` records both under `not_in_paper`.
+  6 prints.
 
 ## What this repository deliberately does not contain
 

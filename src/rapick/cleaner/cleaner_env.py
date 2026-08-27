@@ -53,8 +53,7 @@ def work_root():
 
 def upstream_dir():
     """The pinned MicrographCleaner checkout (`tf2` branch), under `$RAPICK_THIRD_PARTY`,
-    which defaults to `<repo>/third_party`. plot_mask_postproc_figures.py imports
-    `fixJumpInBorders` from here."""
+    which defaults to `<repo>/third_party`."""
     return env_path("RAPICK_THIRD_PARTY", REPO_ROOT / "third_party") / "micrograph_cleaner_em"
 
 

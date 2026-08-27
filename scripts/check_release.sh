@@ -102,10 +102,9 @@ scan "no venue name"            'WACV|wacv'
 
 echo
 echo "== the private repository's vocabulary must not leak =="
-# The research repo names conditions differently. Two places may still carry the
-# old names: docs/PAPER_TO_CODE.md, which is the translation table, and
-# results/tables/, where they appear inside provenance fields recording which
-# run each number came from. Everywhere else they are a leak.
+# The research repo names conditions differently. One place may still carry the
+# old names: docs/CONDITIONS.md, which is the translation table. Everywhere else
+# they are a leak.
 #
 # Two strings are deliberately NOT in this pattern. `cryotransformer_clean_tri` is
 # the file the contamination filter writes, not a condition name, and it is the
@@ -114,7 +113,7 @@ echo "== the private repository's vocabulary must not leak =="
 # is the loop's source prefix for the `fb_gt` arm, formed the same way as `fb_r`
 # and `fbnm_r` from the release's own condition names.
 legacy=$(files \
-  | grep -v -e '^docs/PAPER_TO_CODE.md$' -e '^results/tables/' \
+  | grep -v -e '^docs/CONDITIONS.md$' \
   | tr '\n' '\0' \
   | xargs -0 grep -HInE 'fbf_r[0-9]|fbc_r[0-9]|general_full|lora_general|lora_chained' 2>/dev/null \
   | grep -v '^scripts/check_release.sh:')

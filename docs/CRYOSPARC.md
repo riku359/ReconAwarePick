@@ -94,7 +94,7 @@ condition of that entry, so all conditions are compared over identical CTF estim
 
 The manuscript draws Fig. S1 as TikZ over panels CryoSPARC renders for these jobs, and
 those panels are not committed — see
-[`PAPER_TO_CODE.md`](PAPER_TO_CODE.md#what-this-repository-cannot-reproduce-exactly). The
+[`CONDITIONS.md`](CONDITIONS.md). The
 chain the figure lays out is this one:
 
 ```mermaid

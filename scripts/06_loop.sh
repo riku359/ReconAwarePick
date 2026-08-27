@@ -95,7 +95,6 @@ PYTHONPATH="$REPO/src" "$PY" -m rapick.loop.round_metrics \
 echo
 echo "Rounds:      $WORK/loop/$ENTRY/"
 echo "Table 6 row: $WORK/loop/$ENTRY/rounds.csv"
-echo "Compare against results/tables/loop_rounds.json."
 echo
 echo "The round-1 checkpoint is what the fb condition picks with:"
 echo "  bash scripts/03_pick.sh --entry $ENTRY --checkpoint $WORK/loop/$ENTRY/round1/model.pth"

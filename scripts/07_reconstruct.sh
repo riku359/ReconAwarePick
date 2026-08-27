@@ -184,4 +184,3 @@ if resolution:
     print(f"  GSFSC 0.143: {resolution} A  (best of the seeds run)")
 ' "$OUT/metrics.json" || true
 fi
-echo "Compare against results/tables/ — see docs/PAPER_TO_CODE.md for which table this row is."

@@ -16,7 +16,7 @@ overlap is the mechanism and not a leak, and it is stated wherever these numbers
 
   python -m rapick.loop.round_metrics
   python -m rapick.loop.round_metrics --id 10081 --id 10093
-  python -m rapick.loop.round_metrics --csv results/tables/table6.csv
+  python -m rapick.loop.round_metrics --csv $RAPICK_WORK/loop/rounds.csv
 """
 from __future__ import annotations
 

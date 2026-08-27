@@ -48,9 +48,8 @@ src/rapick/cleaner/build_env.sh      # uv sync --locked of envs/micrograph_clean
 src/rapick/cleaner/download_model.sh # the pretrained weight, into $RAPICK_DATA/checkpoints
 ```
 
-`plot_mask_postproc_figures.py` and `classify_gt_overlap.py` need matplotlib,
-which this environment does not have; run them from any environment that has
-numpy and matplotlib.
+`classify_gt_overlap.py` needs matplotlib, which this environment does not have;
+run it from any environment that has numpy and matplotlib.
 
 `envs/micrograph_cleaner/{pyproject.toml,uv.lock}` install the upstream package
 editable from `../../third_party/micrograph_cleaner_em`, which is where
@@ -74,8 +73,7 @@ each other flat, so they work from any working directory.
 | `filter_star_triangular.py` | **The production filter.** Predicts the triangular mask per micrograph and writes `<prefix>_clean_tri.star` / `_removed_tri.star`. Resumable. |
 | `filter_star_from_masks.py` | The same decision from the precomputed npz store — no TensorFlow, no GPU. This is what the feedback loop calls each round. |
 | `filter_star_by_contamination.py` | The released-post-processing arm of the same filter (upstream `predictMask`), for the Sec. S3 comparison. Also holds the shared `parse_star` / `keep_flags` / `load_micrograph`. |
-| `compare_official_vs_triangular.py` | Predicts both masks for the same micrographs at model scale and writes `comparison.csv` plus the per-micrograph arrays behind Fig. S2. |
-| `plot_mask_postproc_figures.py` | Draws the two mask post-processing figures (Fig. S2, Fig. S3), applying the upstream `fixJumpInBorders` to a synthetic mask and to the real arrays. |
+| `compare_official_vs_triangular.py` | Predicts both masks for the same micrographs at model scale and writes `comparison.csv` plus the per-micrograph arrays, for the Sec. S3 comparison. |
 | `classify_gt_overlap.py` | Counts, per micrograph, the annotated particles that fall inside each method's mask, plus the masked area, and plots the comparison. |
 | `count_gt_in_contamination.py` | Aggregates those per-micrograph counts by entry and by distribution class into a markdown table. |
 | `build_env.sh` | Builds the venv from `envs/micrograph_cleaner`. |
@@ -113,7 +111,7 @@ $RAPICK_WORK/figures/                             the rendered figures
 `<prefix>` defaults to `cryotransformer`, which is also the name the published
 Hugging Face artifacts carry, so a downloaded mask arm and a locally derived one
 land under the same filename. That is the **artifact** name; the **condition** is
-called `mask` (`docs/PAPER_TO_CODE.md`). `scripts/04_mask.sh` copies the filtered
+called `mask` (`docs/CONDITIONS.md`). `scripts/04_mask.sh` copies the filtered
 STAR to `$RAPICK_WORK/picks/<id>/mask.star`, which is what the reconstruction
 configs read, so the two names meet there and nowhere else.
 
@@ -200,30 +198,15 @@ contam_fraction, max_mask, has_anomaly, n_gt, n_gt_in_contam, overlay_path,
 status`). `--no-copy` skips the overlay classification, which needs the overlay
 galleries that driver renders.
 
-### (d) Fig. S2 and Fig. S3
+### (d) The two post-processings, side by side
 
-First compute both masks for the micrographs in the store, which writes
-`comparison.csv` and the per-micrograph arrays:
+Compute both masks for the micrographs in the store, which writes `comparison.csv`
+and the per-micrograph arrays behind the Sec. S3 comparison:
 
 ```bash
 python src/rapick/cleaner/compare_official_vs_triangular.py --ids 10532 --gpu 0
 # -> $RAPICK_WORK/mask_compare/{comparison.csv,arrays/<id>__<mic>.npz}
 ```
-
-Then draw the figures from those arrays (matplotlib environment, no GPU):
-
-```bash
-python src/rapick/cleaner/plot_mask_postproc_figures.py
-# -> $RAPICK_WORK/figures/postproc/C_fixjump_mechanism.{png,pdf}
-#    $RAPICK_WORK/figures/postproc/D_triangular_window.{png,pdf}
-```
-
-`C_fixjump_mechanism` applies the upstream `fixJumpInBorders` to a synthetic mask
-with a step at a window border and shows the flooded result next to the real
-released and triangular masks of one EMPIAR-10532 micrograph; those two real
-panels are the material for Fig. S2. `D_triangular_window` is the blending
-schematic behind Fig. S3. The real panels default to the micrograph named by
-`REAL_EXAMPLE`; `--example` selects a different npz from `--arrays`.
 
 ## Skipping this stage
 

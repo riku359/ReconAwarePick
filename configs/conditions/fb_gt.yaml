@@ -76,9 +76,8 @@ pipeline:
     # this block is documentation, not enforced config, so a single-seed run is always a
     # deliberate choice rather than a silent default.
     #
-    # Table 7 prints this row's best-of-three only. No source records its per-seed values
-    # or its refinement job uids, so results/tables/teacher_quality.json leaves those null
-    # for this row where it fills them in for `fb`.
+    # The paper prints this row's best-of-three only: no source records its per-seed
+    # values or its refinement job uids, as it does for `fb`.
     seeds: [0, 1, 2]
     choose_best_by: res_gsfsc_0143
 

@@ -13,8 +13,6 @@ machine: a script that cannot resolve one fails immediately, naming the variable
 | `RAPICK_ENVS` | Where the per-tool virtual environments are built. Point it at a local SSD: `uv` file locks hang on NFS. | `<repo>` (default, one `.venv` per env dir) |
 | `RAPICK_GPU` | Default GPU index for the stages that take one. Every driver also accepts `--gpu`. | `0` |
 | `RAPICK_TEST_DATA` | Root of the per-entry micrograph directories the picker reads, as `<id>/images/` — upstream CryoTransformer's contract, which we kept. `scripts/03_pick.sh` creates the links. | `$RAPICK_WORK/test_data` |
-| `RAPICK_CRYOSPARC_PROJECT_DIR` | The CryoSPARC project directory on disk. Needed only by the one-off scripts under `results/analysis/` that read a job's `.cs` and `job.json` off disk rather than through the API. | `/mnt/cryosparc/P1` |
-| `RAPICK_FIGURES_OUT` | Where the figure scripts write. Nothing writes back into the repository, so the figure in the paper and the figure a checkout produces stay separable. | `$RAPICK_WORK/figures` (default) |
 
 Set the main ones once, for example in `~/.rapick.env`, and source it before running
 anything:
@@ -32,7 +30,6 @@ reason to be overridable.
 
 | Variable | Holds | Default |
 | --- | --- | --- |
-| `RAPICK_CHIMERAX` | The ChimeraX executable, for Fig. 3. `--chimerax` overrides it. | searched |
 | `RAPICK_TOOL_*` | The path to one stage's entry point, when it is not where setup put it: `PREDICT`, `PREDICT_FULLSET`, `FINETUNE`, `MASK_FILTER`, `SCORER`, `SELECT_*`. | under `third_party/` or `src/` |
 | `RAPICK_RECON_PROFILE` | A different CryoSPARC job-DAG profile. | `configs/cryosparc_v47.yaml` |
 | `RAPICK_CONDITION_<NAME>` | The config file for one condition, when `configs/` is laid out differently. `RAPICK_CONDITION_FB` points at `fb`'s. | `configs/conditions/<name>.yaml` |
@@ -71,7 +68,7 @@ $RAPICK_WORK/
 
 `<setting>` is `annot` (the 300 annotated micrographs) or `full` (the whole
 deposition). `<condition>` is one of the names in
-[PAPER_TO_CODE.md](PAPER_TO_CODE.md).
+[CONDITIONS.md](CONDITIONS.md).
 
 ## CryoSPARC connection: `.env`
 
