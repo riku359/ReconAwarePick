@@ -66,7 +66,7 @@ micrographs: removals are the drop in matched candidates, the particle row is th
 drop in true positives.
 
 ```bash
-python3 results/analysis/ablation_2d_metrics.py --entries 10081 10093 10345 10532
+python3 results/analysis/ablation_2d_metrics.py --ids 10081 10093 10345 10532
 ```
 
 The two GT-overlap scripts in `src/rapick/cleaner/` measure a related but
@@ -139,16 +139,22 @@ training ([BASELINES.md](BASELINES.md)).
 exact command. `bash scripts/08_tables_figures.sh` runs the ones that need
 nothing but this repository.
 
-| | Runs standalone? |
+| | What it needs beyond this repository |
 | --- | --- |
-| Fig. 4, Fig. 5, and the loop-rounds figure | yes, from `results/tables/` |
-| Fig. S2, Fig. S3 | yes, from committed inputs |
-| Fig. 1, Fig. 2 | needs LibreOffice for the pptx to pdf step |
-| Fig. 3 | needs ChimeraX and the reconstructed volumes |
-| Fig. 6, Fig. S5 | needs a run's outputs |
-| Fig. S1, Fig. S6, Fig. S7 | needs a live CryoSPARC instance: the panels are what CryoSPARC renders for its own jobs |
+| Fig. 4, Fig. 5, and the loop-rounds figure | nothing. They read `results/tables/`, on purpose, so a figure and the table it plots cannot drift apart |
+| Fig. S3 | nothing |
+| Fig. S2 | one micrograph and its two masks, passed with `--assets` |
+| Fig. 1, Fig. 2, Fig. 6 | photographic assets, plus LibreOffice for the pptx to pdf step |
+| Fig. 3 | ChimeraX, and the refinement volumes a run leaves behind |
+| Fig. S5, Fig. S6, Fig. S7 | a live CryoSPARC instance: the panels are what CryoSPARC renders for its own jobs |
 
-Fig. S1 and Fig. S4 are TikZ inside the manuscript, not drawn by any script here.
+Fig. S1 and Fig. S4 are TikZ inside the manuscript, so no script draws either.
+Fig. S1 is drawn over panels that are built here, though, and
+`results/figures/README.md` says which scripts cut them.
+
+No micrograph, particle crop, mask or class tile is committed: they are large
+binaries, and this repository commits code and numbers. Every script that needs
+one takes an `--assets` directory.
 
 ## Checking without running anything
 

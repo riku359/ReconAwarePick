@@ -15,9 +15,26 @@ falling back to a default that happens to exist on the author's server.
 | `RAPICK_ENVS` | Where the per-tool virtual environments are built. Point it at a local SSD: `uv` file locks hang on NFS. | `<repo>` (default, one `.venv` per env dir) |
 | `RAPICK_GPU` | Default GPU index for the stages that take one. Every driver also accepts `--gpu`. | `0` |
 | `RAPICK_TEST_DATA` | Root of the per-entry micrograph directories the picker reads, laid out as `<id>/images/`. Upstream CryoTransformer resolves its input that way and we kept the contract; `scripts/03_pick.sh` creates the links. | `$RAPICK_WORK/test_data` |
+| `RAPICK_CRYOSPARC_PROJECT_DIR` | The CryoSPARC project directory on disk. Only the one-off scripts under `results/analysis/` need it: several read a job's `.cs` and `job.json` off disk rather than through the API. | `/mnt/cryosparc/P1` |
+| `RAPICK_FIGURES_OUT` | Where the figure scripts write. Nothing writes back into the repository, so the figure in the paper and the figure a checkout produces stay separable. | `$RAPICK_WORK/figures` (default) |
 
-Set them once, for example in `~/.rapick.env`, and source it before running
-anything:
+### Escape hatches
+
+Nothing below needs setting for a normal run. Each exists because one stage had a
+reason to be overridable.
+
+| Variable | Holds | Default |
+| --- | --- | --- |
+| `RAPICK_CHIMERAX` | The ChimeraX executable, for Fig. 3. `--chimerax` overrides it. | searched |
+| `RAPICK_TOOL_*` | The path to one stage's entry point, when it is not where setup put it: `PREDICT`, `PREDICT_FULLSET`, `FINETUNE`, `MASK_FILTER`, `SCORER`, `SELECT_*`. | under `third_party/` or `src/` |
+| `RAPICK_RECON_PROFILE` | A different CryoSPARC job-DAG profile. | `configs/cryosparc_v47.yaml` |
+| `RAPICK_CONDITION_<NAME>` | The config file for one condition, when `configs/` is laid out differently. `RAPICK_CONDITION_FB` points at `fb`'s. | `configs/conditions/<name>.yaml` |
+| `RAPICK_RECON_MAX_INCOMPLETE_MICS`, `RAPICK_RECON_MAX_INCOMPLETE_CTF_MICS` | How many micrographs an import or a Patch CTF may silently drop before the preflight refuses to continue. **Raising this is how a run ends up reconstructing fewer micrographs than it reports**, which happened once here; raise it only with a reason. | `0` |
+| `RAPICK_FT_MIN_FREE_MB`, `RAPICK_FT_MAX_WAIT_S` | How much free GPU memory a fine-tune waits for, and how long it waits before giving up. | 20000 MB, 7200 s |
+| `RAPICK_LOCK_DIR` | Where the loop keeps its per-entry lock, so two rounds of the same entry cannot run at once. | `/tmp` |
+
+Set the main ones once, for example in `~/.rapick.env`, and source it before
+running anything:
 
 ```bash
 export RAPICK_DATA=/mnt/data/rapick-data

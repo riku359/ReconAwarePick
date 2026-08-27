@@ -48,7 +48,7 @@ if [ "$MODE" = "tables" ]; then
   echo "Compare against results/tables/detection_2d.json."
   echo
   echo "Table 3 needs the baseline and mask conditions scored on the annotated set:"
-  echo "  python3 results/analysis/ablation_2d_metrics.py --entries ${ENTRIES_ALL[*]}"
+  echo "  python3 results/analysis/ablation_2d_metrics.py --ids ${ENTRIES_ALL[*]}"
   echo "Every other table is read out of a run's metrics.json; see docs/REPRODUCE.md."
   exit 0
 fi
