@@ -38,9 +38,19 @@ def _import_common_2d_metrics():
         return module
     except ImportError:
         pass
-    in_repo_eval_dir = Path(__file__).resolve().parents[3] / "eval"
-    if in_repo_eval_dir.is_dir():
-        sys.path.insert(0, str(in_repo_eval_dir))
+    # Two layouts to cover: this file sits at src/rapick/picker/overlay/head_repair/
+    # in the repository and at third_party/cryotransformer/head_repair/ after setup.
+    # Walking up for the marker covers both without either being spelled out.
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / "src" / "rapick" / "eval"
+        if (candidate / "calc_common_2d_metrics.py").is_file():
+            sys.path.insert(0, str(candidate))
+            import calc_common_2d_metrics as module
+            return module
+    sibling = here.parents[3] / "eval"          # the in-repository layout
+    if (sibling / "calc_common_2d_metrics.py").is_file():
+        sys.path.insert(0, str(sibling))
         import calc_common_2d_metrics as module
         return module
     raise SystemExit(

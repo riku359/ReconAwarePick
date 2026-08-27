@@ -76,9 +76,22 @@ def _import_common_2d_metrics():
         return module
     except ImportError:
         pass
-    in_repo_eval_dir = Path(__file__).resolve().parents[2] / "eval"
-    if in_repo_eval_dir.is_dir():
-        sys.path.insert(0, str(in_repo_eval_dir))
+    # Two layouts to cover. In the repository this file sits at
+    # src/rapick/picker/overlay/, so the reader is two levels up in eval/. After
+    # setup it sits in the clone at third_party/cryotransformer/, so the reader is
+    # up and across. Walking up for the marker covers both without either being
+    # spelled out, and covers a clone somewhere else as long as it is under the
+    # repository. Beyond that, PYTHONPATH is the answer, and the error says so.
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / "src" / "rapick" / "eval"
+        if (candidate / "calc_common_2d_metrics.py").is_file():
+            sys.path.insert(0, str(candidate))
+            import calc_common_2d_metrics as module
+            return module
+    sibling = here.parents[2] / "eval"          # the in-repository layout
+    if (sibling / "calc_common_2d_metrics.py").is_file():
+        sys.path.insert(0, str(sibling))
         import calc_common_2d_metrics as module
         return module
     raise SystemExit(
