@@ -1,6 +1,7 @@
 # ReconAwarePick
 
 <p align="center">
+  <a href="https://riku359.github.io/recon-aware-pick-page/"><img src="https://img.shields.io/badge/Project-Page-blue.svg" alt="Project Page"></a>
   <a href="https://huggingface.co/rikrikrik/recon-aware-pick-weights"><img src="https://img.shields.io/badge/Hugging%20Face-weights-yellow.svg" alt="Weights"></a>
   <a href="https://huggingface.co/datasets/rikrikrik/recon-aware-pick-data"><img src="https://img.shields.io/badge/Hugging%20Face-data-yellow.svg" alt="Data"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
