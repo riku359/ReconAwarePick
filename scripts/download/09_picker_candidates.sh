@@ -8,5 +8,5 @@
 banner "Candidates of the four pickers"
 run_hf download \
     --repo-data rikrikrik/recon-aware-pick-data \
-    --experiments-root "$WORK" --ids "${ENTRIES[@]}" --with-picks
+    --experiments-root "$WORK" --ids "$ENTRIES_CSV" --with-picks
 echo "  -> $WORK/picks/<id>/{cryotransformer,cryolo,topaz,cryosegnet}.star"

@@ -30,7 +30,9 @@ Two things that will otherwise cost you an afternoon:
 - **crYOLO cannot be built with `uv`** — its sdist has a malformed `extras_require`.
   Use conda or Miniforge with a local `$HOME`; conda hangs on an NFS home. It installs
   from PyPI as `pip install 'cryolo[c11]'` and needs Python < 3.9 plus conda-only GUI
-  packages. The GitHub repository is documentation only.
+  packages. The GitHub repository is documentation only. `envs/cryolo/` therefore holds
+  a conda lock rather than a `uv.lock`: `conda env create -f envs/cryolo/environment.lock.yml`,
+  with `requirements.lock.txt` the pip half of that same solve.
 - **`scipy==1.9.1` in the CryoSegNet environment is load-bearing.** It imports
   `scipy.signal.gaussian`, removed in scipy 1.13. Do not bump it.
 

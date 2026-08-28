@@ -12,11 +12,15 @@ The operating point is the original implementation's, unchanged at every round
 and for every entry; the settings are in src/rapick/picker/README.md.
 
   bash scripts/pick.sh --entry 10081                     full deposition
-  bash scripts/pick.sh --entry 10081 --setting annot     the 300 annotated
+  bash scripts/pick.sh --entry 10081 --setting annot --out $R/cryotransformer.star
   bash scripts/pick.sh --entry 10081 --checkpoint PATH --out $RAPICK_WORK/picks/10081/fb.star
 
   --checkpoint  which weights pick (default: theta_0, the repaired head)
-  --out         where the STAR lands (default: <picks dir>/cryotransformer.star)
+  --out         where the STAR lands. Defaults to <picks dir>/cryotransformer.star at
+                full-deposition scale, and is REQUIRED at --setting annot: there is one
+                picks directory per entry, not one per scale, so a 300-micrograph pick
+                left to that default would overwrite the whole deposition's candidates
+                under the name every dataset config reads them by.
 
 The STAR is GT-aligned, and its name is what the rest of the pipeline reads it by:
 a name records which stages the picks have been through, so this stage writes the
@@ -53,6 +57,18 @@ require_roots
 
 PICKS_DIR="$(picks_dir "$ENTRY")"
 if [ -z "$OUT" ]; then
+  # One picks directory per entry, not one per scale. So the default name belongs to the
+  # full deposition, and a 300-micrograph pick that fell back to it would silently
+  # replace the deposition's candidates -- the file every dataset config, Table 2 and
+  # Table S2 read -- with a 300-micrograph subset under the same name.
+  if [ "$SETTING" = "annot" ]; then
+    echo "error: --out is required at --setting annot." >&2
+    echo "       The default, $PICKS_DIR/cryotransformer.star, is the whole" >&2
+    echo "       deposition's candidates; a 300-micrograph pick would overwrite them." >&2
+    echo "       One round of the loop writes its own directory:" >&2
+    echo "         --out \$RAPICK_WORK/loop/$ENTRY/round0/cryotransformer.star" >&2
+    exit 2
+  fi
   OUT="$PICKS_DIR/cryotransformer.star"
 fi
 case "$OUT" in

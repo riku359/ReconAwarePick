@@ -145,8 +145,8 @@ def render_validation(mic, mask, picks, flags, deep_thr, box, max_out_dim, alpha
     with kept particles as green and removed particles as red circles.
 
     The background uses CryoSegNet's released full-res denoised JPG (denoised_full, in the
-    flipud frame) when there is one, downscaled to the output resolution (the same route as
-    overlay_panel.panel). Without one, mic is downscaled and denoised on the spot -- that
+    flipud frame) when there is one, downscaled to the output resolution. Without one,
+    mic is downscaled and denoised on the spot with `overlay_panel.denoise_flip_frame` -- that
     denoises after the downsample, so it is blurrier than the full-res JPG.
     """
     import cv2

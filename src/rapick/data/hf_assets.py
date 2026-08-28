@@ -56,7 +56,7 @@ Usage:
         --repo-weights <user>/recon-aware-pick-weights \
         --repo-data <user>/recon-aware-pick-data \
         --data-root "$RAPICK_DATA" \
-        --experiments-root "$RAPICK_WORK" --with-masks
+        --experiments-root "$RAPICK_WORK" --with-cleaner-data --with-masks
 """
 from __future__ import annotations
 
@@ -222,6 +222,10 @@ def cmd_upload_masks(args):
 def cmd_download(args):
     from huggingface_hub import hf_hub_download
 
+    # One list of entries for every branch below, so a narrowed --ids narrows all of
+    # them. $RAPICK_ENTRIES reaches here as scripts/download/'s --ids.
+    ids = args.ids.split(",") if args.ids else list(CLEANER_IDS)
+
     if args.repo_weights:
         dest_root = Path(args.data_root).expanduser() / "checkpoints"
         dest_root.mkdir(parents=True, exist_ok=True)
@@ -236,7 +240,6 @@ def cmd_download(args):
         # which arm and which entry, so the picker can be pointed at one directly.
         arm = getattr(args, "with_loop_checkpoints", None)
         if arm:
-            ids = args.ids.split(",") if args.ids else CLEANER_IDS
             for eid in ids:
                 dest = dest_root / f"loop_{arm}_round1_empiar_{eid}.pth"
                 got = hf_hub_download(args.repo_weights,
@@ -246,7 +249,6 @@ def cmd_download(args):
 
     if args.repo_data:
         experiments_root = Path(args.experiments_root).expanduser()
-        ids = args.ids.split(",") if args.ids else CLEANER_IDS
 
         if getattr(args, "with_picks", False):
             for eid in ids:
@@ -262,18 +264,24 @@ def cmd_download(args):
         # them, under the name that says which stages they have been through. Landing
         # them anywhere else is the same as not fetching them: nothing downstream looks
         # for a STAR outside picks/<id>/.
-        for eid in ids:
-            picks_dir = experiments_root / "picks" / eid
-            picks_dir.mkdir(parents=True, exist_ok=True)
-            for f in CLEANER_FILES:
-                got = hf_hub_download(args.repo_data, f"fullset_filter/{eid}/cryotransformer/{f}",
-                                      repo_type="dataset")
-                # The STAR is published remotely under the filter's own output name and
-                # lands here under the name the pipeline reads; the other two are
-                # diagnostics and keep theirs.
-                local = MASKED_PICKS if f == CLEANER_STAR else f
-                (picks_dir / local).write_bytes(Path(got).read_bytes())
-            print(f"[got] {picks_dir}/{MASKED_PICKS} and its two diagnostics files")
+        #
+        # Behind a flag like every other group. Unconditional, it ran again on every
+        # --repo-data call, so the step that fetches the comparison pickers' candidates
+        # re-downloaded the masked picks the step before it had already placed.
+        if getattr(args, "with_cleaner_data", False):
+            for eid in ids:
+                picks_dir = experiments_root / "picks" / eid
+                picks_dir.mkdir(parents=True, exist_ok=True)
+                for f in CLEANER_FILES:
+                    got = hf_hub_download(args.repo_data,
+                                          f"fullset_filter/{eid}/cryotransformer/{f}",
+                                          repo_type="dataset")
+                    # The STAR is published remotely under the filter's own output name
+                    # and lands here under the name the pipeline reads; the other two
+                    # are diagnostics and keep theirs.
+                    local = MASKED_PICKS if f == CLEANER_STAR else f
+                    (picks_dir / local).write_bytes(Path(got).read_bytes())
+                print(f"[got] {picks_dir}/{MASKED_PICKS} and its two diagnostics files")
 
     if args.with_masks:
         from huggingface_hub import snapshot_download
@@ -287,11 +295,22 @@ def cmd_download(args):
         # dropped, because every stage that reads a mask reads $RAPICK_WORK/masks/<id>
         # (rapick.loop.paths.mask_dir, scripts/contamination_removal.sh --masks) and a
         # store one level deeper is a store nothing finds.
+        #
+        # The patterns are per entry, not `MASK_SUBDIR/*`. One mask per micrograph means
+        # all four entries come to 6,070 files against 997 for 10081 alone, so a blanket
+        # pattern fetches six times what an $RAPICK_ENTRIES of one entry asked for.
+        mask_ids = [eid for eid in ids if eid in MASK_IDS]
+        if not mask_ids:
+            sys.exit(f"--with-masks: no published masks for {', '.join(ids)}; "
+                     f"the published entries are {', '.join(MASK_IDS)}")
         staging = experiments_root / "_hf_masks_staging"
         snapshot_download(args.repo_data, repo_type="dataset",
-                          allow_patterns=[f"{MASK_SUBDIR}/*"], local_dir=str(staging))
+                          allow_patterns=[f"{MASK_SUBDIR}/{MASK_IDS[eid]}/{eid}/*"
+                                          for eid in mask_ids],
+                          local_dir=str(staging))
         masks_root = experiments_root / "masks"
-        for eid, dist in MASK_IDS.items():
+        for eid in mask_ids:
+            dist = MASK_IDS[eid]
             src = staging / MASK_SUBDIR / dist / eid
             if not src.is_dir():
                 continue
@@ -367,6 +386,9 @@ def main():
     dl.add_argument("--ids", help=f"comma-separated, default {','.join(CLEANER_IDS)}")
     dl.add_argument("--with-masks", action="store_true",
                     help="also fetch the contamination masks from --repo-data")
+    dl.add_argument("--with-cleaner-data", action="store_true",
+                    help="also fetch the full-set picks that survive contamination "
+                         "masking, so scripts/contamination_removal.sh can be skipped")
     dl.add_argument("--with-picks", action="store_true",
                     help="also fetch the four pickers' full-set candidates, which is what "
                          "Table 2 and Table S2 need and what avoids installing them")

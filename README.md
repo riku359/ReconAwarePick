@@ -63,7 +63,7 @@ bash scripts/setup.sh
 | picking, fine-tuning | `envs/cryotransformer` | 3.7 | torch 1.13.1+cu117 |
 | contamination masking | `envs/micrograph_cleaner` | 3.10 | TensorFlow 2.16 + Keras 3 |
 | 2D class selection | `envs/cryosift` | 3.12 | torch 2.6 (CPU) |
-| reconstruction | `envs/recon` | 3.10 | cryosparc-tools 4.7 |
+| reconstruction | `envs/recon` | 3.9+ | cryosparc-tools 4.7 |
 
 Every path comes from an environment variable, and a script that cannot resolve one
 fails naming it rather than falling back to a default; the contract is in

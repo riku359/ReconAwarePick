@@ -78,7 +78,10 @@ banner "Classifying $(basename "$STAR") as '$NAME' ($ENTRY, $SETTING)"
 # argument at all, or the single word --dry-run.
 # The run lasts hours, so its output is shown as it happens and read afterwards
 # rather than swallowed into a variable.
-LOG="$(mktemp -t rapick_class2d)"
+# Spelled out rather than `mktemp -t rapick_class2d`: GNU coreutils' -t wants a
+# template ending in at least three X's and refuses that one outright, so the driver
+# died on its own log file on every Linux host.
+LOG="$(mktemp "${TMPDIR:-/tmp}/rapick_class2d.XXXXXX")"
 trap 'rm -f "$LOG"' EXIT
 PYTHONPATH="$REPO/src" "$PY" -m rapick.loop.run_to_class2d \
     --env "$REPO/.env" --profile "$REPO/configs/cryosparc_v47.yaml" \

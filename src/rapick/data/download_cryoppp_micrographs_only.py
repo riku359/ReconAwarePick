@@ -280,8 +280,9 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="Plan + capacity check only.")
     ap.add_argument("--max-retries", type=int, default=5, help="Per-file curl retries.")
     ap.add_argument("--catalog", default=None,
-                    help="Override the xlsx catalogue path "
-                         "(default <data-root>/cryoppp_src/rapick/data/.../catalogue.xlsx).")
+                    help="Override the xlsx catalogue path (default <data-root>/cryoppp_tools/"
+                         "cryoppp/download_micrographs_motion_correction_files/"
+                         "micrographs_download_catalogue.xlsx).")
     ap.add_argument("--sample-per-id", type=int, default=3,
                     help="Files sampled per ID for size estimate in dry-run.")
     args = ap.parse_args()

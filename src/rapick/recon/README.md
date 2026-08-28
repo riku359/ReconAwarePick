@@ -210,9 +210,7 @@ case where a small, independently verified micrograph loss is acceptable:
 `RAPICK_RECON_MAX_INCOMPLETE_CTF_MICS` and `RAPICK_RECON_MAX_INCOMPLETE_MICS`. Leave them
 unset unless you have checked what was lost.
 
-`jobs/rebalance_orientations.py` wires CryoSPARC's Rebalance Orientations job but is not
-used by any arm of the paper, is not exported from `jobs/__init__.py`, and the
-shipped profile declares no `rebalance_orient` step — add one before calling it.
-`jobs/junk_detector.py` is wired and exported, but no arm of the paper uses it: contamination removal in this paper is the
-MicrographCleaner mask of [`src/rapick/cleaner/`](../cleaner/), applied to the picks
-before import. It is kept as a cross-check of the same idea using CryoSPARC's own network.
+`jobs/` holds one module per job the pipeline actually creates. Contamination removal is
+not among them: in this paper it is the MicrographCleaner mask of
+[`src/rapick/cleaner/`](../cleaner/), applied to the picks before they are imported, so
+no CryoSPARC job does it.

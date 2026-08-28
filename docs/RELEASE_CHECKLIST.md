@@ -36,20 +36,37 @@ private repository's arm names. `--links` also fetches every external URL.
         picks. The exception is Topaz's F1 on EMPIAR-10345, 0.483 against 0.482, whose
         precision and recall both reproduce — a macro F1 on a rounding boundary, not a
         different measurement
-- [ ] **Run one arm through to a reconstruction.** The above stops short of creating
-      CryoSPARC jobs. Smallest useful test: EMPIAR-10081, `cryotransformer_mask`, at
-      `annot` scale, from the published intermediates.
-- [ ] **Re-check the above after the driver split.** `scripts/` was reorganised into one
-      driver per transform, the per-arm configs were merged into `configs/recon.yaml`,
-      and the STARs were renamed to say which stages they have been through
-      (`docs/CONDITIONS.md`). The job chain CryoSPARC sees is unchanged and the manifest
-      format is unchanged, so a run in flight resumes — but none of it has been through
-      a live CryoSPARC instance in this form. Three fixes that came with it are also
-      untested against real data: the published masks now land in `$RAPICK_WORK/masks/`
-      where every stage reads them (they landed in `cleaner_masks/`, which nothing
-      read), the published masked picks now land in `$RAPICK_WORK/picks/` (they landed
-      in a directory nothing read), and `2d_classification.sh` stops at class_2D instead
-      of running an ab-initio and three refinements that get thrown away.
+- [x] **Run one arm through to a reconstruction.** Done, and both ways in, on a fresh
+      clone against a live v4.7 instance in a throwaway project. EMPIAR-10081 at `annot`
+      scale, 29 CryoSPARC jobs, from the published intermediates:
+      - `2d_classification.sh` built the shared chain — import (300 micrographs), Patch
+        CTF, import particles (72,598), extract at box 256 (71,814), `class_2D` K=50
+        (65,664) — and the manifest recorded every job with its input fingerprint
+      - `reconstruct.sh --name cryotransformer_mask` ran ab-initio and refine on seeds
+        0,1,2 (6.854 / 7.518 / **6.427** Å GSFSC 0.143), kept seed 2, estimated local
+        resolution on it, and wrote `metrics.json`
+      - `select2d.sh` ran CryoSift's three cycles on that `class_2D`: 9 of 50 classes set
+        aside as attractors (15,917 particles), final selects at all three cutoffs, and
+        **37,000 / 47,166 particles (78.4%) at the 3.5 cutoff** the reconstruction reads
+      - `reconstruct.sh --parent cryotransformer_mask` reconstructed that selection
+        through `reconstruct-from-selection` (4.719 / 4.923 / 5.649 Å, best seed 0)
+      The two arms differ only in the selection, and it moves the resolution the way the
+      paper says it does — 6.427 Å to **4.719** Å. Neither number is a paper number: 300
+      micrographs do not give a stable reconstruction, which is why every reported
+      resolution uses `full`. What this establishes is the machinery, not a result.
+- [x] **Re-check the above after the driver split.** Done, in the same run. `scripts/`
+      was reorganised into one driver per transform, the per-arm configs were merged into
+      `configs/recon.yaml`, and the STARs were renamed to say which stages they have been
+      through (`docs/CONDITIONS.md`). The three fixes that came with it are now confirmed
+      against real data: the published masks land in `$RAPICK_WORK/masks/` where every
+      stage reads them, the published masked picks land in `$RAPICK_WORK/picks/`, and
+      `2d_classification.sh` stops at class_2D. Applying the downloaded masks to the
+      downloaded picks reproduces the published `cryotransformer_mask.star` to **one pick
+      in 259,335** — the float16 rounding `src/rapick/cleaner/README.md` documents, and
+      nothing else. Re-picking the 300 from theta_0 reproduces Table S2's CryoTransformer
+      row for 10081 at 0.469 / 0.952 / 0.610 against the published 0.469 / 0.954 / 0.610.
+      The split did not survive untouched, though: it broke seven things that only a run
+      could find, all listed below.
 - [x] Publish the four round-1 fine-tuned checkpoints to
       `rikrikrik/recon-aware-pick-weights`. Done, with the four of the perfect-teacher
       arm. Each carries its training arguments and reads back as the paper's method:
@@ -83,6 +100,19 @@ public.
 | The released picker weights were referenced everywhere and downloadable from nowhere | every machine that ran the experiments already had them |
 | `finetune.py --help` died: it could not find the repository's STAR reader | its fallback path was right only while the file sat in the repository, and setup copies it into the clone |
 | `--help` needed the data roots set before it would print anything | nobody runs `--help` on a machine that has no data |
+
+Seven more, all introduced by the driver split and all found the same way — by running
+it on a machine that had never run it:
+
+| What | Why it was invisible |
+| --- | --- |
+| `download/05`'s recovery ignored `$RAPICK_ENTRIES` and began fetching all 34 CryoPPP archives | it is the one downloader that takes no `--ids`, and it only misbehaves when the run is narrowed to a subset |
+| `verify_mrc_integrity.py` died on `import numpy` every time, and then on a `--dataset cryoppp` argparse no longer accepts | a blanket `\|\| true` swallowed both, so the annotated half was never checked and the run said nothing |
+| `--with-masks` ignored `--ids` and fetched 6,070 mask files for one entry's 997 | six times the download is slow, not wrong, so nothing failed |
+| `--ids "${ENTRIES[@]}"` fed four words to an option taking one comma-separated list, killing steps 08-10 | only on a run covering more than one entry — that is, on the default |
+| `2d_classification.sh` died on `mktemp -t rapick_class2d`, which GNU coreutils refuses | BSD `mktemp` accepts it, so it works on the machine the driver was written on |
+| `star_distinctness` demanded every arm's STAR, including `fb_mask` and `fb_gt_mask` that later stages produce | the machines that ran the experiments had all of them already |
+| `select2d_state_file` read `CRYOSPARC_PROJECT` from the environment while the Python read it from `.env` | both spellings work when the variable is exported, which it is on a machine that has been running experiments |
 
 ## Two things to settle in the manuscript, not here
 

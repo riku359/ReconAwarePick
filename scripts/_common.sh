@@ -215,9 +215,30 @@ print(final.get("uid", ""))
 ' "$1"
 }
 
-# Where scripts/select2d.sh keeps the state of one selection run.
+# One value out of the .env every CryoSPARC stage reads, with the process environment
+# winning over the file -- the same precedence rapick.recon.config.load_env applies. The
+# shell needs this because the directory a stage writes into can be named after a
+# credential: read only the environment and the name comes out with an empty field where
+# the value should be, pointing at a directory nothing ever wrote.
+env_value() {  # env_value <KEY>
+  local key="$1" val=""
+  eval "val=\${$key:-}"
+  if [ -n "$val" ]; then
+    echo "$val"
+    return 0
+  fi
+  [ -f "$REPO/.env" ] || return 0
+  sed -n "s/^[[:space:]]*$key[[:space:]]*=[[:space:]]*//p" "$REPO/.env" \
+    | tail -1 | tr -d "\"'"
+}
+
+# Where scripts/select2d.sh keeps the state of one selection run. The name is
+# <project>_<class_2D>_iter, and rapick.select2d.iterate_class2d builds it from the
+# project in .env -- so this has to read the same place rather than only the environment,
+# or the two disagree and every run reads back as "the selection did not get that far".
 select2d_state_file() {  # select2d_state_file <class_2D uid>
-  local project="${CRYOSPARC_PROJECT:-}"
+  local project
+  project="$(env_value CRYOSPARC_PROJECT)"
   echo "$WORK/select2d/${project}_$1_iter/state.json"
 }
 

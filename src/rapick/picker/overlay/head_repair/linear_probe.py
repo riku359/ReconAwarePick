@@ -54,7 +54,6 @@ def main():
     mic_keys = []
     per_mic = {}
     n_no_gt = 0
-    n_queries = None
     for f in files:
         mic_key = normalize_mic_name(f.stem)
         gt_xy = gt_points.get(mic_key, [])
@@ -72,7 +71,6 @@ def main():
         label = gt_match_labels(cx, cy, gt_xy, radius)  # (600,) bool
         per_mic[mic_key] = (hs, label)
         mic_keys.append(mic_key)
-        n_queries = hs.shape[0]
 
     print(f"{len(mic_keys)} micrographs with GT used, {n_no_gt} dumped micrographs had no GT entry (skipped)")
 

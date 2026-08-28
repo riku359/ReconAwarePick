@@ -98,7 +98,7 @@ def main():
 
     env._ensure_modern_ptxas()
     os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
-    import cv2, keras
+    import cv2
     import micrograph_cleaner_em as mce
     from triangular_mask import build_extractor, extract_blended
     from micrograph_cleaner_em.preprocessMic import preprocessMic

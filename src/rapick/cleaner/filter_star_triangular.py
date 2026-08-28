@@ -86,7 +86,7 @@ def main():
     env._ensure_modern_ptxas()
     os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
     os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
-    import cv2, mrcfile, keras
+    import cv2, keras
     from micrograph_cleaner_em.preprocessMic import preprocessMic
 
     os.makedirs(args.out_dir, exist_ok=True)

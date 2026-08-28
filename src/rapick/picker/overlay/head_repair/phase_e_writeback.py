@@ -88,7 +88,6 @@ def main():
     # config was already chosen from Phase D's LOIO-CV; this is just a final check
     # that the fully-refit deployed head is not obviously broken).
     rng = np.random.default_rng(args.seed)
-    train_ids_shuffled = list(TRAIN_IDS)
     holdout_mic_idx = {}
     for eid in TRAIN_IDS:
         n_mic = id_data[eid]["hs_last"].shape[0]

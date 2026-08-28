@@ -79,7 +79,7 @@ def main(argv: Optional[list] = None) -> int:
     # so a star supplied here has to be in the config by the time it runs.
     cfg.dataset.ensure_source(args.setting, args.source, args.star)
 
-    preflight = setup_check.data_preflight(cfg, args.setting)
+    preflight = setup_check.data_preflight(cfg, args.setting, args.source)
     for r in preflight:
         print(f"  [{'OK' if r.ok else 'FAIL'}] {r.name}: {r.detail}")
     if not all(r.ok for r in preflight) and not args.force:

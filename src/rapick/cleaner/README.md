@@ -63,7 +63,7 @@ each other flat, so they work from any working directory.
 | File | What it does |
 | --- | --- |
 | `triangular_mask.py` | The core. `extract_blended` slides 256-px windows at 50% overlap, weights each by a Bartlett window and overlap-adds them; `build_extractor` taps the mask and the last-layer embedding out of the loaded model. |
-| `overlay_panel.py` | The single overlay renderer: denoised background, mask in red alpha, threshold contour, per-pick circles, header bar. Also holds `denoise_flip_frame`, the CryoSegNet-identical background denoise. |
+| `overlay_panel.py` | `denoise_flip_frame`, the CryoSegNet-identical background denoise the overlay draws on. The overlay itself is rendered by `filter_star_by_contamination.render_validation`. |
 | `denoise_pipeline.py` | The denoising chain itself, vendored from CryoSegNet (`standard_scaler` -> NlMeans -> Wiener -> CLAHE -> guided filter). |
 | `cleaner_env.py` | Paths from the environment variables, the model location, the per-entry box size, the in/out-of-distribution split, the ptxas fix and the denoised-JPG index. |
 | `save_fullset_triangular_masks.py` | Precompute the triangular mask of every micrograph of an entry into the npz store. Resumable. |
@@ -72,8 +72,6 @@ each other flat, so they work from any working directory.
 | `filter_star_from_masks.py` | The same decision from the precomputed npz store — no TensorFlow, no GPU. This is what the feedback loop calls each round. |
 | `filter_star_by_contamination.py` | The released-post-processing arm of the same filter (upstream `predictMask`), for the Sec. S3 comparison. Also holds the shared `parse_star` / `keep_flags` / `load_micrograph`. |
 | `compare_official_vs_triangular.py` | Predicts both masks for the same micrographs at model scale and writes `comparison.csv` plus the per-micrograph arrays, for the Sec. S3 comparison. |
-| `classify_gt_overlap.py` | Counts, per micrograph, the annotated particles that fall inside each method's mask, plus the masked area, and plots the comparison. |
-| `count_gt_in_contamination.py` | Aggregates those per-micrograph counts by entry and by distribution class into a markdown table. |
 | `build_env.sh` | Builds the venv from `envs/micrograph_cleaner`. |
 | `download_model.sh` | Fetches the pretrained weight from Zenodo. The package's own `cleanMics --download` only gunzips an archive that is really a tar, leaving a file Keras cannot read; this script gunzips *and* untars. |
 
@@ -104,7 +102,6 @@ $RAPICK_WORK/picks/<id>/summary_tri.json          totals
 $RAPICK_WORK/picks/<id>/decisions_tri.jsonl       per-micrograph checkpoint, for resuming
 $RAPICK_WORK/mask_compare/                        comparison.csv + arrays/ (Fig. S2;
                                                   no script here draws it)
-$RAPICK_WORK/figures/gt_overlap/                  classify_gt_overlap.py's panels
 ```
 
 `<prefix>` defaults to `cryotransformer`, which is also the name the published
@@ -179,12 +176,9 @@ whether they overlap a CryoPPP-annotated particle. Its two rows are differences 
 the 2D matching statistics between the *baseline* and *+mask* conditions (total
 picks, and matches against the annotations), so the table is assembled by the
 evaluation stage from those two conditions' metrics. What this stage supplies is
-the `+mask` condition, the filtered STAR from (b).
-
-`classify_gt_overlap.py` and `count_gt_in_contamination.py` ship the per-micrograph
-accounting behind that split, but neither runs from a clean clone: both read the
-mask store and the per-micrograph manifest written by the research repository's
-contamination-detection driver, which is not part of this release.
+the `+mask` condition, the filtered STAR from (b). The per-micrograph accounting
+behind the split is not part of this release: it reads a manifest written by the
+research repository's contamination-detection driver, which is not published.
 
 ### (d) The two post-processings, side by side
 

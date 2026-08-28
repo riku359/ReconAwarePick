@@ -11,17 +11,34 @@
 . "$(dirname "$0")/_common.sh"
 
 banner "Recovering anything that failed"
+# --ids is not optional here. Left off, the recovery treats every one of CryoPPP's 34
+# entries as in scope, finds the 33 that were never fetched entirely missing, and
+# downloads a per-entry archive for each -- hundreds of GB, against an $RAPICK_ENTRIES
+# that asked for one. This downloader wants one comma-separated list where the others
+# take repeated ids ($ENTRIES_CSV, from _common.sh).
 # Not fatal: there may simply be nothing to recover.
-if ! run_dl "$DL/recover_failed_mrc_from_targz.py" --data-root "$DATA" --max-retries 5; then
+if ! run_dl "$DL/recover_failed_mrc_from_targz.py" --data-root "$DATA" \
+        --ids "$ENTRIES_CSV" --max-retries 5; then
   echo "  (nothing to recover, or recovery reported failures; see the log under cryoppp_tools/)"
 fi
 
 banner "Verifying micrograph integrity"
-# The verifier exits non-zero when it finds a bad file. It has already said which one,
-# so keep going and let the operator decide.
+# `subset` is the verifier's name for $RAPICK_DATA/cryoppp; `fullset` for
+# cryoppp_fullset. It exits 1 when it finds a bad file, having already said which one,
+# so that keeps going and lets the operator decide -- but only that. A blanket `|| true`
+# here is what hid a stale `--dataset cryoppp` (rejected by argparse, exit 2) and a
+# missing numpy for as long as it did: the annotated half was never checked and the run
+# said nothing.
 for id in "${ENTRIES[@]}"; do
-  run_dl "$DL/verify_mrc_integrity.py" --data-root "$DATA" --dataset cryoppp --ids "$id" || true
-  run_dl "$DL/verify_mrc_integrity.py" --data-root "$DATA" --dataset fullset --ids "$id" || true
+  for scale in subset fullset; do
+    status=0
+    run_verify "$DL/verify_mrc_integrity.py" \
+        --data-root "$DATA" --dataset "$scale" --ids "$id" || status=$?
+    if [ "$status" -gt 1 ]; then
+      echo "error: the integrity verifier itself failed on $id/$scale (exit $status)." >&2
+      exit "$status"
+    fi
+  done
 done
 
 banner "Micrograph counts"

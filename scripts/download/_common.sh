@@ -19,6 +19,11 @@ DL="$REPO/src/rapick/data"
 #   export RAPICK_ENTRIES=10081
 # shellcheck disable=SC2206  # deliberate word splitting: a space-separated list
 ENTRIES=(${RAPICK_ENTRIES:-10081 10093 10345 10532})
+# Two downloaders take repeated ids and two take one comma-separated list, so both
+# spellings are prepared here. Handing the array to a script that wants the list makes
+# argparse read the first entry as --ids and the rest as stray positionals -- which is
+# an outright error, and only ever on a run covering more than one entry.
+ENTRIES_CSV="$(echo "${ENTRIES[*]}" | tr ' ' ',')"
 
 # Parallel transfers per downloader. Four is what EBI tolerates without throttling.
 WORKERS=4
@@ -41,6 +46,10 @@ mkdir -p "$DATA" "$WORK"
 # the Hugging Face ones need huggingface_hub. Run them through uv rather than
 # requiring either in the ambient interpreter.
 run_dl() { uv run --quiet --with openpyxl python3 "$@"; }
+# The integrity verifier reads the .mrc headers itself and needs numpy, not the
+# catalogue spreadsheet. Run through run_dl it dies on `import numpy`, and 05's
+# `|| true` would swallow that -- the checks would look like they had run.
+run_verify() { uv run --quiet --with numpy python3 "$@"; }
 run_hf() { uv run --quiet --with huggingface_hub python3 "$DL/hf_assets.py" "$@"; }
 
 banner() { echo; echo "==> $*"; }

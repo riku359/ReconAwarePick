@@ -48,32 +48,8 @@ jobs:
   extract:
     type: extract_micrographs_multi
     inputs:  { particles: particles, micrographs: micrographs }
-    # 'micrographs' passes the CTF'd exposures straight through; junk_detector wires it when
-    # it filters an already-extracted stack (see that job's 'exposures' input).
+    # 'micrographs' passes the CTF'd exposures straight through.
     outputs: { particles: particles, micrographs: micrographs }
-
-  junk_detector:
-    type: junk_detector_v1
-    # Not used by any condition of the paper: contamination removal is the
-    # MicrographCleaner mask of src/rapick/cleaner/, applied to the picks before import.
-    # This entry exists because src/rapick/recon/jobs/junk_detector.py wires CryoSPARC's
-    # own equivalent, which is useful as a cross-check of the same idea.
-    #
-    # 'exposures' takes the micrograph_blob (required) + annotation_blob (optional) slots;
-    # feed it patch_ctf's exposures to filter picks BEFORE extract, or extract's micrographs
-    # to filter an already-extracted stack. 'particles' needs only the location slot, so
-    # unextracted picks are a valid input.
-    inputs:  { exposures: exposures, particles: particles }
-    # 'particles' is deliberately the ACCEPTED stack: downstream steps read
-    # outputs["particles"], so a junk_detector result substitutes for an extract result.
-    outputs:
-      particles: particles_accepted
-      particles_rejected: particles_rejected
-      micrographs: exposures              # labelled micrographs (annotation_blob + junk_stats)
-    # min_dist is Å; enable_cat{1,2,3} / min_dist_cat{1,2,3} override per junk class
-    # (carbon_gold / intrinsic_ice / extrinsic_ice). v5.0's min_label_area does not exist
-    # on v4.7 — setting it will fail validation.
-    fixed_params: {}
 
   class2d:
     type: class_2D                        # class_2D_new also exists on v4.7; the base name is what this pipeline ran

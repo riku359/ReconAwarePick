@@ -7,6 +7,6 @@
 banner "Round-1 fine-tuned checkpoints (~870 MB each)"
 run_hf download \
     --repo-weights rikrikrik/recon-aware-pick-weights \
-    --data-root "$DATA" --ids "${ENTRIES[@]}" --with-loop-checkpoints fb
+    --data-root "$DATA" --ids "$ENTRIES_CSV" --with-loop-checkpoints fb
 echo "  -> $DATA/checkpoints/loop_fb_round1_empiar_<id>.pth"
 echo "  Point scripts/pick.sh at one with --checkpoint to re-pick as Ours does."

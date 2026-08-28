@@ -11,8 +11,8 @@ run_hf download \
     --repo-data rikrikrik/recon-aware-pick-data \
     --data-root "$DATA" \
     --experiments-root "$WORK" \
-    --ids "${ENTRIES[@]}" \
-    --with-masks
+    --ids "$ENTRIES_CSV" \
+    --with-cleaner-data --with-masks
 echo "  theta_0        -> $DATA/checkpoints/CryoTransformer_head_repaired.pth"
 echo "  masks          -> $WORK/masks/<id>/*_tri.npz"
 echo "  masked picks   -> $WORK/picks/<id>/cryotransformer_mask.star"

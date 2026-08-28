@@ -11,33 +11,28 @@ predict.py carries. It differs from the overlay's predict.py in exactly two ways
     upstream's, unchanged.
   * --gt-format is present, identical to predict.py's.
 
+Neither changes what is picked. The imports and locals upstream left unused (`glob`,
+`pandas`, `sys`, `Iterable`, `util.misc`, `matplotlib`, `time`) are dropped here as
+well, so a multi-day run does not import a plotting backend it never draws with.
+
 Micrographs come from <--data_root or $RAPICK_TEST_DATA>/<EMPIAR id>/images/, the same
 contract predict.py uses; point that root at the full deposition rather than the
 annotated subset.
 """
 import denoise_micrographs
-from glob import glob
-import pandas as pd
 import os
 import csv
 import cv2
-import sys
 import random
 import argparse
 from pathlib import Path
-from typing import Iterable
 from PIL import Image
 import numpy as np
 
 import torch
 
-import util.misc as utils
-
 from models import build_model
 from datasets.micrograph import make_micrograph_transforms
-
-import matplotlib.pyplot as plt
-import time
 
 
 def nms(bounding_boxes, confidence_scores, nms_threshold):
@@ -237,7 +232,6 @@ def get_args_parser():
 @torch.no_grad()
 def infer(images_path, model, postprocessors, device, output_dir):
     model.eval()
-    duration = 0
 
     prefix_file_name = "EMPIAR_{}_remarks_{}".format(
     args.empiar, args.remarks
@@ -299,9 +293,7 @@ def infer(images_path, model, postprocessors, device, output_dir):
 
         ]
 
-        start_t = time.perf_counter()
         outputs = model(image)
-        end_t = time.perf_counter()
         outputs["pred_logits"] = outputs["pred_logits"].cpu()
         # print(outputs["pred_logits"])
         outputs["pred_boxes"] = outputs["pred_boxes"].cpu()
@@ -398,7 +390,6 @@ def plot_predicted_boxes(rgb_image, boxes, filename, predicted_particles_visuali
     for idx, box in enumerate(boxes):
         bbox = box.cpu().data.numpy()
         bbox = bbox.astype(np.int32)
-        bbox_d = bbox.astype(np.int32)
         bbox_circle = bbox.astype(np.int32)
 
 

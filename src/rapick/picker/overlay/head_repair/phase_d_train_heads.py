@@ -16,7 +16,6 @@ diagnosis only.
 """
 import argparse
 import csv
-import json
 import sys
 import time
 from pathlib import Path

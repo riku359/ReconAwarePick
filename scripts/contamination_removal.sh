@@ -15,7 +15,10 @@ averaging; what that fixes: src/rapick/cleaner/README.md.
   bash scripts/contamination_removal.sh --entry 10081 --star $RAPICK_WORK/picks/10081/fb.star
   bash scripts/contamination_removal.sh --entry 10081 --masks-only
 
-  --star   the picks to filter   (default: <picks dir>/cryotransformer.star)
+  --star   the picks to filter   (default: <picks dir>/cryotransformer.star at
+           full-deposition scale; REQUIRED at --setting annot, where that default
+           would read the whole deposition's candidates and write its own output
+           over the deposition's masked ones)
   --masks  the .npz mask store   (default: $RAPICK_WORK/masks/<entry>)
   --out    where to write        (default: the input with _mask before .star)
 
@@ -56,7 +59,18 @@ require_setting "$SETTING"
 require_roots
 
 PICKS_DIR="$(picks_dir "$ENTRY")"
-[ -n "$MASK_DIR" ]    || MASK_DIR="$(masks_dir "$ENTRY")"
+[ -n "$MASK_DIR" ] || MASK_DIR="$(masks_dir "$ENTRY")"
+# One picks directory per entry, not one per scale, so the default names the whole
+# deposition's candidates. At annot scale that would filter the wrong 997 micrographs
+# and write cryotransformer_mask.star over the deposition's own -- the same trap
+# scripts/pick.sh refuses at, and for the same reason.
+if [ -z "$SOURCE_STAR" ] && [ "$SETTING" = "annot" ] && [ "$MASKS_ONLY" -eq 0 ]; then
+  echo "error: --star is required at --setting annot." >&2
+  echo "       The default, $PICKS_DIR/cryotransformer.star, is the whole deposition's" >&2
+  echo "       candidates. Pass the picks this scale produced:" >&2
+  echo "         --star \$RAPICK_WORK/loop/$ENTRY/round0/cryotransformer.star" >&2
+  exit 2
+fi
 [ -n "$SOURCE_STAR" ] || SOURCE_STAR="$PICKS_DIR/cryotransformer.star"
 # The name of a STAR records which stages it has been through, so the default output
 # is the input with one more stage appended: cryotransformer.star -> _mask.star,

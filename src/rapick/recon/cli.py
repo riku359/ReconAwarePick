@@ -101,7 +101,7 @@ def _cmd_check_setup(args) -> int:
     if args.project:
         cfg.project_uid = args.project
     api = CryoSPARCApi(cfg.connection)
-    results = setup_check.check_setup(api, cfg, args.setting)
+    results = setup_check.check_setup(api, cfg, args.setting, args.source)
     for r in results:
         print(f"  [{'OK' if r.ok else 'FAIL'}] {r.name}: {r.detail}")
     return 0 if all(r.ok for r in results) else 1
@@ -146,7 +146,7 @@ def _cmd_run(args) -> int:
 
     # Preflight the inputs before creating any job (data integrity, no server needed).
     # Checks run against the overrides applied above, so a smoke sees its own inputs.
-    preflight = setup_check.data_preflight(cfg, args.setting)
+    preflight = setup_check.data_preflight(cfg, args.setting, source)
     for r in preflight:
         print(f"  [{'OK' if r.ok else 'FAIL'}] {r.name}: {r.detail}")
     if not all(r.ok for r in preflight) and not args.force:
