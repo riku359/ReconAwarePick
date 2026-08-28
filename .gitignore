@@ -32,3 +32,12 @@ __pycache__/
 
 .DS_Store
 *.log
+
+# The submission bundle: the anonymous tree of the anonymize-for-review branch plus
+# supp.pdf, built by hand and never part of the repository.
+/*-supplementary.zip
+
+# The regexes the anonymize-for-review branch's check_release.sh matches against:
+# host names, account names, author names. Ignored on every branch so that it stays
+# out of the release and out of this branch's own hygiene gate.
+/.private-patterns
