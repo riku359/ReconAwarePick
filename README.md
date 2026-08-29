@@ -187,8 +187,10 @@ bash scripts/finetune.sh --entry 10081 --select2d J<m> --parent fb_r0 \
     --round-dir $R --out $RAPICK_WORK/loop/10081/models/model_1.pth
 ```
 
-Repeat from step 1 with `--checkpoint .../models/model_1.pth` and `R=.../round1`. The
-paper runs three rounds and reports round 1.
+Repeat from step 1 with `--checkpoint .../models/model_1.pth`, `R=.../round1`, and
+`--seed 2` on the fine-tune: round *n* draws its 50 teacher micrographs with seed
+*n*+1, which is what `scripts/loop.sh` passes, so each round trains on a different
+draw. The paper runs three rounds and reports round 1.
 
 `scripts/loop.sh` runs the same five steps with the bookkeeping around them — a per-round
 directory, a resumable step record, a lock, and the per-round diagnostics of Table 6:
@@ -236,6 +238,10 @@ bash scripts/reconstruct.sh       --entry 10081 --parent cryotransformer_mask
 # the two unmasked rows start from cryotransformer.star (downloaded, or pick.sh above)
 bash scripts/2d_classification.sh --entry 10081 --star $P/cryotransformer.star
 bash scripts/reconstruct.sh       --entry 10081 --name cryotransformer
+
+# +select: the selection over the unmasked class_2D
+bash scripts/select2d.sh          --entry 10081 --class2d J<n>
+bash scripts/reconstruct.sh       --entry 10081 --parent cryotransformer
 ```
 
 A run over all four entries and every arm takes weeks. The name of a STAR, and of the

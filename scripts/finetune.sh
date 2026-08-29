@@ -30,6 +30,9 @@ src/rapick/loop/README.md.
                Pass the round this fine-tune belongs to, so its inputs stay with the
                round that produced them and only the checkpoint moves.
   --num-mics   how many micrographs the teacher set draws (default 50)
+  --seed       the draw's random seed. Round n draws with seed n+1 -- the default, 1,
+               is round 0's -- so each round samples a different 50. scripts/loop.sh
+               passes this per round; pass it yourself when running rounds by hand.
 
 The labels are on the 300 annotated micrographs, so this stage reads the `annot`
 scale whatever the reconstruction is run at.
