@@ -76,7 +76,7 @@ def infer_empiar(path):
 
 def read_star(path):
     """Read the STAR loop_ and return (dict name->column, list of data-row tokens).
-    With several data_ blocks, the last loop containing _rlnCoordinateX wins."""
+    With several data_ blocks, the last loop whose header names _rlnCoordinateX wins."""
     cols, rows = {}, []
     cur_cols, cur_rows, in_loop = {}, [], False
     with open(path) as fh:
@@ -91,15 +91,17 @@ def read_star(path):
                 m = re.search(r"#(\d+)", s)
                 idx = int(m.group(1)) - 1 if m else len(cur_cols)
                 cur_cols[s.split()[0]] = idx
+                # Bind at header time, the same rule as rapick.loop.star: a
+                # coordinate loop with zero data rows must still report its columns,
+                # so a picker that proposed nothing reads as empty, not as malformed.
+                if "_rlnCoordinateX" in cur_cols:
+                    cols, rows = cur_cols, cur_rows
                 continue
             if s.startswith("data_") or s.startswith("#"):
                 in_loop = False
                 continue
             if in_loop:
                 cur_rows.append(s.split())
-                # keep a snapshot once this loop is known to carry coordinates
-                if "_rlnCoordinateX" in cur_cols:
-                    cols, rows = cur_cols, cur_rows
     return cols, rows
 
 

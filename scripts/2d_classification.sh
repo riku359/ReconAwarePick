@@ -16,9 +16,14 @@ cycles, so the stacks stay comparable.
   bash scripts/2d_classification.sh --entry 10081 \
       --star $RAPICK_WORK/picks/10081/cryotransformer_mask.star
 
-  --star  the picks to classify (required)
-  --name  what to record the arm as (default: the STAR's name without .star).
-          Names the manifest directory, $RAPICK_WORK/empiar_<entry>/<setting>/<name>/
+  --star     the picks to classify (required)
+  --name     what to record the arm as (default: the STAR's name without .star).
+             Names the manifest directory, $RAPICK_WORK/empiar_<entry>/<setting>/<name>/
+  --setting  annot or full (default full).
+  --gpus     which GPUs the CryoSPARC jobs queue on, comma-separated
+             (default: $RAPICK_GPU, else 0). --gpu is accepted as an alias.
+  --dry-run  run the preflight and print what a real run would create, creating
+             nothing.
 
 Prints the class_2D job uid, which is what scripts/select2d.sh selects on and what
 scripts/reconstruct.sh starts its ab-initio from. This stage runs no reconstruction:

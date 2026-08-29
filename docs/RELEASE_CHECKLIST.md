@@ -76,6 +76,13 @@ private repository's arm names. `--links` also fetches every external URL.
       Done and checked end to end: downloading them onto a fresh clone and scoring them
       reproduces **every value of Table S2 for EMPIAR-10081 exactly**, all four pickers,
       all three metrics.
+- [x] **Keep `anonymize-for-review` an orphan branch, and never push it.** The
+      submission bundle's `code/` is that branch's tree. It carries one parentless
+      commit: built on top of `main` instead, it would carry the whole history, and a
+      single `git push --all` would hand every author name to anyone who fetches.
+      The hygiene gate cannot catch this -- it scans trees, not history -- so it is a
+      rule: rebuild the branch as an orphan after any change to `main`, and delete it
+      once the bundle is built.
 - [ ] Run the `fb_gt` path once. Its checkpoints are published, so the reconstruction
       half of Table 7's lower row reproduces without it, but the loop half is still a
       reimplementation: the scripts behind the published row were never committed, and

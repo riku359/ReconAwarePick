@@ -10,7 +10,7 @@ stages read. A script that cannot resolve one fails immediately, naming it.
 | `RAPICK_DATA` | Downloaded inputs: micrographs, annotations, pretrained weights. Read-mostly, and large. | `/mnt/data/rapick-data` |
 | `RAPICK_WORK` | Everything the pipeline produces. Grows during a run. | `/mnt/data/rapick-work` |
 | `RAPICK_ENTRIES` | Which entries every step covers. One entry avoids the 1.6 TB the four full depositions come to. | `10081 10093 10345 10532` |
-| `RAPICK_GPU` | Default GPU index for the stages that take one. Every driver also accepts `--gpu`. | `0` |
+| `RAPICK_GPU` | Default GPU index for the stages that take one. The single-GPU drivers also accept `--gpu`; the two CryoSPARC stages, `2d_classification.sh` and `reconstruct.sh`, take `--gpus` (a comma-separated list) instead. | `0` |
 | `RAPICK_THIRD_PARTY` | Upstream checkouts fetched by `scripts/setup.sh`. | `<repo>/third_party` (default) |
 | `RAPICK_ENVS` | Where the per-tool virtual environments are built. Keep it on a local SSD. | `<repo>` (default, one `.venv` per env dir) |
 | `RAPICK_TEST_DATA` | Root of the per-entry micrograph directories the picker reads, as `<id>/images/` — upstream CryoTransformer's contract, which we kept. `scripts/pick.sh` creates the links. | `$RAPICK_WORK/test_data` |

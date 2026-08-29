@@ -28,7 +28,13 @@ its own. Two ways in, and they differ only in which particles reach ab-initio.
   --parent    the arm whose class_2D the selection sits on. Its final Select 2D
               Classes job is read out of the state.json scripts/select2d.sh wrote.
   --select2d  that job, named directly instead.
+  --setting   annot or full (default full).
+  --seeds     the ab-initio seeds, comma-separated (default 0,1,2 -- see below).
+  --gpus      which GPUs the CryoSPARC jobs queue on, comma-separated
+              (default: $RAPICK_GPU, else 0).
   --no-local-res   skip the local-resolution estimate on the winner.
+  --dry-run   run the preflight and print what a real run would create, creating
+              nothing.
 
 THREE SEEDS, NOT ONE. The protocol (Sec. 4.2) reports the best of three by GSFSC
 0.143, so a single-seed run reproduces something the paper does not report. If a

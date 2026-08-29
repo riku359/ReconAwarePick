@@ -191,7 +191,7 @@ def main(argv=None) -> int:
     (out_dir / "train_mics.txt").write_text("\n".join(chosen) + "\n")
 
     summary = {
-        "project": args.project, "select2d": args.select2d, "empiar": args.empiar,
+        "project": project.uid, "select2d": args.select2d, "empiar": args.empiar,
         "seed": args.seed, "num_mics": "all" if args.all_mics else args.num_mics,
         "n_surviving_particles": len(keys),
         "n_micrographs_with_survivors": len(by_mic),

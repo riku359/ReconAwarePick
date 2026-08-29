@@ -206,6 +206,7 @@ workspace, so two arms of one entry never share state.
 | `run_loop.py` | the driver: one entry, one arm, N rounds |
 | `run_to_class2d.py` | import_particles -> extract -> class_2D, stopping before any 3D |
 | `export_teacher_star.py` | a select_2D job -> `teacher.star` + `train_mics.txt` |
+| `make_gt_teacher.py` | the `--teacher gt` arm: the CryoPPP annotation as the teacher instead of a selection |
 | `finetune.py` | teacher labels -> the next checkpoint (Eq. 1); `scripts/finetune.sh` drives it |
 | `repick_fullset.py` | one checkpoint -> full-deposition picks -> `picks/<id>/<name>.star` |
 | `round_metrics.py` | Table 6: P/R/F1 and the pick-count funnel, per round |

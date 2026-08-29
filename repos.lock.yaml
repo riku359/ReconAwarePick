@@ -36,6 +36,8 @@ pipeline:
     role: contamination masking (Sec. 3.3, Sec. S3)
     url: https://github.com/rsanchezgarc/micrograph_cleaner_em.git
     branch: tf2            # the tf2 branch, not master
+    commit: 8b74eb9d8e02c7a35779922ea1fa5b38eeee8cd4
+    commit_date: "2025-10-10"
     path: micrograph_cleaner_em
     license: Apache-2.0
     modified: false
