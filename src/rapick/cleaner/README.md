@@ -67,7 +67,6 @@ each other flat, so they work from any working directory.
 | `denoise_pipeline.py` | The denoising chain itself, vendored from CryoSegNet (`standard_scaler` -> NlMeans -> Wiener -> CLAHE -> guided filter). |
 | `cleaner_env.py` | Paths from the environment variables, the model location, the per-entry box size, the in/out-of-distribution split, the ptxas fix and the denoised-JPG index. |
 | `save_fullset_triangular_masks.py` | Precompute the triangular mask of every micrograph of an entry into the npz store. Resumable. |
-| `save_triangular_masks.py` | The same precompute restricted to the micrographs the released arm removed the most annotated particles from. Needs the released arm's mask store. |
 | `filter_star_triangular.py` | **The production filter.** Predicts the triangular mask per micrograph and writes `<prefix>_clean_tri.star` / `_removed_tri.star`. Resumable. |
 | `filter_star_from_masks.py` | The same decision from the precomputed npz store — no TensorFlow, no GPU. This is what the feedback loop calls each round. |
 | `filter_star_by_contamination.py` | The released-post-processing arm of the same filter (upstream `predictMask`), for the Sec. S3 comparison. Also holds the shared `parse_star` / `keep_flags` / `load_micrograph`. |

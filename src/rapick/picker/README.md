@@ -174,7 +174,6 @@ The scripts, in the order they run:
 | `build_train_stem_mapping.py` | Recovers which of the 22 entries each training micrograph belongs to, by matching filenames against the local CryoPPP ground truth. Writes the `stem,empiar_id` CSV. |
 | `predict.py --dump_hs DIR` | Dumps, per micrograph, the last decoder layer's hidden state `hs_last` (600, 256), `pred_logits`, and `pred_boxes_px` in original-micrograph pixels. |
 | `aggregate_hs_by_id.py` | Regroups those per-micrograph dumps into one npz per entry. |
-| `linear_probe.py` | The diagnosis: a logistic-regression probe on `hs`. Same function class as `class_embed` itself, so its held-out AUC estimates the ceiling a head-only retrain can reach. Includes a control that scores each query slot by its historical positive rate alone, isolating how much of the AUC is fixed positional prior rather than per-image content. |
 | `phase_d_train_heads.py` | Leave-one-entry-out CV over head architecture, loss form and no-object weight. Headline metric: query-level precision at recall >= 0.98. |
 | `phase_e_writeback.py` | Refits the chosen configuration on all 22 entries and writes the repaired checkpoint. |
 | `label_utils.py`, `cryoppp_gt.py` | Shared labelling and ground-truth access. |

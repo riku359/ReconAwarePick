@@ -125,7 +125,6 @@ CryoSPARC project directory itself is asked of the server, never hardcoded.
 | `cryosift_env.py` | Shared: upstream import, `.env` reading, CryoSPARC connection, the sign-preserving `model.star` parser |
 | `cryosift_jobs.py` | Shared: creating `select_2D` / `class_2D`, selecting classes, waiting on a queued job |
 | `score_class2d.py` | Score an existing `class_2D` into `scores.csv`, with an optional montage |
-| `purify_class2d.py` | Single-shot: read `scores.csv` and create one `select_2D` at a cutoff |
 | `iterate_class2d.py` | The paper's iterative workflow: set aside, loop, final classify, final select |
 | `scripts/build_env.sh` | Build `envs/cryosift` from the committed lockfile |
 

@@ -3,12 +3,12 @@
 masks (no inference).
 
 The decision is identical to filter_star_triangular.py; the mask is read from
-save_triangular_masks.py's npz instead of being recomputed. This is for the feedback
-loop, which picks the same micrographs over and over: the mask depends only on the
-micrograph and not on the picks, so there is no need to run MaskPredictor once per
+save_fullset_triangular_masks.py's npz instead of being recomputed. This is for the
+feedback loop, which picks the same micrographs over and over: the mask depends only on
+the micrograph and not on the picks, so there is no need to run MaskPredictor once per
 round.
 
-The reuse is not an approximation. What save_triangular_masks.py stores is the second
+The reuse is not an approximation. What save_fullset_triangular_masks.py stores is the second
 return value of `extract_blended(extractor, preprocessMic(image, box), 2, 1)`, the same
 expression filter_star_triangular.py evaluates. The only difference is the rounding from
 the float16 storage, whose step near 0.5 is about 0.0005.
@@ -59,7 +59,7 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--star", required=True)
     ap.add_argument("--mask-dir", default=None,
-                    help="directory of save_triangular_masks.py's npz "
+                    help="directory of save_fullset_triangular_masks.py's npz "
                          "(default: $RAPICK_WORK/masks/<empiar-id>)")
     ap.add_argument("--empiar-id", required=True)
     ap.add_argument("--out-dir", default=None,

@@ -3,7 +3,7 @@
 
 This is the procedure of Fig. 2 of the CryoSift paper (Schaefer et al., bioRxiv
 2025.07.28.667259), and the non-interactive equivalent of upstream Magellon's
-`main.py`. Where the single-shot purify_class2d.py creates one select_2D, this repeats
+`main.py`. Rather than creating one select_2D at a single cutoff, this repeats
 selection and re-classification in order to cancel the attractor effect -- a few
 well-aligning classes pull in the particles of rare viewing angles, so those particles
 end up discarded with them.

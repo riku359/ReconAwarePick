@@ -1,7 +1,7 @@
 """Building CryoSPARC select_2D / class_2D jobs from CryoSift scores.
 
-The single-shot `purify_class2d.py` and the iterative `iterate_class2d.py` share these
-steps. Class selection follows upstream (Magellon's `cryosparc_utils.auto_select`):
+`iterate_class2d.py`'s cycles all go through these steps. Class selection follows
+upstream (Magellon's `cryosparc_utils.auto_select`):
 interact("get_class_info") -> set_class_selected -> interact("finish").
 """
 

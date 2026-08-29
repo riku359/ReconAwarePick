@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
-"""save_fullset_triangular_masks.py -- the full-set version of save_triangular_masks.py.
+"""save_fullset_triangular_masks.py -- precompute the triangular masks of an entry.
 
-It computes the triangular-window blend mask (extract_blended) for every full-set
-micrograph of the given entries and caches it as npz. With this built in advance, a later
-full-set reconstruction can produce a cleaner-filtered star straight away with
+It computes the triangular-window blend mask (extract_blended) for every micrograph of
+the given entries and caches it as npz. With this built in advance, a later
+reconstruction can produce a cleaner-filtered star straight away with
 filter_star_from_masks.py (no TensorFlow, no GPU) -- there is no need to redo the
 triangular-window inference in this TF2 environment every time.
 
-The only difference from save_triangular_masks.py is how the targets are chosen.
-save_triangular_masks.py narrows the candidates by the released predictMask's
-ground-truth containment meta (n_gt_in_contam), but most full-set micrographs have no
-ground truth (only the 300 micrographs of the CryoPPP subset do). This script therefore
-never looks at the ground truth and processes every full-set micrograph of the given
-entries unconditionally.
+It never looks at the ground truth and processes every micrograph of the given entries
+unconditionally: most full-set micrographs carry no annotation (only the 300 of the
+CryoPPP subset do), so nothing narrower would cover a full deposition.
 
-The output format and directory are identical to save_triangular_masks.py's
-(<out-root>/<id>/<mic>_tri.npz, tri: float16 at model scale, meta: json). The CryoPPP
-subset micrographs are a true subset of the full set (confirmed to exist under the same
-file names), so they can be appended to the same npz store, and whatever was already
-computed for the subset is skipped on resume.
+The store is <out-root>/<id>/<mic>_tri.npz, tri: float16 at model scale, meta: json.
+The CryoPPP subset micrographs are a true subset of the full set (confirmed to exist
+under the same file names), so both scales share one npz store, and whatever was
+already computed is skipped on resume.
 
 Run in the micrograph_cleaner environment. The GPU defaults to 1.
   python save_fullset_triangular_masks.py --ids 10093,10345 --gpu 1
@@ -47,7 +43,7 @@ def main():
                     help="parent of <id>/micrographs (default: $RAPICK_DATA/cryoppp_fullset; "
                          "pass $RAPICK_DATA/cryoppp for the 300 annotated micrographs)")
     ap.add_argument("--out-root", default=None,
-                    help="the same store as save_triangular_masks.py (default: $RAPICK_WORK/masks)")
+                    help="the npz mask store (default: $RAPICK_WORK/masks)")
     ap.add_argument("--model", default=None,
                     help="model .h5 (default: $RAPICK_DATA/checkpoints/%s)" % env.MODEL_BASENAME)
     ap.add_argument("--limit", type=int, default=None, help="cap on micrographs per entry (for testing)")

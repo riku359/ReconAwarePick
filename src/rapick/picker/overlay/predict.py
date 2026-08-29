@@ -474,7 +474,7 @@ def infer(images_path, model, postprocessors, device, output_dir):
             hs_all = decoder_hidden[0][:, 0]           # (6, 600, 256) fp32, all decoder layers, batch 0
             # normalized cxcywh -> pixel scale. Resize preserves aspect ratio, so a
             # fraction of the resized image is the same fraction of the original
-            # micrograph; same convention as analysis_diagnosis/linear_probe.py.
+            # micrograph.
             pred_boxes_px = outputs['pred_boxes'][0].numpy() * np.array([w, h, w, h], dtype=np.float32)
             np.savez(
                 os.path.join(args.dump_hs, filename + '.npz'),
