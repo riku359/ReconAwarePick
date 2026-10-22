@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -47,6 +48,17 @@ def _is_data_row(s: str) -> bool:
     return bool(s) and not s.startswith(("_", "#", "data_")) and s != "loop_"
 
 
+def mic_key(name: str) -> str:
+    """Raw basename stem; a leading date can be part of the real filename."""
+    return os.path.splitext(os.path.basename(name))[0]
+
+
+def listed_micrograph(name: str, listed_keys: set) -> bool:
+    """Prefer the exact name, then remove one numeric CryoSPARC import prefix."""
+    key = mic_key(name)
+    return key in listed_keys or re.sub(r"^\d+_", "", key) in listed_keys
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -62,6 +74,7 @@ def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
 
     listed = {ln.strip() for ln in Path(args.list).read_text().splitlines() if ln.strip()}
+    listed_keys = {mic_key(name) for name in listed}
     lines = Path(args.star).read_text().splitlines()
     mic_i, data_start = _mic_col_and_data_start(lines)
 
@@ -79,7 +92,7 @@ def main(argv=None) -> int:
         base = os.path.basename(parts[mic_i])
         # A list entry may be written with or without the .mrc extension; both mean the
         # same micrograph, and mixing the two is the easy way to silently keep nothing.
-        in_list = base in listed or os.path.splitext(base)[0] in listed
+        in_list = listed_micrograph(base, listed_keys)
         if in_list != args.invert:
             out.append(ln)
             kept += 1

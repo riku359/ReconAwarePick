@@ -64,6 +64,8 @@ def build_two_class_linear(model_1out: nn.Linear) -> nn.Linear:
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--ids", type=int, nargs="+", default=None,
+                    help="explicit subset for smoke tests; default is all 22 training entries")
     ap.add_argument("--hs-dumps-dir", required=True, type=Path)
     ap.add_argument("--arch", required=True, choices=["linear", "mlp2", "mlp3"])
     ap.add_argument("--loss", required=True, choices=["softmax", "focal"])
@@ -81,23 +83,26 @@ def main():
                           "the deployed weights are then refit on 100%% of the data")
     args = ap.parse_args()
 
-    print("loading all 22 IDs' hs + labels ...")
-    id_data = load_all_ids(args.hs_dumps_dir)
+    ids = args.ids if args.ids is not None else TRAIN_IDS
+    print("loading %d IDs' hs + labels ..." % len(ids))
+    id_data = load_all_ids(args.hs_dumps_dir, ids)
 
     # sanity metric on a held-out mic-level split (not used to pick anything -- the
     # config was already chosen from Phase D's LOIO-CV; this is just a final check
     # that the fully-refit deployed head is not obviously broken).
     rng = np.random.default_rng(args.seed)
     holdout_mic_idx = {}
-    for eid in TRAIN_IDS:
+    for eid in ids:
         n_mic = id_data[eid]["hs_last"].shape[0]
+        if n_mic < 2:
+            raise SystemExit('head sanity split needs at least two micrographs per entry')
         idx = rng.permutation(n_mic)
         n_hold = max(1, int(round(n_mic * args.holdout_frac)))
         holdout_mic_idx[eid] = (idx[:n_hold], idx[n_hold:])
 
     def flatten_subset(mic_selector):
         xs, ys = [], []
-        for eid in TRAIN_IDS:
+        for eid in ids:
             sel = mic_selector(eid)
             if len(sel) == 0:
                 continue
@@ -116,9 +121,9 @@ def main():
     print(f"sanity (held-out {args.holdout_frac:.0%} mics, 90/10 split, NOT the deployed "
           f"weights): auc={sanity_auc:.4f} pr@r98={sanity_par}")
 
-    # deployed weights: refit on ALL 22 IDs' full data.
-    print("refitting on 100% of the 22-ID data for deployment ...")
-    X_all, y_all, _ = flatten(id_data, TRAIN_IDS)
+    # Refit on every micrograph of the explicitly requested entries.
+    print(f"refitting on 100% of the {len(ids)}-ID data ...")
+    X_all, y_all, _ = flatten(id_data, ids)
     model, mu, sigma = train_head(X_all, y_all, args.arch, args.loss,
                                    args.eos_coef, args.alpha, args.gamma,
                                    epochs=args.epochs, seed=args.seed)
@@ -152,7 +157,8 @@ def main():
     ckpt["stage1_head_repair"] = dict(
         arch=args.arch, loss=args.loss, eos_coef=args.eos_coef,
         alpha=args.alpha, gamma=args.gamma, epochs=args.epochs, seed=args.seed,
-        source_checkpoint=str(args.checkpoint_in),
+        source_checkpoint=str(args.checkpoint_in), ids=ids,
+        smoke_subset=args.ids is not None,
         sanity_auc=sanity_auc, sanity_precision_at_recall98=sanity_par,
         note="class_embed only; backbone/encoder/decoder/bbox_embed/query_embed "
              "unchanged from source_checkpoint. index0=particle, index1=no-object "

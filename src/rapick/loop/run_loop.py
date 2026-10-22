@@ -64,9 +64,10 @@ from .common import LOCK_DIR, State, acquire_lock, log, parse_rounds, run
 # per micrograph, NMS 0.7. It is relative on purpose. An absolute score threshold cannot
 # be held fixed across rounds, because fine-tuning moves the scale the scores live on, so
 # the same number would mean a different operating point each round.
+PICK_SELECTION = "legacy_idxfix"
 PICK_ARGS = ["--backbone", "resnet152", "--num_queries", "600",
              "--quartile_threshold", "0.25", "--nms_threshold", "0.7",
-             "--selection", "legacy_idxfix", "--gt-format",
+             "--selection", PICK_SELECTION, "--gt-format",
              "--save_micrographs_with_encircled_proteins", "N"]
 
 # What the contamination filter names its outputs. Passed explicitly rather than left to
@@ -192,7 +193,7 @@ def step_pick(n, st, rd, ctx: Run):
     if not produced.is_file():
         raise RuntimeError(f"combined star missing: {produced}")
     shutil.copyfile(produced, rd / PICKS_STAR)
-    st.mark("pick", checkpoint=str(ckpt), prediction_dir=str(candidates[-1]),
+    st.mark("pick", selection=PICK_SELECTION, checkpoint=str(ckpt), prediction_dir=str(candidates[-1]),
             picks_star=str(rd / PICKS_STAR))
 
 
@@ -228,11 +229,13 @@ def step_score(n, st, rd, ctx: Run):
                 f"{payload['macro_F1']:.3f}  picks = {payload['n_pred_eval']}\n"
                 f"  expected P/R/F1 = {gate['macro_P']}/{gate['macro_R']}/{gate['macro_F1']}"
                 f"  picks = {gate['n_pred_eval']}  (theta_0, Sec. S2)\n"
-                f"The checkpoint, the input images or the preprocessing differ from the "
-                f"run that produced the reference. Stopping before anything downstream.")
+                f"Selection is {PICK_SELECTION}. Check the reference selection mode, "
+                f"checkpoint, input coverage and preprocessing. Historical gate values "
+                f"have not been revalidated by the bounded smoke tests. "
+                f"Stopping before anything downstream.")
         log(f"round 0 gate PASSED (max |drift| {max(abs(d) for d in drift.values()):.3f}, "
             f"pick count {count_rel:.2%} off)")
-    st.mark("score", **payload)
+    st.mark("score", selection=PICK_SELECTION, **payload)
 
 
 def step_filter(n, st, rd, ctx: Run):

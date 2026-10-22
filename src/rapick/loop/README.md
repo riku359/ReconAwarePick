@@ -6,7 +6,8 @@ picks were real, and those become the labels for the next round.
 
 ## Fine-tuning is all weights, not LoRA
 
-The paper fine-tunes **every weight except resnet layer1, which stays frozen** —
+The implementation fine-tunes the prediction heads, transformer and **ResNet stages
+2–4; the upstream stem and layer1 stay frozen** —
 `finetune.py --finetune_mode head_decoder_encoder_resnet`. It is not a low-rank adapter,
 and no result in the paper was produced with one.
 
@@ -25,7 +26,8 @@ Table 7 (`--teacher gt`).
 Round *n* picks with theta_n and produces theta_{n+1}:
 
 1. **Pick** the 300 annotated micrographs with theta_n, at the fixed operating point
-   (600 queries, top 75% by score, NMS 0.7). Round 0 picks with theta_0 itself.
+   (600 queries, sigmoid-topk quantile 0.25, query-ID gathering/deduplication, NMS 0.7;
+   `--selection legacy_idxfix`). Round 0 picks with theta_0 itself.
 2. **Score** the raw picks against the CryoPPP annotation. On round 0 this is a hard
    gate: theta_0 has to reproduce its recorded row (Sec. S2) or the run stops, because
    every number below would inherit the discrepancy.
@@ -139,7 +141,7 @@ raises an error naming the variable rather than guessing a path.
 | tool | variable | default |
 | --- | --- | --- |
 | picker inference | `RAPICK_TOOL_PREDICT` | `$RAPICK_THIRD_PARTY/cryotransformer/predict.py` |
-| picker inference, whole deposition | `RAPICK_TOOL_PREDICT_FULLSET` | `$RAPICK_THIRD_PARTY/cryotransformer/predict_fullset.py` |
+| picker inference, whole deposition | `RAPICK_TOOL_PREDICT` | `$RAPICK_THIRD_PARTY/cryotransformer/predict.py` |
 | picker fine-tuning | `RAPICK_TOOL_FINETUNE` | `$RAPICK_THIRD_PARTY/cryotransformer/finetune.py` |
 | 2D scorer | `RAPICK_TOOL_SCORER` | `src/rapick/eval/calc_common_2d_metrics.py` |
 | contamination filter | `RAPICK_TOOL_MASK_FILTER` | `src/rapick/cleaner/filter_star_from_masks.py` |
@@ -250,3 +252,12 @@ picks under a condition that already names one.
   entry's score distribution sits higher than the others'. Teacher labels downstream of
   that are suspect, and a round-over-round decline on 10345 may be the selector rather
   than the feedback.
+
+
+## Server-free validation
+
+See [bounded validation](../../../docs/VALIDATION.md) for saved `.cs` teacher
+exports, GT teachers, short training and the limits of the historical round-0 gate.
+The manual picker now uses the loop's selection mode; legacy reproduction remains
+explicit. Neither the full CryoSPARC loop nor the published numerical results are
+established by the small training fixtures.

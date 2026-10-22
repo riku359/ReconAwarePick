@@ -18,6 +18,7 @@ from PIL import Image
 import numpy as np
 
 import torch
+from query_selection import select_queries
 
 import util.misc as utils
 
@@ -124,6 +125,13 @@ def get_images(in_path):
     return img_files
 
 
+def load_raster_rgb(path):
+    """Read supported raster images as grayscale replicated over three channels."""
+    with Image.open(path) as image:
+        gray = np.asarray(image.convert('L'))
+    return Image.fromarray(np.repeat(gray[:, :, np.newaxis], 3, axis=2))
+
+
 def resolve_test_data_root(cli_value):
     """Root holding <EMPIAR id>/images/, the directory this script reads micrographs from.
 
@@ -148,6 +156,8 @@ def get_args_parser():
     parser.add_argument('--quartile_threshold', type=float, default=0.25, help='Quartile threshold')
     parser.add_argument('--nms_threshold', type=float, default=0.7, help='Non-maximum suppression threshold')
     parser.add_argument('--empiar', default='10081', help='EMPIAR ID for prediction')
+    parser.add_argument('--image-dir', default=None,
+                        help='read images directly from this directory (head repair training split)')
     parser.add_argument('--data_root', default=None,
                         help='Root holding <EMPIAR id>/images/ with the micrographs to pick. '
                              'Defaults to $RAPICK_TEST_DATA; one of the two must be set.')
@@ -177,10 +187,10 @@ def get_args_parser():
                              'Independent of --debug_dump. Does not alter picking/output behavior.')
     parser.add_argument('--selection', default='legacy',
                         choices=['legacy', 'legacy_idxfix', 'softmax_topk', 'softmax_thresh'],
-                        help="[diagnosis-only] Which query-selection route feeds NMS. 'legacy' (default) "
-                             "is byte-identical to the original predict.py: exactly reproduces the "
+                        help="Which query-selection route feeds NMS. 'legacy' (default) "
+                             "reproduces the original predict.py's positional selection: "
                              "shipped, unmodified behavior. 'legacy_idxfix' keeps the same quantile-of-"
-                             "sigmoid-topk mechanism and count, but fixes the index bug where `keep` "
+                             "sigmoid-topk mechanism, gathers query IDs and deduplicates them; fixes where `keep` "
                              "(a mask over score-sorted rank) is applied positionally to the raw "
                              "600-query array instead of being gathered via topk_indexes. 'softmax_topk' "
                              "selects the top --selection_topk_n queries by softmax particle-probability. "
@@ -272,24 +282,15 @@ def infer(images_path, model, postprocessors, device, output_dir):
     )
 
     for img_sample in images_path:
-        filename = os.path.basename(img_sample)[:-4] 
+        filename = Path(img_sample).stem
         print(len(filename))
-        extension = img_sample[-3:]
+        extension = Path(img_sample).suffix.lower()
         #loading image if input is in jpg format
-        if extension == 'jpg':
-            orig_image = Image.open(img_sample)
-            img_size = orig_image.size
-            # Broadcast the single intensity channel to R=G=B (grayscale -> RGB) via
-            # numpy instead of a per-pixel Python loop over getdata()/putdata() -- same
-            # ~38x speedup already applied to the mrc path below (see its comment); the
-            # per-pixel loop here was previously untouched because prior work only ran
-            # this codepath on small ad-hoc jpg batches, not a full 5172-image split.
-            gray_array = np.array(orig_image)
-            rgb_array = np.repeat(gray_array[:, :, np.newaxis], 3, axis=2)
-            rgb_image = Image.fromarray(rgb_array)
+        if extension in ('.jpg', '.jpeg', '.png', '.gif', '.pgm'):
+            rgb_image = load_raster_rgb(img_sample)
             w, h = rgb_image.size
 
-        if extension == 'mrc':
+        if extension == '.mrc':
             orig_image = denoise_micrographs.denoise(img_sample)
             h, w = orig_image.shape
             # Broadcast the single intensity channel to R=G=B (grayscale -> RGB).
@@ -348,42 +349,10 @@ def infer(images_path, model, postprocessors, device, output_dir):
         probas2 = outputs['pred_logits'].sigmoid()
         topk_values, topk_indexes = torch.topk(probas2.view(outputs["pred_logits"].shape[0], -1), args.num_queries, dim=1)   #extreme important mention num queries
 
-        if args.selection == 'legacy':
-            # Unmodified upstream logic, kept byte-for-byte as the ground truth for
-            # what predict.py has always shipped. Per diagnosis H1: `keep` is a mask
-            # over score-sorted RANK (topk_values is sorted desc) but gets applied
-            # positionally to the raw query array below — topk_indexes is computed
-            # but never consulted, so this does not actually select the top-scoring
-            # queries; it selects raw query slots 0..n_keep-1.
-            scores = topk_values
-            keep = scores[0] > np.quantile(scores, args.quartile_threshold)  #This is what prevents from predicting ice patches as particles
-            scores = scores[0, keep]
-
-            # keep = probas.max(-1).values > args.thresh  #this is original
-            # print("==========" + img_sample + "====pred_logits after softmax===============================")
-            # print(keep )
-
-            bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, keep], rgb_image.size)
-            probas = probas[keep].cpu().data.numpy()
-            selected_query_idx = np.nonzero(keep.cpu().numpy())[0]
-
-        elif args.selection == 'legacy_idxfix':
-            # Same quantile-of-sigmoid-topk mechanism and kept-count as legacy, but
-            # actually gathers boxes/scores by the query id topk_indexes intended —
-            # i.e. this is legacy with only the H1 index bug corrected, nothing else
-            # changed (quartile_threshold, nms_threshold, num_queries all still apply).
-            raw_rank_keep = topk_values[0] > np.quantile(topk_values, args.quartile_threshold)
-            n_keep = int(raw_rank_keep.sum().item())
-            kept_flat_idx = topk_indexes[0][:n_keep]           # score-sorted prefix, same n_keep as legacy
-            kept_query_idx_sorted = (kept_flat_idx // 2).cpu().numpy()
-            kept_scores_sorted = topk_values[0][:n_keep]
-            # a query can occupy two flat slots (one per class logit, see H2); de-dup
-            # keeping the higher-ranked (first) occurrence, preserving score-desc order
-            _, first_pos = np.unique(kept_query_idx_sorted, return_index=True)
-            order = np.sort(first_pos)
-            selected_query_idx = kept_query_idx_sorted[order]
-            scores = kept_scores_sorted[order]  # stays a torch tensor, like the legacy branch
-
+        if args.selection in ('legacy', 'legacy_idxfix'):
+            selected_query_idx, scores = select_queries(
+                outputs['pred_logits'], args.num_queries, args.quartile_threshold,
+                args.selection)
             bboxes_scaled = rescale_bboxes(outputs['pred_boxes'][0, selected_query_idx], rgb_image.size)
             probas = probas[selected_query_idx].cpu().data.numpy()
 
@@ -541,11 +510,11 @@ def save_individual_box_file(boxes, scores, img_file, h, box_file_path, out_imgn
             star_bbox = box.cpu().data.numpy()
             star_bbox = star_bbox.astype(np.int32)
             #h- is done to handle the cryoSparc micrograph reading orientation
-            boxwriter.writerow([os.path.basename(img_file)[:-4] + '.mrc', (star_bbox[0] + star_bbox[2]) / 2, h-(star_bbox[1] + star_bbox[3]) / 2, -9999, -9999, scores[i]])
+            boxwriter.writerow([Path(img_file).stem + '.mrc', (star_bbox[0] + star_bbox[2]) / 2, h-(star_bbox[1] + star_bbox[3]) / 2, -9999, -9999, scores[i]])
             if args.du_particles == 'Y':
                 coordinate_shift_rand = random.choice(list(range(-20, -9)) + list(range(10, 21))) #shifting center to obtain better 2D averaging
                 # coordinate_shift_rand = 10
-                boxwriter.writerow([os.path.basename(img_file)[:-4] + '.mrc', ((star_bbox[0] + star_bbox[2]) / 2)+coordinate_shift_rand, (h-(star_bbox[1] + star_bbox[3]) / 2)+coordinate_shift_rand, -9999, -9999, scores[i]])
+                boxwriter.writerow([Path(img_file).stem + '.mrc', ((star_bbox[0] + star_bbox[2]) / 2)+coordinate_shift_rand, (h-(star_bbox[1] + star_bbox[3]) / 2)+coordinate_shift_rand, -9999, -9999, scores[i]])
 
 def plot_predicted_boxes(rgb_image, boxes, filename, predicted_particles_visualizations_path, h):
     img = np.array(rgb_image)
@@ -656,12 +625,15 @@ if __name__ == "__main__":
     from datetime import datetime
     current_datetime = datetime.now()
     timestamp = current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-    data_path = os.path.join(resolve_test_data_root(args.data_root),
+    data_path = args.image_dir or os.path.join(resolve_test_data_root(args.data_root),
                              str(args.empiar), "images")  #cryoPPP ~300 micrographs
     output_dir = "output/predictions/predictions_EMPIAR_{}_remarks_{}_timestamp_{}/".format(
     args.empiar, args.remarks, timestamp)
 
 
+    image_paths = get_images(data_path)
+    if not image_paths:
+        raise SystemExit("no supported images found in %s" % data_path)
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     device = torch.device(args.device)

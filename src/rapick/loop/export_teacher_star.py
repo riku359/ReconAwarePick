@@ -50,8 +50,13 @@ from .common import connect_cryosparc
 
 def load_particle_coords(job, output_name: str):
     """(mic_key, X_gt, Y_gt) per particle, in the GT-aligned top-left convention."""
-    parts = job.load_output(output_name, slots=["location"])
-    mic_keys = [star.normalize_mic_name(str(p)) for p in parts["location/micrograph_path"]]
+    return particle_coords(job.load_output(output_name, slots=["location"]))
+
+
+def particle_coords(parts):
+    """Decode location fields from an API dataset or a saved structured .cs array."""
+    mic_keys = [star.normalize_mic_name(p.decode() if isinstance(p, bytes) else str(p))
+                for p in parts["location/micrograph_path"]]
     shapes = np.array(parts["location/micrograph_shape"])          # (H, W) per particle
     ny = shapes[:, 0].astype(float)
     nx = shapes[:, 1].astype(float)
@@ -84,8 +89,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--project", default=None,
                     help="project UID (default: CRYOSPARC_PROJECT from the "
                          "repository-root .env)")
-    ap.add_argument("--select2d", required=True,
+    ap.add_argument("--select2d", default=None,
                     help="completed select_2D job whose kept particles become the labels")
+    ap.add_argument("--particles-cs", help="saved selected-particle .cs export; no server or credentials")
+    ap.add_argument("--extract-cs", help="saved extracted-particle .cs for the coordinate check")
     ap.add_argument("--extract", default=None,
                     help="the extract job under the same stack; used only to prove the "
                          "coordinate convention against --input-star (skipped if omitted)")
@@ -121,22 +128,30 @@ def main(argv=None) -> int:
     out_dir = Path(args.out_dir).expanduser()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    cs = connect_cryosparc(paths.load_env())
-    project = cs.find_project(args.project or paths.cryosparc_project())
+    if bool(args.particles_cs) == bool(args.select2d):
+        sys.exit('provide exactly one of --particles-cs or --select2d')
+    if args.particles_cs and args.extract:
+        sys.exit('--particles-cs uses --extract-cs, not a server --extract job')
+    project = None
+    if not args.particles_cs:
+        cs = connect_cryosparc(paths.load_env())
+        project = cs.find_project(args.project or paths.cryosparc_project())
 
     # Prove the coordinate convention on the full extracted set before trusting the
     # subset. A wrong inverse would still produce a plausible-looking STAR.
     check = None
-    if args.extract:
+    if args.extract or args.extract_cs:
         if not args.input_star:
-            sys.exit("--extract needs --input-star")
+            sys.exit("--extract/--extract-cs needs --input-star")
         # 2 px, not the scorer's particle radius: the round trip is exact. Measured over
         # 71,814 particles, the residual to the originating pick is 0.0002 px at worst --
         # float32 in the .cs fractions and nothing else. Matching at a particle radius
         # would still pass while quietly off by tens of pixels.
         tol = args.tolerance_px
-        ex_keys, ex_x, ex_y = load_particle_coords(project.find_job(args.extract),
-                                                   "particles")
+        if args.extract_cs:
+            ex_keys, ex_x, ex_y = particle_coords(np.load(args.extract_cs, allow_pickle=False))
+        else:
+            ex_keys, ex_x, ex_y = load_particle_coords(project.find_job(args.extract), "particles")
         frac, n_mic_star = check_against_input_star(
             ex_keys, ex_x, ex_y, Path(args.input_star).expanduser(), tol)
         check = {"extract_job": args.extract, "n_extract": len(ex_keys),
@@ -148,8 +163,10 @@ def main(argv=None) -> int:
             sys.exit(f"error: coordinate convention check failed ({frac:.4%} < "
                      f"{args.min_match_frac:.2%}). Labels would be wrong -- stopping.")
 
-    keys, xs, ys = load_particle_coords(project.find_job(args.select2d),
-                                        "particles_selected")
+    if args.particles_cs:
+        keys, xs, ys = particle_coords(np.load(args.particles_cs, allow_pickle=False))
+    else:
+        keys, xs, ys = load_particle_coords(project.find_job(args.select2d), "particles_selected")
     by_mic: dict = {}
     for key, px, py in zip(keys, xs, ys):
         by_mic.setdefault(key, []).append((px, py))
@@ -191,7 +208,8 @@ def main(argv=None) -> int:
     (out_dir / "train_mics.txt").write_text("\n".join(chosen) + "\n")
 
     summary = {
-        "project": project.uid, "select2d": args.select2d, "empiar": args.empiar,
+        "project": project.uid if project else None, "select2d": args.select2d,
+        "particles_cs": args.particles_cs, "empiar": args.empiar,
         "seed": args.seed, "num_mics": "all" if args.all_mics else args.num_mics,
         "n_surviving_particles": len(keys),
         "n_micrographs_with_survivors": len(by_mic),

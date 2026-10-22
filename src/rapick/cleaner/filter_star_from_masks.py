@@ -50,6 +50,11 @@ def full_res_mask(npz_path):
     with np.load(npz_path, allow_pickle=False) as z:
         tri = z["tri"].astype(np.float32)                 # stored as float16 -> decide in float32
         meta = json.loads(str(z["meta"]))
+    if tri.ndim != 2 or not tri.size or not np.isfinite(tri).all():
+        raise ValueError("mask must be a nonempty finite 2D array")
+    for key in ("width", "height"):
+        if not isinstance(meta[key], int) or isinstance(meta[key], bool) or meta[key] <= 0:
+            raise ValueError("mask metadata %s must be a positive integer" % key)
     return cv2.resize(tri, (meta["width"], meta["height"]),
                       interpolation=cv2.INTER_LINEAR), meta
 
@@ -69,6 +74,9 @@ def main():
     ap.add_argument("--suffix", default="_tri")
     ap.add_argument("--star-prefix", default="cryotransformer")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--allow-missing-masks", action="store_true",
+                    help="explicit permissive mode: retain picks for unreadable masks; "
+                         "errors remain recorded in decisions (not a completed strict filter)")
     args = ap.parse_args()
 
     args.mask_dir = args.mask_dir or env.mask_dir_of(args.empiar_id)
@@ -84,24 +92,25 @@ def main():
     deep = args.deep_thr
     print("[cfg] star=%s picks=%d mics=%d masks=%s" % (args.star, len(rows), len(by_mic), args.mask_dir))
 
-    # A missing mask is recorded as status=error and keeps every pick (the same safe side
-    # as the existing filter). Failing here would stop a round because of a single missing
-    # mask.
-    done = {}
-    if os.path.isfile(decisions_path) and not args.overwrite:
-        with open(decisions_path) as f:
-            for line in f:
-                d = json.loads(line)
-                done[d["mic"]] = d
-        for m in [m for m, d in done.items() if d.get("status") == "error"]:
-            del done[m]
-        print("[resume] %d micrographs already decided" % len(done))
+    # Validate every required input before touching decisions or published outputs,
+    # including on resume. A cached decision is not evidence that a mask still exists.
+    if not args.allow_missing_masks:
+        failures = []
+        for mic in sorted(by_mic):
+            try:
+                full_res_mask(mask_path_for(args.mask_dir, mic))
+            except Exception as exc:
+                failures.append("%s: %s" % (mic, exc))
+        if failures:
+            raise SystemExit("required mask validation failed; outputs preserved:\n" +
+                             "\n".join(failures))
 
+    # Recompute decisions from this STAR and threshold. Old decision records may
+    # describe another round's picks even when the micrograph names are identical.
     t_run = time.time()
+    failures = []
     with open(decisions_path, "w" if args.overwrite else "a") as dec_out:
         for k, mic in enumerate(sorted(by_mic)):
-            if mic in done:
-                continue
             picks = [(rows[ri][2], rows[ri][3]) for ri in by_mic[mic]]
             rec = {"mic": mic, "n_picks": len(picks)}
             try:
@@ -113,6 +122,7 @@ def main():
                 rec["contam_fraction"] = round(float(np.mean(mask >= deep)), 5)
                 rec["status"] = "anomaly" if rec["contam_fraction"] >= 0.02 else "ok"
             except Exception as e:  # noqa: BLE001
+                failures.append(mic)
                 rec["keep"] = [1] * len(picks)
                 rec["n_removed"] = 0
                 rec["status"] = "error"
@@ -121,6 +131,9 @@ def main():
             if (k + 1) % 100 == 0:
                 print("[%d/%d] %s (%.1fs)" % (k + 1, len(by_mic), mic, time.time() - t_run))
 
+    if failures and not args.allow_missing_masks:
+        raise SystemExit("required mask read failed during filtering; STAR outputs preserved: " +
+                         ", ".join(failures))
     fst.assemble(args, header, rows, by_mic, decisions_path, box, deep)
 
 

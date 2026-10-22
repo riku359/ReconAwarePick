@@ -203,11 +203,13 @@ def main():
     parser.add_argument("--montage", action="store_true", help="also write the montage PNG")
     args = parser.parse_args()
 
-    env = read_env(args.env)
-    project = args.project or require(env, "CRYOSPARC_PROJECT", args.env)
     if args.job_dir:
+        # Saved exports need neither credentials nor a server project.
+        project = args.project or "offline"
         job_dir = Path(args.job_dir)
     else:
+        env = read_env(args.env)
+        project = args.project or require(env, "CRYOSPARC_PROJECT", args.env)
         job_dir = resolve_job_dir(connect(env, args.env), project, args.job)
 
     out_dir = resolve_work_dir(args.out_root) / f"{project}_{args.job}"

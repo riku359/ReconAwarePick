@@ -29,8 +29,9 @@ hypothetical -- on EMPIAR-10093 one of the 50 has no annotated particle -- so th
 is recorded rather than assumed, under `dropped_empty_gt_mics`.
 
 REIMPLEMENTED FROM A WRITTEN PROCEDURE. The script that produced the published Table 7
-numbers was never committed; this rebuilds what it is documented to have done and has not
-been run end to end in this form.
+numbers was never committed; this rebuilds what it is documented to have done. A real
+two-image teacher and short fine-tune have been validated; the published GT-arm numbers
+have not been reproduced. See docs/VALIDATION.md.
 """
 from __future__ import annotations
 
@@ -41,7 +42,9 @@ import sys
 from pathlib import Path
 
 from . import entries, paths
-from .filter_star_by_micrograph_list import _is_data_row, _mic_col_and_data_start
+from .filter_star_by_micrograph_list import (
+    _is_data_row, _mic_col_and_data_start, mic_key, listed_micrograph,
+)
 from .filter_star_by_micrograph_list import main as filter_star
 
 
@@ -86,9 +89,8 @@ def build_teacher(empiar: str, mics_from: str | Path, out_dir: str | Path,
     # A listed micrograph is covered when the STAR carries a row for it. Compare on the
     # stem so a list written with or without `.mrc` matches either way, exactly as the
     # filter itself does.
-    covered = {os.path.splitext(base)[0] for base in per_mic}
     dropped = sorted(name for name in listed
-                     if os.path.splitext(os.path.basename(name))[0] not in covered)
+                     if not any(listed_micrograph(base, {mic_key(name)}) for base in per_mic))
 
     n_particles = sum(per_mic.values())
     if not n_particles:
