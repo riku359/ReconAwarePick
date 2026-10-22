@@ -410,6 +410,9 @@ def get_args_parser():
     parser.add_argument('--remove_difficult', action='store_true')
 
     parser.add_argument('--seed', default=42, type=int)
+    parser.add_argument('--resume-training', action='store_true',
+                        help='restore optimizer/scheduler and continue after checkpoint epoch; '
+                             '--resume alone initializes weights for a new feedback round')
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N', help='start epoch')
     parser.add_argument('--eval', action='store_true', help='run validation once and exit, no training')
     parser.add_argument('--eval_every', default=1, type=int, help='epochs between validation passes')
@@ -524,6 +527,15 @@ def main(args):
     optimizer = torch.optim.AdamW(param_dicts, lr=args.lr, weight_decay=args.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
+    if args.resume_training:
+        if (not args.resume or not all(k in checkpoint for k in ('optimizer', 'lr_scheduler', 'epoch'))
+                or not getattr(checkpoint.get('args'), 'finetune_mode', None)):
+            raise SystemExit('--resume-training requires a fine-tuning checkpoint with optimizer, scheduler and epoch')
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        args.start_epoch = checkpoint['epoch'] + 1
+        print('Continuing training at epoch %d (optimizer and scheduler restored)' % args.start_epoch)
+
     if args.val_images_dir:
         assert args.val_star, '--val_star is required together with --val_images_dir'
         train_samples = match_micrographs_to_star(Path(args.images_dir), Path(args.star))
@@ -535,6 +547,10 @@ def main(args):
     mrc_select_seed = args.mrc_select_seed if args.mrc_select_seed is not None else args.seed
     train_samples = subsample_train_mrcs(train_samples, args.num_train_mrcs, mrc_select_seed)
     print(f'{len(train_samples)} train / {len(val_samples)} val micrographs')
+
+    if not val_samples or len(train_samples) < args.batch_size:
+        raise SystemExit('need nonempty validation data and at least --batch_size training images; '
+                         'reduce --batch_size for a small smoke test')
 
     dataset_train = StarMicrographDataset(train_samples, args.box_size, make_micrograph_transforms('train'))
     dataset_val = StarMicrographDataset(val_samples, args.box_size, make_micrograph_transforms('val'))
@@ -582,6 +598,7 @@ def main(args):
                 'optimizer': optimizer.state_dict(),
                 'lr_scheduler': lr_scheduler.state_dict(),
                 'epoch': epoch,
+                'training_kind': 'rapick_finetune',
                 'args': args,
             }, checkpoint_path)
 

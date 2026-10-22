@@ -33,7 +33,7 @@ from typing import Optional
 from . import entries, paths, star
 from .common import LOCK_DIR, State, acquire_lock, log, run
 from .run_loop import (FILTER_STAR, FILTER_SUMMARY, MASK_SUFFIX, MASKED_STAR,
-                       PICKS_STAR, PICK_ARGS, STAR_PREFIX)
+                       PICKS_STAR, PICK_ARGS, PICK_SELECTION, STAR_PREFIX)
 
 STEPS = ("pick", "filter", "publish")
 
@@ -87,14 +87,14 @@ def step_pick(st, td, args, entry):
             f"<data root>/<id>/images; link it to "
             f"{paths.fullset_micrographs(entry.empiar)})")
 
-    run(paths.tool_cmd("predict_fullset") +
+    run(paths.tool_cmd("predict") +
         ["--empiar", entry.empiar, "--data_root", str(data_root),
          "--resume", str(ckpt), *PICK_ARGS,
          "--device", f"cuda:{args.gpu}", "--remarks", args.condition],
-        cwd=paths.tool_cwd("predict_fullset"), log_path=td / "logs" / "pick.log",
-        env_extra=paths.tool_env("predict_fullset"))
+        cwd=paths.tool_cwd("predict"), log_path=td / "logs" / "pick.log",
+        env_extra=paths.tool_env("predict"))
 
-    pred_root = paths.tool_cwd("predict_fullset") / "output" / "predictions"
+    pred_root = paths.tool_cwd("predict") / "output" / "predictions"
     candidates = sorted(
         pred_root.glob(f"predictions_EMPIAR_{entry.empiar}_remarks_{args.condition}"
                        f"_timestamp_*"),
@@ -119,7 +119,7 @@ def step_pick(st, td, args, entry):
     log(f"pick: {n_picks:,} picks over {len(mics)} micrographs "
         f"({n_picks / len(mics):.1f} per micrograph)")
     warn_if_near_cap(entry, n_picks, "picks before the contamination filter")
-    st.mark("pick", checkpoint=str(ckpt), prediction_dir=str(candidates[-1]),
+    st.mark("pick", selection=PICK_SELECTION, checkpoint=str(ckpt), prediction_dir=str(candidates[-1]),
             picks_star=str(picks), n_picks=n_picks, n_micrographs=len(mics))
 
 

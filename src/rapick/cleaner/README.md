@@ -228,3 +228,13 @@ needed to reproduce the filtered picks. Where each file comes from:
 - **GPU selection goes through `--gpu`.** `MaskPredictor` overwrites
   `CUDA_VISIBLE_DEVICES` from its `gpus` argument before TensorFlow is imported,
   so setting that variable outside has no effect.
+
+
+Cached-mask filtering fails with a nonzero exit status when any required mask is
+missing, corrupt, nonfinite, or has invalid dimensions. Existing STAR outputs are
+preserved on input validation failure. Decisions are recomputed for the current
+picks and threshold; only the mask arrays are reused across rounds.
+`--allow-missing-masks` explicitly retains candidates on errors and records them
+in the summary; do not treat that output as a completed strict filter.
+See [validation](../../../docs/VALIDATION.md) for regression checks and measured
+float16 storage differences.

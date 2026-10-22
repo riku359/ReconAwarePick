@@ -66,7 +66,12 @@ if [ ! -f "$WEIGHTS" ]; then
 fi
 
 # uv fetches a managed CPython where the host has no python3.12.
-uv venv --python 3.12 "$ENV_DIR"
+if [ ! -x "$ENV_DIR/bin/python" ]; then
+  uv venv --python 3.12 "$ENV_DIR"
+elif ! "$ENV_DIR/bin/python" -c 'import sys; assert sys.version_info[:2] == (3, 12)'; then
+  echo "error: existing $ENV_DIR needs Python 3.12; use a fresh RAPICK_ENVS root." >&2
+  exit 1
+fi
 
 # pysqlite3 is dropped from upstream's list rather than removed from the committed
 # copy of it, so that the file stays byte-identical to upstream and the deviation is
@@ -74,8 +79,8 @@ uv venv --python 3.12 "$ENV_DIR"
 # needs sqlite3.h -- a system header most machines do not have. Nothing imports it:
 # not upstream's particle_processor, not this stage, and Python has carried `sqlite3`
 # in its standard library since long before the version this environment pins.
-FILTERED="$(mktemp)"
-trap 'rm -f "$FILTERED"' EXIT
+FILTERED="$(mktemp "$ENV_PARENT/requirements-filtered.XXXXXX")"
+# Retain the exact installed requirements for reproducibility.
 grep -v '^pysqlite3==' "$REQ" > "$FILTERED"
 if ! diff -q "$REQ" "$FILTERED" >/dev/null; then
   echo "note: skipping pysqlite3 (unused, and building it needs sqlite3.h)" >&2

@@ -64,25 +64,28 @@ matters only for a full retrain.
 | File | What it is |
 | --- | --- |
 | `finetune.py` | The fine-tuning stage of Sec. 3.5 and Sec. S2. Trains from a GT-aligned STAR plus a micrograph directory, with no COCO annotation build step. |
-| `predict_fullset.py` | Picking the whole deposition. |
+| `predict_fullset.py` | Legacy positional-selection reproduction over a whole deposition. |
+| `query_selection.py` | Explicit legacy and idxfix quantile query selection shared by the predictor. |
 | `head_repair/*.py` | The head repair of Sec. S2, which produces theta_0. |
 
 ## The operating point
 
-The picks the paper reports come out of `predict.py` at its shipped defaults, and the
-whole pipeline is built on that operating point rather than on a re-tuned one:
+The common numerical settings are below. Query selection must also be specified:
+`legacy_idxfix` is the manual/loop default; `legacy` preserves upstream behavior.
+Historical paper rows have not been mapped conclusively to these modes in this validation:
 
 - **600 queries per micrograph** (`--num_queries 600`): the decoder emits 600 candidate
   boxes for every micrograph, and that count is the ceiling on how many particles a
   micrograph can yield.
-- **keep the top 75% by score** (`--quartile_threshold 0.25`): candidates scoring below
-  the 25th percentile of that micrograph's own scores are dropped. The cut is relative
-  to the micrograph, not absolute.
+- **quantile 0.25** (`--quartile_threshold 0.25`): rank the top 600 flattened sigmoid
+  class logits and retain values strictly above their 25th percentile. idxfix gathers
+  query IDs and deduplicates them; legacy applies this rank mask to raw query slots.
+  This is not a threshold on the softmax particle probability.
 - **NMS at overlap 0.7** (`--nms_threshold 0.7`): of two surviving boxes overlapping by
   more than 0.7, the lower-scoring one is discarded.
 
 ```bash
-python predict.py --empiar 10081 \
+python predict.py --empiar 10081 --selection legacy_idxfix \
     --resume $RAPICK_DATA/checkpoints/CryoTransformer_head_repaired.pth \
     --gt-format
 ```
@@ -92,11 +95,10 @@ python predict.py --empiar 10081 \
 and directly reconstructable. Without it the output is upstream's native
 bottom-origin STAR.
 
-`predict_fullset.py` takes the same flags. It is `predict.py` without any of the
-diagnostic machinery -- no `--debug_dump`, no `--dump_hs`, no forward hook on
-`class_embed` -- so a multi-day run over a full deposition is not slowed or perturbed by
-instrumentation it does not need. Point `RAPICK_TEST_DATA` at the full deposition rather
-than the annotated subset.
+`predict_fullset.py` omits diagnostic hooks and always uses legacy selection.
+Use `predict.py --selection legacy_idxfix --save_micrographs_with_encircled_proteins N`
+for a full deposition that matches the loop. Point `RAPICK_TEST_DATA` at the desired
+input layout; full and annotated inputs use the same loader.
 
 ## Where the micrographs come from
 
@@ -186,7 +188,10 @@ python head_repair/build_train_stem_mapping.py \
     --train-dir <extracted>/train_val_test_data/train \
     --out-csv $RAPICK_WORK/head_repair/stem_to_id.csv
 
-python predict.py --empiar 10081 --dump_hs $RAPICK_WORK/head_repair/hs_dumps
+python predict.py --empiar all --image-dir <extracted>/train_val_test_data/train \
+    --resume $RAPICK_DATA/checkpoints/CryoTransformer_pretrained_model.pth \
+    --save_micrographs_with_encircled_proteins N \
+    --dump_hs $RAPICK_WORK/head_repair/hs_dumps
 python head_repair/aggregate_hs_by_id.py \
     --dump-hs-dir $RAPICK_WORK/head_repair/hs_dumps \
     --mapping-csv $RAPICK_WORK/head_repair/stem_to_id.csv \
@@ -286,3 +291,17 @@ None of them has a default. See [`../../../docs/CONFIGURATION.md`](../../../docs
 Prediction output still lands under `output/predictions/` relative to the working
 directory, which is upstream's own convention and is left alone. Run `predict.py` from a
 directory you are willing to have written into, or move the result afterwards.
+
+
+## Validation and explicit selection modes
+
+See [bounded validation](../../../docs/VALIDATION.md) before downloading or running
+experiments. The manual picker and feedback loop now both use `legacy_idxfix`.
+Use `scripts/pick.sh --selection legacy` for the original positional selection;
+`predict_fullset.py` remains a legacy reproduction entry point. These modes are
+not interchangeable for the paper's metrics. The numerical round-0 gate is kept,
+but its historical mode/coverage still needs full-set verification.
+
+Head extraction can read the training split directly with `predict.py
+--image-dir DIR --empiar all --dump_hs OUT`; `all` alone does not resolve a split.
+The repair wrapper passes `--train-dir` through this explicit input option.

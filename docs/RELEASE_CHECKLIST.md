@@ -127,13 +127,18 @@ Both were found while checking the paper's numbers against their sources. Neithe
 changes a reported result, and neither is fixed here.
 
 - **The 2D scores cover 295 annotated micrographs on EMPIAR-10093 and 10345, not the 300
-  the paper states.** CryoPPP deposits 300 per entry, but only 295 carry annotations on
-  those two, and the scorer averages over the ones that do.
+  the paper states.** Independent inspection of the public lite archives found 300 JPGs per entry
+  and 295 distinct images with particle rows in each selected GT STAR. This verifies
+  nonempty GT coverage, not annotation completeness on the other five images. The
+  scorer averages over the GT keys it reads.
 - **Table 6's round 0 and Table S2's CryoTransformer row disagree**, although both
   describe the base checkpoint on the annotated micrographs: 0.530 / 0.919 / 0.655
   against 0.469 / 0.954 / 0.610 on EMPIAR-10081, from 65,385 picks against 77,328. The
   difference is not the contamination mask, which the loop applies after the count Table
-  6 prints.
+  6 prints. Selection mode is another material difference: legacy positional
+  selection and the loop's idxfix route produced 233 versus 196 candidates on the
+  same real-image smoke test. This does not prove which mode generated either
+  historical row; the references are retained pending that scientific review.
 
 ## What this repository deliberately does not contain
 

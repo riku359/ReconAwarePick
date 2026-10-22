@@ -8,8 +8,10 @@ Pick candidates with CryoTransformer (Sec. 3.2).
 
 The picker over-picks on purpose: the two purification stages downstream remove
 the background it accepts, and neither can recover a particle it never proposed.
-The operating point is the original implementation's, unchanged at every round
-and for every entry; the settings are in src/rapick/picker/README.md.
+The default selection is legacy_idxfix, matching the feedback loop. Use
+--selection legacy to reproduce upstream's positional query-selection behavior.
+These modes produce different candidates; published metrics are not interchangeable.
+See src/rapick/picker/README.md.
 
   bash scripts/pick.sh --entry 10081                     full deposition
   bash scripts/pick.sh --entry 10081 --setting annot --out $R/cryotransformer.star
@@ -37,8 +39,10 @@ SETTING="full"
 CKPT=""
 OUT=""
 GPU="${RAPICK_GPU:-0}"
+SELECTION="legacy_idxfix"
 while [ $# -gt 0 ]; do
   case "$1" in
+    --selection)  SELECTION="$2"; shift 2 ;;
     --entry)      ENTRY="$2"; shift 2 ;;
     --setting)    SETTING="$2"; shift 2 ;;
     --checkpoint) CKPT="$2"; shift 2 ;;
@@ -50,6 +54,10 @@ while [ $# -gt 0 ]; do
 done
 require_entry "$ENTRY"
 require_setting "$SETTING"
+case "$SELECTION" in
+  legacy|legacy_idxfix) ;;
+  *) echo "error: --selection must be legacy or legacy_idxfix" >&2; exit 2 ;;
+esac
 
 # --help must work with nothing configured, so the roots are demanded only
 # once the arguments are known to be valid.
@@ -110,7 +118,7 @@ banner "Picking $ENTRY ($SETTING) with $(basename "$CKPT")"
 # working directory, so the run happens inside the clone and the STAR is copied out
 # afterwards. --remarks is what makes the directory findable among earlier runs.
 ( cd "$CT" && CUDA_VISIBLE_DEVICES="$GPU" \
-    "$PY" predict_fullset.py --empiar "$ENTRY" --resume "$CKPT" --gt-format \
+    "$PY" predict.py --selection "$SELECTION" --save_micrographs_with_encircled_proteins N --empiar "$ENTRY" --resume "$CKPT" --gt-format \
       --data_root "$TEST_DATA" --remarks "$REMARKS" )
 
 banner "Collecting the STAR"

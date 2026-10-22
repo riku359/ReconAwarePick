@@ -73,7 +73,7 @@ banner "Mapping micrograph stems to their EMPIAR entry"
     --train-dir "$TRAIN_DIR" --out-csv "$HR/stem_to_id.csv" )
 
 banner "Dumping decoder features for the training entries"
-( cd "$CT" && "$PY" predict.py --empiar all --dump_hs "$HR/hs_dumps" --resume "$BASE" )
+( cd "$CT" && "$PY" predict.py --empiar all --image-dir "$TRAIN_DIR" --dump_hs "$HR/hs_dumps" --resume "$BASE" )
 
 banner "Grouping the per-micrograph dumps by entry"
 ( cd "$CT" && "$PY" head_repair/aggregate_hs_by_id.py \

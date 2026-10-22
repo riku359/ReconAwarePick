@@ -41,9 +41,9 @@ for tool in git curl; do
     exit 1
   fi
 done
-if [ "$SKIP_ENVS" -eq 0 ] && ! command -v uv >/dev/null; then
+if ! command -v uv >/dev/null; then
   echo "error: uv is required to build the environments." >&2
-  echo "       Install it from https://docs.astral.sh/uv/, or pass --skip-envs." >&2
+  echo "       Install it from https://docs.astral.sh/uv/ (also needed to read pins)." >&2
   exit 1
 fi
 
@@ -76,7 +76,12 @@ clone_pinned() {  # clone_pinned <section> <name>
   dest="$THIRD_PARTY/$path"
 
   if [ -d "$dest/.git" ]; then
-    echo "  $name: already at $dest, leaving it alone"
+    if [ -n "$commit" ] && [ "$(git -C "$dest" rev-parse HEAD)" != "$commit" ]; then
+      echo "error: $dest is not at pinned commit $commit; refusing to overlay it." >&2
+      echo "       Use a fresh RAPICK_THIRD_PARTY directory; existing work is preserved." >&2
+      exit 1
+    fi
+    echo "  $name: verified pin at $dest, leaving checkout in place"
     return
   fi
 
@@ -196,7 +201,7 @@ build_env() {  # build_env <name>
   fi
   echo "  $name: building"
   # In a subshell, so that the cd does not follow us into the next environment.
-  ( cd "$dir" && UV_PROJECT_ENVIRONMENT="$dir/.venv" uv sync --quiet --locked )
+  ( cd "$dir" && UV_PROJECT_ENVIRONMENT="${RAPICK_ENVS:-$REPO}/envs/$name/.venv" uv sync --quiet --locked )
 }
 
 echo "==> Building environments"
@@ -213,5 +218,5 @@ fi
 
 echo
 echo "Done. Next:"
-echo "  cp .env.example .env      and fill in your CryoSPARC credentials"
-echo "  bash scripts/download.sh"
+echo "  See docs/VALIDATION.md for bounded, server-free checks."
+echo "  See scripts/download.sh --help before downloading (all assets are about 1.6 TB)."
